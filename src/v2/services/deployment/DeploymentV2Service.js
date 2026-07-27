@@ -33,6 +33,16 @@ const installationManager =
         "../../managers/InstallationV2Manager"
     );
 
+const validationManager =
+    require(
+        "../validation/ValidationManagerV2"
+    );
+
+const characterTypeCatalog =
+    require(
+        "../../core/character/CharacterTypeCatalog"
+    );
+
 class DeploymentV2Service {
 
     getOwnedSource(
@@ -138,6 +148,102 @@ class DeploymentV2Service {
                 ...guild
             }
         );
+
+    }
+
+    deployAllExisting(data) {
+
+        const guild =
+            this.normalizeGuild(data);
+
+        const approvedBy =
+            String(
+                data.approvedBy || ""
+            ).trim();
+
+        if (!approvedBy) {
+            throw new Error(
+                "Le membre du staff lançant le déploiement est obligatoire."
+            );
+        }
+
+        return unitOfWork.run(
+            normalizedData =>
+                this
+                    .deployAllExistingInsideTransaction(
+                        normalizedData
+                    ),
+            {
+                ...guild,
+                approvedBy
+            }
+        );
+
+    }
+
+    deployAllExistingInsideTransaction(data) {
+
+        this.ensureGuild(
+            data.guildId,
+            data.guildName
+        );
+
+        const sources =
+            repository
+                .getDeployableSources(
+                    data.guildId
+                );
+
+        const deployments =
+            sources.map(
+                source => {
+                    const installation =
+                        installationManager.create({
+                            characterId:
+                                source.character_id,
+                            continuityId:
+                                source.id,
+                            guildId:
+                                data.guildId,
+                            status:
+                                "pending",
+                            visibility:
+                                characterTypeCatalog
+                                    .getInstallationVisibility(
+                                        source.character_type
+                                    ),
+                            proxyEnabled:
+                                false,
+                            localAvatarUrl:
+                                source.avatar_url
+                                || null
+                        });
+
+                    const approval =
+                        validationManager
+                            .approveInstallation({
+                                installationId:
+                                    installation.id,
+                                approvedBy:
+                                    data.approvedBy
+                            });
+
+                    return {
+                        character:
+                            source,
+                        continuity:
+                            source,
+                        installation:
+                            approval.installation
+                    };
+                }
+            );
+
+        return {
+            total:
+                deployments.length,
+            deployments
+        };
 
     }
 

@@ -8,6 +8,11 @@ const rosterManager =
         "../../v2/managers/CharacterRosterV2Manager"
     );
 
+const deploymentService =
+    require(
+        "../../v2/services/deployment/DeploymentV2Service"
+    );
+
 const characterTypes =
     require(
         "../../v2/core/character/CharacterTypeCatalog"
@@ -58,6 +63,13 @@ module.exports = {
                         .setDescription(
                             "Inclure les personnages archivés"
                         )
+                )
+        )
+        .addSubcommand(sub =>
+            sub
+                .setName("deployer-tous")
+                .setDescription(
+                    "Installe et valide tous les personnages absents du serveur."
                 )
         )
         .addSubcommand(sub =>
@@ -184,6 +196,27 @@ module.exports = {
             )
         ) {
             return;
+        }
+
+        if (subcommand === "deployer-tous") {
+            const result =
+                deploymentService
+                    .deployAllExisting({
+                        guildId:
+                            interaction.guildId,
+                        guildName:
+                            interaction.guild?.name
+                            || interaction.guildId,
+                        approvedBy:
+                            interaction.user?.id
+                    });
+
+            return replyPrivate(
+                interaction,
+                buildBulkDeploymentMessage(
+                    result.total
+                )
+            );
         }
 
         const user =
@@ -371,5 +404,22 @@ function buildLifecycleMessage(
         `Propriétaire : ${user}`,
         "",
         detail
+    ].join("\n");
+}
+
+function buildBulkDeploymentMessage(
+    total
+) {
+    if (total === 0) {
+        return [
+            "\u2139\uFE0F **Aucun personnage \u00E0 d\u00E9ployer**",
+            "Tous les personnages actifs sont d\u00E9j\u00E0 install\u00E9s sur ce serveur, ou sont archiv\u00E9s."
+        ].join("\n");
+    }
+
+    return [
+        "\u2705 **D\u00E9ploiement termin\u00E9**",
+        `**${total}** personnage(s) ont \u00E9t\u00E9 install\u00E9s et valid\u00E9s sur ce serveur.`,
+        "Ils sont imm\u00E9diatement jouables. Les personnages d\u00E9j\u00E0 install\u00E9s n\u2019ont pas \u00E9t\u00E9 modifi\u00E9s."
     ].join("\n");
 }

@@ -45,6 +45,14 @@ test(
         );
 
         stubModule(
+            "src/v2/services/deployment/DeploymentV2Service.js",
+            {
+                deployAllExisting:
+                    () => ({ total: 0 })
+            }
+        );
+
+        stubModule(
             "src/v2/core/services/StaffCommandAccessService.js",
             {
                 requireStaffCommandAccess:
@@ -88,6 +96,14 @@ test(
                 option.name === "lettre"
                 && option.autocomplete === true
             ),
+            true
+        );
+
+        assert.equal(
+            command.data.toJSON()
+                .options.some(option =>
+                    option.name === "deployer-tous"
+                ),
             true
         );
 
@@ -170,6 +186,82 @@ test(
     }
 );
 
+test(
+    "le dÃ©ploiement groupÃ© est rÃ©servÃ© au staff et utilise le serveur courant",
+    async () => {
+        let receivedData = null;
+
+        stubModule(
+            "src/v2/services/deployment/DeploymentV2Service.js",
+            {
+                deployAllExisting:
+                    data => {
+                        receivedData = data;
+
+                        return {
+                            total: 2
+                        };
+                    }
+            }
+        );
+
+        stubModule(
+            "src/v2/core/services/StaffCommandAccessService.js",
+            {
+                requireStaffCommandAccess:
+                    async () => true
+            }
+        );
+
+        const commandPath =
+            require.resolve(
+                "../src/commands/personnages"
+            );
+
+        delete require.cache[
+            commandPath
+        ];
+
+        const command =
+            require(
+                "../src/commands/personnages"
+            );
+
+        const interaction =
+            createInteraction(
+                "deployer-tous"
+            );
+
+        interaction.user = {
+            id: "staff"
+        };
+        interaction.guild = {
+            name: "Serveur Beta"
+        };
+
+        await command.execute(
+            interaction
+        );
+
+        assert.deepEqual(
+            receivedData,
+            {
+                guildId: "guild",
+                guildName: "Serveur Beta",
+                approvedBy: "staff"
+            }
+        );
+        assert.match(
+            interaction.replyPayload.content,
+            /2/
+        );
+        assert.match(
+            interaction.replyPayload.content,
+            /jouables/
+        );
+    }
+);
+
 function createInteraction(subcommand) {
     const interaction = {
         guildId:
@@ -179,6 +271,8 @@ function createInteraction(subcommand) {
                 () => subcommand,
             getInteger:
                 () => null,
+            getUser:
+                () => ({ id: "owner" }),
             getBoolean:
                 () => false,
             getString:
