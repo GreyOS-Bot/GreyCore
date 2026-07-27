@@ -1,0 +1,207 @@
+const test =
+    require("node:test");
+const assert =
+    require("node:assert/strict");
+
+const {
+    stubModule
+} = require(
+    "./helpers/moduleStub"
+);
+
+test(
+    "chaque type de personnage possède le bon libellé de fiche",
+    () => {
+        const catalog =
+            require(
+                "../src/v2/core/character/CharacterTypeCatalog"
+            );
+
+        const expectedLabels = {
+            personnage_joue:
+                "PJ",
+            pnj:
+                "PNJ",
+            random:
+                "Random",
+            pnj_reserve:
+                "PNJ réservé",
+            reserve_staff:
+                "Réservé staff"
+        };
+
+        for (
+            const [
+                type,
+                label
+            ]
+            of Object.entries(
+                expectedLabels
+            )
+        ) {
+            assert.equal(
+                catalog
+                    .getDisplayLabel(
+                        type
+                    ),
+                label
+            );
+        }
+    }
+);
+
+test(
+    "un personnage créé comme PNJ apparaît comme PNJ sur sa fiche",
+    () => {
+        const character = {
+            id:
+                "character-pnj",
+            proxy_name:
+                "Gardien",
+            character_type:
+                "pnj",
+            is_archived:
+                0
+        };
+        const continuity = {
+            id:
+                "continuity-pnj",
+            character_id:
+                character.id,
+            name:
+                "GreyOS",
+            firstname:
+                "Morgan",
+            lastname:
+                "Stone",
+            age:
+                34
+        };
+
+        stubModule(
+            "src/v2/repositories/DashboardRepository.js",
+            {}
+        );
+        stubModule(
+            "src/v2/managers/CharacterV2Manager.js",
+            {
+                getById:
+                    () =>
+                        character
+            }
+        );
+        stubModule(
+            "src/v2/managers/ContinuityV2Manager.js",
+            {
+                getById:
+                    () =>
+                        continuity
+            }
+        );
+        stubModule(
+            "src/v2/managers/InstallationV2Manager.js",
+            {
+                getByContinuity:
+                    () =>
+                        []
+            }
+        );
+        stubModule(
+            "src/v2/managers/ProfileV2Manager.js",
+            {
+                get:
+                    () =>
+                        null
+            }
+        );
+        stubModule(
+            "src/v2/managers/RelationshipV2Manager.js",
+            {
+                getForContinuity:
+                    () =>
+                        []
+            }
+        );
+        stubModule(
+            "src/v2/managers/EncounterV2Manager.js",
+            {
+                getForContinuity:
+                    () =>
+                        []
+            }
+        );
+        stubModule(
+            "src/v2/managers/StateV2Manager.js",
+            {
+                getActiveStates:
+                    () =>
+                        []
+            }
+        );
+
+        clearModule(
+            "../src/v2/services/dashboard/CharacterDashboardManager"
+        );
+
+        const dashboardManager =
+            require(
+                "../src/v2/services/dashboard/CharacterDashboardManager"
+            );
+
+        const dashboard =
+            dashboardManager
+                .getDashboardData(
+                    character.id,
+                    {
+                        continuityId:
+                            continuity.id
+                    }
+                );
+
+        assert.equal(
+            dashboard.character
+                .character_type,
+            "pnj"
+        );
+        assert.equal(
+            dashboard.character
+                .is_npc,
+            true
+        );
+
+        const page =
+            require(
+                "../src/v2/pages/character/CharacterDashboardPage"
+            );
+        const view =
+            page.build(
+                dashboard.character
+            );
+        const description =
+            view.embeds[0]
+                .data
+                .description;
+
+        assert.match(
+            description,
+            /🎭 PNJ/
+        );
+        assert.doesNotMatch(
+            description,
+            /🎭 PJ(?:\s|$)/
+        );
+    }
+);
+
+function clearModule(
+    modulePath
+) {
+    const resolved =
+        require.resolve(
+            modulePath
+        );
+
+    delete require.cache[
+        resolved
+    ];
+}

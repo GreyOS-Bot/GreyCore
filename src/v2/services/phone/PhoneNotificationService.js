@@ -1,0 +1,215 @@
+const CharacterV2Manager =
+    require("../../managers/CharacterV2Manager");
+
+const PhoneActionV2Manager =
+    require(
+        "../../managers/PhoneActionV2Manager"
+    );
+
+const PhoneCallSessionManager =
+    require(
+        "../../managers/PhoneCallSessionManager"
+    );
+
+class PhoneNotificationService {
+
+    async getCharacterUser(
+        client,
+        characterId
+    ) {
+
+        if (
+            !client
+            ||
+            !characterId
+        ) {
+            return null;
+        }
+
+        const character =
+            CharacterV2Manager.getById(
+                characterId
+            );
+
+        if (
+            !character
+            ||
+            !character.discord_user_id
+        ) {
+            return null;
+        }
+
+        const user =
+            await client.users
+                .fetch(
+                    character.discord_user_id
+                )
+                .catch(() => null);
+
+        if (!user) {
+            return null;
+        }
+
+        return {
+            character,
+            user
+        };
+
+    }
+
+    async notifyNewSms({
+        client,
+        receiverParticipant,
+        senderCharacter,
+        content,
+        messageType = "text",
+        conversationName = null,
+        publicGuildId = null,
+        publicChannelId = null,
+        webhookMessageId = null
+    }) {
+
+        if (
+            !receiverParticipant
+                ?.character_id
+        ) {
+            return null;
+        }
+
+        const target =
+            await this.getCharacterUser(
+                client,
+                receiverParticipant
+                    .character_id
+            );
+
+        if (!target) {
+            return null;
+        }
+
+        const messageLink =
+            this.buildMessageLink({
+                publicGuildId,
+                publicChannelId,
+                webhookMessageId
+            });
+
+        const isMms =
+            messageType === "mms";
+
+        const label =
+            isMms
+                ? "MMS"
+                : "SMS";
+
+        return target.user.send({
+            content: [
+                `📱 **Nouveau ${label}**`,
+                "",
+                `**${senderCharacter.proxy_name}** vous a envoyé un message${
+                    conversationName
+                        ? ` dans **${conversationName}**`
+                        : ""
+                }.`,
+                "",
+                `> ${content}`,
+                messageLink
+                    ? ""
+                    : null,
+                messageLink
+                    ? `🔗 [Ouvrir le ${label} dans le salon](${messageLink})`
+                    : null
+            ]
+                .filter(Boolean)
+                .join("\n")
+        }).catch(() => null);
+
+    }
+
+    buildMessageLink({
+        publicGuildId,
+        publicChannelId,
+        webhookMessageId
+    }) {
+        if (
+            !publicGuildId
+            || !publicChannelId
+            || !webhookMessageId
+        ) {
+            return null;
+        }
+
+        return [
+            "https://discord.com/channels",
+            publicGuildId,
+            publicChannelId,
+            webhookMessageId
+        ].join("/");
+    }
+
+    async notifyIncomingCall({
+        client,
+        call,
+        receiverParticipant,
+        senderCharacter
+    }) {
+
+        if (
+            !call
+            ||
+            !receiverParticipant
+                ?.character_id
+        ) {
+            return null;
+        }
+
+        const target =
+            await this.getCharacterUser(
+                client,
+                receiverParticipant
+                    .character_id
+            );
+
+        if (!target) {
+            return null;
+        }
+
+        const receiverMessage =
+    await target.user.send({
+        content: [
+            "📞 **Appel entrant**",
+            "",
+            `**${senderCharacter.proxy_name}** vous appelle.`,
+            "",
+            "Que souhaitez-vous faire ?"
+        ].join("\n"),
+
+        components: [
+            PhoneActionV2Manager
+                .incomingCallButtons(
+                    call.id,
+                    receiverParticipant
+                        .character_id
+                )
+        ]
+    }).catch(() => null);
+
+if (!receiverMessage) {
+    return null;
+}
+
+PhoneCallSessionManager.register(
+    call.id,
+    {
+        receiverMessage
+    }
+);
+
+return receiverMessage;
+
+    }
+
+}
+
+module.exports =
+    new PhoneNotificationService();

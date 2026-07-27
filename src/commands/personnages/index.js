@@ -1,0 +1,375 @@
+const {
+    SlashCommandBuilder,
+    EmbedBuilder
+} = require("discord.js");
+
+const rosterManager =
+    require(
+        "../../v2/managers/CharacterRosterV2Manager"
+    );
+
+const characterTypes =
+    require(
+        "../../v2/core/character/CharacterTypeCatalog"
+    );
+
+const {
+    requireStaffCommandAccess
+} = require(
+    "../../v2/core/services/StaffCommandAccessService"
+);
+
+const {
+    replyPrivate
+} = require(
+    "../../v2/core/services/InteractionResponseService"
+);
+
+const ALPHABET =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        .split("");
+
+const EMBED_DESCRIPTION_LIMIT = 3500;
+
+module.exports = {
+    data: new SlashCommandBuilder()
+        .setName("personnages")
+        .setDescription(
+            "Gère les personnages présents sur ce serveur."
+        )
+        .addSubcommand(sub =>
+            sub
+                .setName("liste")
+                .setDescription(
+                    "Affiche les personnages validés du serveur."
+                )
+                .addStringOption(option =>
+                    option
+                        .setName("lettre")
+                        .setDescription(
+                            "Première lettre du prénom à afficher"
+                        )
+                        .setRequired(true)
+                        .setAutocomplete(true)
+                )
+                .addBooleanOption(option =>
+                    option
+                        .setName("inclure_archives")
+                        .setDescription(
+                            "Inclure les personnages archivés"
+                        )
+                )
+        )
+        .addSubcommand(sub =>
+            sub
+                .setName("archiver")
+                .setDescription(
+                    "Archive les personnages d’un utilisateur."
+                )
+                .addUserOption(option =>
+                    option
+                        .setName("utilisateur")
+                        .setDescription(
+                            "Propriétaire des personnages"
+                        )
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
+            sub
+                .setName("restaurer")
+                .setDescription(
+                    "Restaure les personnages archivés d’un utilisateur."
+                )
+                .addUserOption(option =>
+                    option
+                        .setName("utilisateur")
+                        .setDescription(
+                            "Propriétaire des personnages"
+                        )
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
+            sub
+                .setName("supprimer")
+                .setDescription(
+                    "Supprime définitivement les personnages d’un utilisateur."
+                )
+                .addUserOption(option =>
+                    option
+                        .setName("utilisateur")
+                        .setDescription(
+                            "Propriétaire des personnages"
+                        )
+                        .setRequired(true)
+                )
+                .addBooleanOption(option =>
+                    option
+                        .setName("confirmer")
+                        .setDescription(
+                            "Confirme la suppression définitive"
+                        )
+                        .setRequired(true)
+                )
+        ),
+
+    async autocomplete(interaction) {
+        const focused =
+            interaction.options.getFocused(
+                true
+            );
+
+        if (focused.name !== "lettre") {
+            return interaction.respond([]);
+        }
+
+        const filter =
+            normalizeLetter(
+                focused.value
+            );
+
+        return interaction.respond(
+            ALPHABET
+                .filter(letter =>
+                    !filter
+                    || letter.startsWith(filter)
+                )
+                .slice(0, 25)
+                .map(letter => ({
+                    name:
+                        `Lettre ${letter}`,
+                    value:
+                        letter
+                }))
+        );
+    },
+
+    async execute(interaction) {
+        const subcommand =
+            interaction.options.getSubcommand();
+
+        // La liste sert aussi à choisir un prénom avant la création :
+        // elle doit donc rester consultable par tous les membres.
+        if (subcommand === "liste") {
+            const letter =
+                normalizeLetter(
+                    interaction.options.getString(
+                        "lettre"
+                    )
+                );
+
+            if (!ALPHABET.includes(letter)) {
+                return replyPrivate(
+                    interaction,
+                    "⚠️ Choisis une lettre de A à Z pour afficher les personnages correspondants."
+                );
+            }
+
+            return replyPrivate(
+                interaction,
+                buildRosterView(
+                    interaction.guildId,
+                    letter,
+                    interaction.options.getBoolean(
+                        "inclure_archives"
+                    ) === true
+                )
+            );
+        }
+
+        if (
+            !await requireStaffCommandAccess(
+                interaction
+            )
+        ) {
+            return;
+        }
+
+        const user =
+            interaction.options.getUser(
+                "utilisateur"
+            );
+
+        if (subcommand === "archiver") {
+            const result =
+                rosterManager.archiveOwnerCharacters(
+                    interaction.guildId,
+                    user.id
+                );
+
+            return replyPrivate(
+                interaction,
+                buildLifecycleMessage(
+                    "📦 Personnages archivés",
+                    result.updated.length,
+                    user,
+                    "Toutes leurs données sont conservées. Utilise `/personnages restaurer` pour les rendre à nouveau jouables."
+                )
+            );
+        }
+
+        if (subcommand === "restaurer") {
+            const result =
+                rosterManager.restoreOwnerCharacters(
+                    interaction.guildId,
+                    user.id
+                );
+
+            return replyPrivate(
+                interaction,
+                buildLifecycleMessage(
+                    "✅ Personnages restaurés",
+                    result.updated.length,
+                    user,
+                    "Les personnages redeviennent visibles et jouables selon l’état de leurs installations."
+                )
+            );
+        }
+
+        if (
+            interaction.options.getBoolean(
+                "confirmer"
+            ) !== true
+        ) {
+            return replyPrivate(
+                interaction,
+                "⚠️ La suppression définitive nécessite l’option `confirmer` réglée sur `Vrai`."
+            );
+        }
+
+        const result =
+            rosterManager.deleteOwnerCharacters(
+                interaction.guildId,
+                user.id
+            );
+
+        return replyPrivate(
+            interaction,
+            buildLifecycleMessage(
+                "🗑️ Personnages supprimés",
+                result.deleted.length,
+                user,
+                "Cette suppression est définitive et efface les données associées à ces personnages."
+            )
+        );
+    }
+};
+
+function buildRosterView(
+    guildId,
+    letter,
+    includeArchived
+) {
+    const characters =
+        rosterManager.getRoster(
+            guildId,
+            { includeArchived }
+        )
+            .filter(character =>
+                normalizeLetter(
+                    character.firstname
+                ) === letter
+            );
+
+    const descriptions =
+        splitDescriptions(
+            characters.map(
+                formatCharacter
+            )
+        );
+
+    return {
+        embeds: descriptions.map(
+            (description, index) =>
+                new EmbedBuilder()
+                .setColor("#5865F2")
+                .setTitle(
+                    `📚 Personnages du serveur — ${letter}`
+                )
+                .setDescription(
+                    description
+                )
+                .setFooter({
+                    text:
+                        characters.length > 0
+                            ? `${characters.length} personnage(s) commençant par ${letter} • Classement alphabétique${descriptions.length > 1 ? ` • Suite ${index + 1}/${descriptions.length}` : ""}`
+                            : `Aucun personnage ne commence par ${letter}`
+                })
+        )
+    };
+}
+
+function splitDescriptions(entries) {
+    if (entries.length === 0) {
+        return [
+            "Aucun personnage validé ne correspond à cette lettre."
+        ];
+    }
+
+    const descriptions = [];
+    let description = "";
+
+    for (const entry of entries) {
+        const nextDescription =
+            description
+                ? `${description}\n${entry}`
+                : entry;
+
+        if (
+            description
+            && nextDescription.length >
+                EMBED_DESCRIPTION_LIMIT
+        ) {
+            descriptions.push(description);
+            description = entry;
+            continue;
+        }
+
+        description = nextDescription;
+    }
+
+    if (description) {
+        descriptions.push(description);
+    }
+
+    return descriptions;
+}
+
+function normalizeLetter(value) {
+    return String(value || "")
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .charAt(0);
+}
+
+function formatCharacter(character) {
+    return [
+        `• **${character.firstname}**`,
+        `<@${character.discord_user_id}>`,
+        characterTypes.getDisplayLabel(
+            character.character_type
+        ),
+        character.is_archived
+            ? "📦 Archivé"
+            : null
+    ]
+        .filter(Boolean)
+        .join(" — ");
+}
+
+function buildLifecycleMessage(
+    title,
+    total,
+    user,
+    detail
+) {
+    return [
+        `**${title} : ${total}**`,
+        `Propriétaire : ${user}`,
+        "",
+        detail
+    ].join("\n");
+}

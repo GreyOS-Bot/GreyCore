@@ -1,0 +1,597 @@
+const continuityManager =
+    require(
+        "../../managers/ContinuityV2Manager"
+    );
+
+const characterDashboardManager =
+    require(
+        "../../services/dashboard/CharacterDashboardManager"
+    );
+
+const relationshipManager =
+    require(
+        "../../managers/RelationshipV2Manager"
+    );
+
+const relationshipsPage =
+    require(
+        "../../pages/character/CharacterRelationshipsPage"
+    );
+
+const {
+    canManageCharacter,
+    getContinuityId,
+    validDate
+} = require("./RelationshipUtils");
+
+const {
+    sendRequestNotification,
+    notifyRequester
+} = require(
+    "./RelationshipNotificationService"
+);
+
+const {
+    createSearchModal,
+    createRelationshipModal
+} = require("./RelationshipModalFactory");
+
+const {
+    createSearchResults,
+    createTypeSelection,
+    createMissingTypeInformation
+} = require("./RelationshipViewFactory");
+
+const {
+    replyError,
+    replyPrivate
+} = require(
+    "../../core/services/InteractionResponseService"
+);
+
+class RelationshipCreationHandler {
+
+    async openAdd(
+        interaction,
+        characterId
+    ) {
+        const dashboardData =
+            characterDashboardManager
+                .getPlayableDashboardData(
+                    characterId,
+                    {
+                        guildId:
+                            interaction.guildId
+                    }
+                );
+
+        if (!dashboardData) {
+            return replyError(
+                interaction,
+                "Personnage introuvable."
+            );
+        }
+
+        const {
+            character,
+            continuity
+        } = dashboardData;
+
+        if (
+            !canManageCharacter(
+                interaction,
+                character
+            )
+        ) {
+            return replyError(
+                interaction,
+                "Tu ne peux pas modifier les relations de ce personnage."
+            );
+        }
+
+        if (!continuity) {
+            return replyError(
+                interaction,
+                "Ce personnage ne possède aucune continuité installée sur ce serveur."
+            );
+        }
+
+        return interaction.showModal(
+            createSearchModal(
+                characterId
+            )
+        );
+    }
+
+    async search(
+        interaction,
+        characterId
+    ) {
+        const dashboardData =
+            characterDashboardManager
+                .getPlayableDashboardData(
+                    characterId,
+                    {
+                        guildId:
+                            interaction.guildId
+                    }
+                );
+
+        if (
+            !dashboardData
+            || !canManageCharacter(
+                interaction,
+                dashboardData.character
+            )
+        ) {
+            return replyError(
+                interaction,
+                "Tu ne peux pas modifier les relations de ce personnage."
+            );
+        }
+
+        const query =
+            interaction.fields
+                .getTextInputValue(
+                    "query"
+                )
+                .trim();
+
+        const availableCharacters =
+            characterDashboardManager
+                .searchPlayableCharactersForGuild(
+                    interaction.guildId,
+                    query,
+                    {
+                        excludeCharacterId:
+                            characterId,
+                        limit:
+                            25
+                    }
+                );
+
+        if (
+            availableCharacters.length ===
+            0
+        ) {
+            return replyPrivate(
+                interaction,
+                `🔎 Aucun personnage jouable trouvé pour **${query}**.`
+            );
+        }
+
+        return replyPrivate(
+            interaction,
+            createSearchResults({
+                characterId,
+                query,
+                availableCharacters
+            })
+        );
+    }
+
+    async selectCharacter(
+        interaction,
+        characterId,
+        otherCharacterId
+    ) {
+        const relationshipTypes =
+            relationshipManager.getTypes(
+                interaction.guildId
+            );
+
+        if (
+            relationshipTypes.length === 0
+        ) {
+            return interaction.update(
+                createMissingTypeInformation(
+                    characterId
+                )
+            );
+        }
+
+        return interaction.update(
+            createTypeSelection({
+                characterId,
+                otherCharacterId,
+                relationshipTypes
+            })
+        );
+    }
+
+    async selectType(
+        interaction,
+        characterId,
+        otherCharacterId,
+        relationshipTypeId
+    ) {
+        const dashboardA =
+            characterDashboardManager
+                .getPlayableDashboardData(
+                    characterId,
+                    {
+                        guildId:
+                            interaction.guildId
+                    }
+                );
+
+        const dashboardB =
+            characterDashboardManager
+                .getPlayableDashboardData(
+                    otherCharacterId,
+                    {
+                        guildId:
+                            interaction.guildId
+                    }
+                );
+
+        if (
+            !dashboardA
+            || !dashboardB
+        ) {
+            return replyError(
+                interaction,
+                "L’un des personnages est introuvable."
+            );
+        }
+
+        if (
+            !canManageCharacter(
+                interaction,
+                dashboardA.character
+            )
+        ) {
+            return replyError(
+                interaction,
+                "Tu ne peux pas ajouter une relation à ce personnage."
+            );
+        }
+
+        const continuityAId =
+            getContinuityId(
+                dashboardA
+            );
+
+        const continuityBId =
+            getContinuityId(
+                dashboardB
+            );
+
+        if (
+            !continuityAId
+            || !continuityBId
+        ) {
+            return replyError(
+                interaction,
+                "Une continuité est introuvable."
+            );
+        }
+
+        return interaction.showModal(
+            createRelationshipModal({
+                continuityAId,
+                continuityBId,
+                relationshipTypeId
+            })
+        );
+    }
+
+    async create(
+        interaction,
+        continuityAId,
+        continuityBId,
+        relationshipTypeId
+    ) {
+        const continuityA =
+            continuityManager.getById(
+                continuityAId
+            );
+
+        const continuityB =
+            continuityManager.getById(
+                continuityBId
+            );
+
+        if (
+            !continuityA
+            || !continuityB
+        ) {
+            return replyError(
+                interaction,
+                "L’une des continuités est introuvable."
+            );
+        }
+
+        const dashboardA =
+            characterDashboardManager
+                .getPlayableDashboardData(
+                    continuityA.character_id,
+                    {
+                        guildId:
+                            interaction.guildId,
+                        continuityId:
+                            continuityA.id
+                    }
+                );
+
+        const dashboardB =
+            characterDashboardManager
+                .getPlayableDashboardData(
+                    continuityB.character_id,
+                    {
+                        guildId:
+                            interaction.guildId,
+                        continuityId:
+                            continuityB.id
+                    }
+                );
+
+        if (
+            !dashboardA
+            || !dashboardB
+        ) {
+            return replyError(
+                interaction,
+                "L’un des personnages est introuvable."
+            );
+        }
+
+        if (
+            !canManageCharacter(
+                interaction,
+                dashboardA.character
+            )
+        ) {
+            return replyError(
+                interaction,
+                "Tu ne peux pas ajouter une relation à ce personnage."
+            );
+        }
+
+        const note =
+            interaction.fields
+                .getTextInputValue(
+                    "note"
+                )
+                .trim();
+
+        const startedAt =
+            interaction.fields
+                .getTextInputValue(
+                    "started_at"
+                )
+                .trim();
+
+        if (!validDate(startedAt)) {
+            return replyError(
+                interaction,
+                "La date doit respecter le format `AAAA-MM-JJ`."
+            );
+        }
+
+        const sameOwner =
+            String(
+                dashboardA.character
+                    .discord_user_id
+            ) ===
+            String(
+                dashboardB.character
+                    .discord_user_id
+            );
+
+        if (sameOwner) {
+            try {
+                relationshipManager.create({
+                    guildId:
+                        interaction.guildId,
+                    characterAId:
+                        continuityA.character_id,
+                    continuityAId:
+                        continuityA.id,
+                    characterBId:
+                        continuityB.character_id,
+                    continuityBId:
+                        continuityB.id,
+                    relationshipTypeId:
+                        Number(
+                            relationshipTypeId
+                        ),
+                    note:
+                        note || null,
+                    startedAt:
+                        startedAt || null,
+                    createdBy:
+                        interaction.user.id
+                });
+            } catch (error) {
+                return replyError(
+                    interaction,
+                    error
+                );
+            }
+
+            return relationshipsPage
+                .execute(
+                    interaction,
+                    continuityA
+                        .character_id
+                );
+        }
+
+        let request;
+
+        try {
+            request =
+                relationshipManager
+                    .createRequest({
+                        guildId:
+                            interaction.guildId,
+                        requesterContinuityId:
+                            continuityA.id,
+                        targetContinuityId:
+                            continuityB.id,
+                        relationshipTypeId:
+                            Number(
+                                relationshipTypeId
+                            ),
+                        requestedBy:
+                            interaction.user.id,
+                        targetOwnerId:
+                            dashboardB.character
+                                .discord_user_id,
+                        note:
+                            note || null,
+                        startedAt:
+                            startedAt || null
+                    });
+
+            await sendRequestNotification(
+                interaction.client,
+                request
+            );
+        } catch (error) {
+            if (request?.id) {
+                relationshipManager
+                    .cancelPendingRequest(
+                        request.id
+                    );
+            }
+
+            const notificationFailed =
+                request?.id;
+
+            return replyError(
+                interaction,
+                    notificationFailed
+                        ? "La demande n’a pas été créée car le propriétaire ne peut pas recevoir de message privé."
+                        : error.message
+            );
+        }
+
+        return replyPrivate(
+            interaction,
+                `💌 Demande envoyée au propriétaire de **${request.target_character_name}**.\n`
+                + "La relation ne sera créée qu’après son acceptation."
+        );
+    }
+
+    async acceptRequest(
+        interaction,
+        requestId
+    ) {
+        let result;
+
+        try {
+            result =
+                relationshipManager
+                    .acceptRequest(
+                        Number(requestId),
+                        interaction.user.id
+                    );
+        } catch (error) {
+            return replyError(
+                interaction,
+                error
+            );
+        }
+
+        await interaction.update({
+            content:
+                `✅ Relation acceptée entre **${result.request.requester_character_name}** et **${result.request.target_character_name}**.`,
+            embeds:
+                [],
+            components:
+                []
+        });
+
+        await notifyRequester(
+            interaction.client,
+            result.request,
+            true
+        );
+    }
+
+    async rejectRequest(
+        interaction,
+        requestId
+    ) {
+        let request;
+
+        try {
+            request =
+                relationshipManager
+                    .rejectRequest(
+                        Number(requestId),
+                        interaction.user.id
+                    );
+        } catch (error) {
+            return replyError(
+                interaction,
+                error
+            );
+        }
+
+        await interaction.update({
+            content:
+                `❌ Demande refusée pour **${request.target_character_name}**.`,
+            embeds:
+                [],
+            components:
+                []
+        });
+
+        await notifyRequester(
+            interaction.client,
+            request,
+            false
+        );
+    }
+}
+
+const relationshipCreationHandler =
+    new RelationshipCreationHandler();
+
+module.exports = {
+    openAdd:
+        relationshipCreationHandler
+            .openAdd
+            .bind(
+                relationshipCreationHandler
+            ),
+    search:
+        relationshipCreationHandler
+            .search
+            .bind(
+                relationshipCreationHandler
+            ),
+    selectCharacter:
+        relationshipCreationHandler
+            .selectCharacter
+            .bind(
+                relationshipCreationHandler
+            ),
+    selectType:
+        relationshipCreationHandler
+            .selectType
+            .bind(
+                relationshipCreationHandler
+            ),
+    create:
+        relationshipCreationHandler
+            .create
+            .bind(
+                relationshipCreationHandler
+            ),
+    acceptRequest:
+        relationshipCreationHandler
+            .acceptRequest
+            .bind(
+                relationshipCreationHandler
+            ),
+    rejectRequest:
+        relationshipCreationHandler
+            .rejectRequest
+            .bind(
+                relationshipCreationHandler
+            )
+};

@@ -1,0 +1,58 @@
+const db =
+    require("./database");
+
+function initializeProfileSchemaV2() {
+
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS CharacterProfilesV2 (
+
+            continuity_id TEXT PRIMARY KEY,
+
+            firstname TEXT,
+            lastname TEXT,
+
+            age INTEGER,
+
+            gender TEXT,
+
+            height TEXT,
+
+            weight TEXT,
+
+            birthday TEXT,
+
+            origin TEXT,
+
+            occupation TEXT,
+
+            gang TEXT,
+
+            faceclaim TEXT,
+
+            story TEXT,
+
+            created_at TEXT NOT NULL,
+
+            updated_at TEXT NOT NULL,
+
+            FOREIGN KEY(continuity_id)
+                REFERENCES CharacterContinuitiesV2(id)
+                ON DELETE CASCADE
+
+        )
+    `).run();
+
+    db.prepare(`
+        CREATE INDEX IF NOT EXISTS
+            idx_profiles_v2_continuity
+        ON CharacterProfilesV2(continuity_id)
+    `).run();
+
+    console.log(
+        "✅ Table CharacterProfilesV2 prête."
+    );
+
+}
+
+module.exports =
+    initializeProfileSchemaV2;

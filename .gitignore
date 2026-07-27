@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Local databases
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
+# Backups
+data/backups/
+backups/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# PM2
+.pm2/
+
+# Coverage and caches
+coverage/
+.cache/
+tmp/
+temp/
+
+# IDE and operating system files
+.vscode/
+.DS_Store
+Thumbs.db
