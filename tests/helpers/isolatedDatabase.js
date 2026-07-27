@@ -9,7 +9,8 @@ const Database =
     require("better-sqlite3");
 
 function createIsolatedDatabase({
-    copyExisting = false
+    copyExisting = false,
+    initializeSchema = false
 } = {}) {
     const databasePath =
         path.join(
@@ -49,6 +50,12 @@ function createIsolatedDatabase({
             database
     };
 
+    clearApplicationSchemaCache();
+
+    if (initializeSchema) {
+        initializeApplicationSchema();
+    }
+
     return {
         database,
         cleanup() {
@@ -70,6 +77,72 @@ function createIsolatedDatabase({
             }
         }
     };
+}
+
+function initializeApplicationSchema() {
+    const schema =
+        require(
+            path.resolve(
+                "src/database/schema.js"
+            )
+        );
+
+    withMutedConsoleSync(
+        () => schema.initializeDatabase()
+    );
+}
+
+function clearApplicationSchemaCache() {
+    const schemaModules = [
+        "src/database/schema.js",
+        "src/database/schemaV2.js",
+        "src/database/schemaV2Profile.js",
+        "src/database/schemaV2Roleplay.js",
+        "src/database/schemaV2Media.js",
+        "src/database/schemaV2Installation.js",
+        "src/database/schemaV2Assets.js"
+    ];
+
+    for (const modulePath of schemaModules) {
+        delete require.cache[
+            require.resolve(
+                path.resolve(modulePath)
+            )
+        ];
+    }
+}
+
+function withMutedConsoleSync(
+    callback
+) {
+    const methods = [
+        "log",
+        "warn",
+        "error"
+    ];
+
+    const originals =
+        new Map(
+            methods.map(
+                method => [
+                    method,
+                    console[method]
+                ]
+            )
+        );
+
+    for (const method of methods) {
+        console[method] = () => {};
+    }
+
+    try {
+        return callback();
+    } finally {
+        for (const method of methods) {
+            console[method] =
+                originals.get(method);
+        }
+    }
 }
 
 async function withMutedConsole(

@@ -324,6 +324,39 @@ test(
             callManager
         );
 
+        stubModule(
+            "src/v2/managers/PhoneContactV2Manager.js",
+            {
+                ensureMutualGreycoreContacts: () => {}
+            }
+        );
+
+        stubModule(
+            "src/database/database.js",
+            {
+                prepare: () => {
+                    throw new Error(
+                        "Le test Telephone ne doit pas ouvrir une base reelle."
+                    );
+                }
+            }
+        );
+
+        for (
+            const modulePath
+            of [
+                "../src/v2/managers/PhoneV2Manager",
+                "../src/v2/managers/phone/PhoneLifecycleManager",
+                "../src/v2/managers/phone/PhoneConversationGateway",
+                "../src/v2/managers/phone/PhoneMessageCoordinator",
+                "../src/v2/managers/phone/PhoneCallGateway"
+            ]
+        ) {
+            delete require.cache[
+                require.resolve(modulePath)
+            ];
+        }
+
         const manager =
             require(
                 "../src/v2/managers/PhoneV2Manager"

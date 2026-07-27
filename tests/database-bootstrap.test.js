@@ -65,7 +65,8 @@ test(
             "ContinuityAssetTransfersV2",
             "CharacterInstallationMessagesV2",
             "CharacterChangeRequestsV2",
-            "InstallationValidationHistoryV2"
+            "InstallationValidationHistoryV2",
+            "GuildModulesV2"
         ];
 
         const tableNames =
