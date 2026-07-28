@@ -30,6 +30,8 @@ test(
                     "Alba",
                 lastname:
                     "Grey",
+                alias:
+                    "Story",
                 age:
                     "23 ans",
                 gender:
@@ -158,9 +160,11 @@ test(
         assert.deepEqual(
             Object.keys(handler).sort(),
             [
+                "openAlias",
                 "openIdentity",
                 "openInformation",
                 "openStory",
+                "submitAlias",
                 "submitIdentity",
                 "submitInformation",
                 "submitStory"
@@ -193,6 +197,28 @@ test(
                 "birthday",
                 "gender"
             ]
+        );
+
+        const aliasInteraction =
+            createInteraction();
+
+        await handler.openAlias(
+            aliasInteraction,
+            "character"
+        );
+
+        assert.equal(
+            aliasInteraction.modal
+                .toJSON()
+                .custom_id,
+            "v2_profile_alias_submit:character"
+        );
+
+        assert.deepEqual(
+            modalFieldIds(
+                aliasInteraction.modal
+            ),
+            ["alias"]
         );
 
         const informationInteraction =
@@ -280,6 +306,36 @@ test(
                 birthday: null,
                 gender:
                     "Femme"
+            }
+        );
+
+        const aliasSubmit =
+            createInteraction({
+                alias:
+                    "  Story  "
+            });
+
+        await handler.submitAlias(
+            aliasSubmit,
+            "character"
+        );
+
+        const aliasUpdate =
+            calls.find(
+                call =>
+                    call[0] ===
+                    "profile.update"
+                    && Object.hasOwn(
+                        call[2],
+                        "alias"
+                    )
+            );
+
+        assert.deepEqual(
+            aliasUpdate[2],
+            {
+                alias:
+                    "Story"
             }
         );
 

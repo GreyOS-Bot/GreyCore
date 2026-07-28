@@ -10,6 +10,7 @@ function initializeProfileSchemaV2() {
 
             firstname TEXT,
             lastname TEXT,
+            alias TEXT,
 
             age INTEGER,
 
@@ -53,6 +54,18 @@ function initializeProfileSchemaV2() {
         db.prepare(`
             ALTER TABLE CharacterProfilesV2
             ADD COLUMN creation_date TEXT
+        `).run();
+    }
+
+    if (
+        !columnExists(
+            "CharacterProfilesV2",
+            "alias"
+        )
+    ) {
+        db.prepare(`
+            ALTER TABLE CharacterProfilesV2
+            ADD COLUMN alias TEXT
         `).run();
     }
 

@@ -580,6 +580,7 @@ function createProfileTables(
                 PRIMARY KEY,
             firstname TEXT,
             lastname TEXT,
+            alias TEXT,
             age INTEGER,
             gender TEXT,
             height TEXT,

@@ -58,6 +58,30 @@ async function openInformation(
     );
 }
 
+async function openAlias(
+    interaction,
+    characterId
+) {
+    const dashboardData =
+        await accessService
+            .getEditableDashboard(
+                interaction,
+                characterId
+            );
+
+    if (!dashboardData) {
+        return;
+    }
+
+    return interaction.showModal(
+        modalFactory.createAliasModal(
+            characterId,
+            dashboardData.profile
+            || {}
+        )
+    );
+}
+
 async function openStory(
     interaction,
     characterId
@@ -85,6 +109,7 @@ async function openStory(
 
 module.exports = {
     openIdentity,
+    openAlias,
     openInformation,
     openStory
 };

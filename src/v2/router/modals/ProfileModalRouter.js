@@ -1,5 +1,6 @@
 const {
     submitIdentity,
+    submitAlias,
     submitInformation,
     submitStory
 } = require(
@@ -22,6 +23,22 @@ module.exports =
 
         const customId =
             interaction.customId;
+
+        if (
+            customId.startsWith(
+                "v2_profile_alias_submit:"
+            )
+        ) {
+            await submit(
+                interaction,
+                () => submitAlias(
+                    interaction,
+                    customId.split(":")[1]
+                )
+            );
+
+            return true;
+        }
 
         if (
             customId.startsWith(

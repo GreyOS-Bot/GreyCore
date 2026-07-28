@@ -121,6 +121,23 @@ test(
             true
         );
 
+        const profileColumns =
+            new Set(
+                isolated.database
+                    .prepare(
+                        "PRAGMA table_info(CharacterProfilesV2)"
+                    )
+                    .all()
+                    .map(
+                        column => column.name
+                    )
+            );
+
+        assert.equal(
+            profileColumns.has("alias"),
+            true
+        );
+
         await withMutedConsole(
             () =>
                 schema

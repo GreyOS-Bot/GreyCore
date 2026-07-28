@@ -206,6 +206,15 @@ test(
             ),
             true
         );
+
+        assert.equal(
+            getCustomIds(
+                ownerInteraction.payload
+            ).includes(
+                "v2_profile_alias_edit:character"
+            ),
+            true
+        );
     }
 );
 

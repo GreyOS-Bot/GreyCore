@@ -236,6 +236,12 @@ class CharacterProfilePage {
 
         add(
             identity,
+            "Alias",
+            profile?.alias
+        );
+
+        add(
+            identity,
             "Âge",
             profile?.age
         );
@@ -422,6 +428,19 @@ class CharacterProfilePage {
 
                 id:
                     `v2_aliases_open:${characterId}`,
+
+                label:
+                    "Proxies secondaires",
+
+                emoji:
+                    "\u{1F501}"
+
+                }),
+
+                UI.button.primary({
+
+                id:
+                    `v2_profile_alias_edit:${characterId}`,
 
                 label:
                     "Alias",

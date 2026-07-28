@@ -173,6 +173,33 @@ function createInformationModal(
     return modal;
 }
 
+function createAliasModal(
+    characterId,
+    profile = {}
+) {
+    return new ModalBuilder()
+        .setCustomId(
+            `v2_profile_alias_submit:${characterId}`
+        )
+        .setTitle("Modifier l'alias")
+        .addComponents(
+            textRow({
+                id:
+                    "alias",
+                label:
+                    "Alias ou surnom",
+                placeholder:
+                    "Exemple : Story",
+                maxLength:
+                    80,
+                value:
+                    optionalText(
+                        profile.alias
+                    )
+            })
+        );
+}
+
 function createStoryModal(
     characterId,
     profile = {}
@@ -263,6 +290,7 @@ function textRow({
 
 module.exports = {
     createIdentityModal,
+    createAliasModal,
     createInformationModal,
     createStoryModal
 };

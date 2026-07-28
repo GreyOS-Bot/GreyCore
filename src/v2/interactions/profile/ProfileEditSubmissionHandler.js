@@ -200,6 +200,62 @@ async function submitInformation(
         );
 }
 
+async function submitAlias(
+    interaction,
+    characterId
+) {
+    const writable =
+        await accessService
+            .getWritableProfile(
+                interaction,
+                characterId
+            );
+
+    if (!writable) {
+        return;
+    }
+
+    const changes = {
+        alias:
+            readNormalizedField(
+                interaction,
+                "alias"
+            )
+    };
+
+    if (
+        await submitForReviewIfNeeded(
+            interaction,
+            writable,
+            changeRequestManager.types
+                .PROFILE_ALIAS,
+            changes
+        )
+    ) {
+        return;
+    }
+
+    profileManager.update(
+        writable.continuityId,
+        changes
+    );
+
+    if (
+        await returnToCreationIfDraft(
+            interaction,
+            writable
+        )
+    ) {
+        return;
+    }
+
+    return characterProfilePage
+        .execute(
+            interaction,
+            characterId
+        );
+}
+
 async function submitStory(
     interaction,
     characterId
@@ -355,6 +411,7 @@ async function returnToCreationIfDraft(
 
 module.exports = {
     submitIdentity,
+    submitAlias,
     submitInformation,
     submitStory
 };

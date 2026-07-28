@@ -9,7 +9,7 @@ function createAddModal(characterId) {
     const alias =
         new TextInputBuilder()
             .setCustomId("alias")
-            .setLabel("Alias \u00e0 taper")
+            .setLabel("Proxy secondaire \u00e0 taper")
             .setPlaceholder("Exemple : Al")
             .setStyle(TextInputStyle.Short)
             .setRequired(true)
@@ -19,7 +19,7 @@ function createAddModal(characterId) {
         .setCustomId(
             `v2_aliases_add_modal:${characterId}`
         )
-        .setTitle("Ajouter un alias")
+        .setTitle("Ajouter un proxy secondaire")
         .addComponents(
             new ActionRowBuilder()
                 .addComponents(alias)

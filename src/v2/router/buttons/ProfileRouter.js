@@ -1,5 +1,6 @@
 const {
     openIdentity,
+    openAlias,
     openInformation,
     openStory
 } = require(
@@ -21,6 +22,22 @@ module.exports =
 
         const customId =
             interaction.customId;
+
+        if (
+            customId.startsWith(
+                "v2_profile_alias_edit:"
+            )
+        ) {
+            const characterId =
+                customId.split(":")[1];
+
+            await openAlias(
+                interaction,
+                characterId
+            );
+
+            return true;
+        }
 
         if (
             customId.startsWith(

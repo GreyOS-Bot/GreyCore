@@ -13,6 +13,8 @@ const installationManager =
     require("./InstallationV2Manager");
 
 const REQUEST_TYPES = Object.freeze({
+    PROFILE_ALIAS:
+        "profile_alias",
     PROFILE_IDENTITY:
         "profile_identity",
     PROFILE_INFORMATION:
@@ -24,6 +26,9 @@ const REQUEST_TYPES = Object.freeze({
 });
 
 const REQUEST_FIELDS = Object.freeze({
+    [REQUEST_TYPES.PROFILE_ALIAS]: [
+        "alias"
+    ],
     [REQUEST_TYPES.PROFILE_IDENTITY]: [
         "firstname",
         "lastname",

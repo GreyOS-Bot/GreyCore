@@ -190,6 +190,48 @@ test(
             "Vega"
         );
 
+        const aliasRequest =
+            manager.create({
+                installationId:
+                    installation.id,
+                characterId:
+                    installation.character_id,
+                continuityId:
+                    installation.continuity_id,
+                requestType:
+                    manager.types.PROFILE_ALIAS,
+                changes: {
+                    alias:
+                        "Story"
+                },
+                submittedBy:
+                    "owner"
+            });
+
+        manager.approve({
+            requestId:
+                aliasRequest.id,
+            reviewedBy:
+                "staff"
+        });
+
+        assert.deepEqual(
+            calls[1],
+            [
+                "profile.update",
+                "continuity",
+                {
+                    alias:
+                        "Story"
+                }
+            ]
+        );
+
+        assert.equal(
+            profile.alias,
+            "Story"
+        );
+
         const avatarRequest =
             manager.create({
                 installationId:
@@ -223,7 +265,7 @@ test(
         });
 
         assert.deepEqual(
-            calls[1],
+            calls[2],
             [
                 "avatar.update",
                 "installation",

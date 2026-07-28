@@ -23,10 +23,10 @@ class CharacterAliasesPage {
             new EmbedBuilder()
                 .setColor(0x5865F2)
                 .setTitle(
-                    `Alias de ${character.proxy_name}`
+                    `Proxies secondaires de ${character.proxy_name}`
                 )
                 .setDescription([
-                    "Un alias est un autre proxy pour ce m\u00eame personnage.",
+                    "Un proxy secondaire est une autre commande pour ce m\u00eame personnage.",
                     "Exemple : `Al:` utilisera le personnage dont le proxy principal est `Alba:`.",
                     "",
                     aliasList
@@ -40,7 +40,7 @@ class CharacterAliasesPage {
                             `v2_aliases_add:${character.id}`
                         )
                         .setLabel(
-                            "Ajouter un alias"
+                            "Ajouter un proxy"
                         )
                         .setStyle(
                             ButtonStyle.Primary
@@ -65,7 +65,7 @@ class CharacterAliasesPage {
                                 `v2_aliases_remove_select:${character.id}`
                             )
                             .setPlaceholder(
-                                "Supprimer un alias"
+                                "Supprimer un proxy"
                             )
                             .addOptions(
                                 aliases

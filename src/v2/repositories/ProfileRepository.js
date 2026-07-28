@@ -6,6 +6,7 @@ const db =
 const PROFILE_FIELDS = [
     "firstname",
     "lastname",
+    "alias",
     "age",
     "gender",
     "height",
@@ -43,6 +44,7 @@ class ProfileRepository {
                 continuity_id,
                 firstname,
                 lastname,
+                alias,
                 age,
                 gender,
                 height,
@@ -59,7 +61,7 @@ class ProfileRepository {
             )
             VALUES (
                 ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?, ?, ?
             )
         `).run(
             continuityId,
@@ -86,6 +88,7 @@ class ProfileRepository {
             SET
                 firstname = ?,
                 lastname = ?,
+                alias = ?,
                 age = ?,
                 gender = ?,
                 height = ?,

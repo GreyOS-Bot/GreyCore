@@ -6,6 +6,8 @@ const {
 } = require("discord.js");
 
 const REQUEST_LABELS = Object.freeze({
+    profile_alias:
+        "Alias",
     profile_identity:
         "Identité",
     profile_information:
@@ -17,6 +19,8 @@ const REQUEST_LABELS = Object.freeze({
 });
 
 const FIELD_LABELS = Object.freeze({
+    alias:
+        "Alias / surnom",
     firstname:
         "Prénom",
     lastname:

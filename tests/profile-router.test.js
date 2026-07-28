@@ -27,6 +27,15 @@ test(
                             "identity",
                             characterId
                         ]),
+                openAlias:
+                    async (
+                        interaction,
+                        characterId
+                    ) =>
+                        calls.push([
+                            "alias",
+                            characterId
+                        ]),
                 openInformation:
                     async (
                         interaction,
@@ -103,6 +112,15 @@ test(
         assert.equal(
             await router(
                 createInteraction(
+                    "v2_profile_alias_edit:character"
+                )
+            ),
+            true
+        );
+
+        assert.equal(
+            await router(
+                createInteraction(
                     "v2_profile_information_edit:character"
                 )
             ),
@@ -125,6 +143,10 @@ test(
                 ],
                 [
                     "identity",
+                    "character"
+                ],
+                [
+                    "alias",
                     "character"
                 ],
                 [

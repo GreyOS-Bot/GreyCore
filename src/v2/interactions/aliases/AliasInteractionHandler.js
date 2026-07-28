@@ -96,7 +96,7 @@ async function add(
 
     return replyPrivate(
         interaction,
-        `Alias ajout\u00e9 : **${alias.alias}**. Tu peux maintenant l'utiliser avec \`${alias.alias}:\`.`
+        `Proxy secondaire ajout\u00e9 : **${alias.alias}**. Tu peux maintenant l'utiliser avec \`${alias.alias}:\`.`
     );
 }
 
@@ -162,7 +162,7 @@ async function getOwnedCharacter(
     ) {
         await replyError(
             interaction,
-            "Tu ne peux pas g\u00e9rer les alias de ce personnage."
+            "Tu ne peux pas g\u00e9rer les proxies secondaires de ce personnage."
         );
 
         return null;
