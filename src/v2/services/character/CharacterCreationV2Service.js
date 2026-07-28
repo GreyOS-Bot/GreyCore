@@ -157,6 +157,21 @@ class CharacterCreationV2Service {
                 : suppliedFirstname ||
                     nameParts.shift();
 
+        const story =
+            String(
+                data.story || ""
+            ).trim()
+            || null;
+
+        if (
+            type === "personnage_joue"
+            && !story
+        ) {
+            throw new Error(
+                "L'histoire est obligatoire pour un personnage jou\u00e9."
+            );
+        }
+
         return {
             discordUserId:
                 String(
@@ -189,11 +204,7 @@ class CharacterCreationV2Service {
                     data.birthday
                 )
                 || null,
-            story:
-                String(
-                    data.story || ""
-                ).trim()
-                || null
+            story
         };
 
     }

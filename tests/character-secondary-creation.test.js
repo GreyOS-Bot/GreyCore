@@ -86,7 +86,7 @@ test(
                 "Pr\u00e9nom affich\u00e9 (nom facultatif)",
                 "Organisation ou gang (\u00e9cris Sans si aucun)",
                 "Date anniversaire (facultatif)",
-                "Histoire (facultatif)"
+                "Histoire"
             ]
         );
 
@@ -133,5 +133,18 @@ test(
 
         assert.equal(namedPnj.firstname, "\u00c9mile");
         assert.equal(namedPnj.lastname, "Du Pont");
+
+        assert.throws(
+            () =>
+                characterCreationService.normalize({
+                    discordUserId: "user",
+                    guildId: "guild",
+                    guildName: "Serveur",
+                    type: "personnage_joue",
+                    proxyName: "Alba",
+                    fullName: "Alba Test"
+                }),
+            /histoire est obligatoire/
+        );
     }
 );

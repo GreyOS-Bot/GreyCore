@@ -138,18 +138,23 @@ class CharacterCreateModal {
                     "Ex. 27 juillet ou 27/07/2026"
                 );
 
+        const storyIsRequired =
+            type === "personnage_joue";
+
         const storyInput =
             new TextInputBuilder()
                 .setCustomId(
                     "profile_story"
                 )
                 .setLabel(
-                    "Histoire (facultatif)"
+                    storyIsRequired
+                        ? "Histoire"
+                        : "Histoire (facultatif)"
                 )
                 .setStyle(
                     TextInputStyle.Paragraph
                 )
-                .setRequired(false)
+                .setRequired(storyIsRequired)
                 .setMaxLength(4000);
 
         modal.addComponents(

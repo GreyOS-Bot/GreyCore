@@ -129,8 +129,9 @@ test(
                             "Alba Proxy",
                         fullName:
                             "Autre Personne",
-                        age:
-                            25
+                        age: 25,
+                        story:
+                            "Une autre histoire"
                     }),
                 /existe déjà/
             );

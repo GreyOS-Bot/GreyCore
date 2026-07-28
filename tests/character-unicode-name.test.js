@@ -30,7 +30,8 @@ test(
                 guildName: "Serveur",
                 type: "personnage_joue",
                 proxyName: "I\u0302ris",
-                fullName: "I\u0302ris D'Ame"
+                fullName: "I\u0302ris D'Ame",
+                story: "Une histoire"
             });
 
         assert.equal(
