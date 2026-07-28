@@ -169,6 +169,12 @@ test(
             true
         );
 
+        assert.equal(
+            dashboard.character
+                .display_name,
+            "Morgan"
+        );
+
         const page =
             require(
                 "../src/v2/pages/character/CharacterDashboardPage"

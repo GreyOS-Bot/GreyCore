@@ -172,6 +172,7 @@ function findPlayableV2Character({
         id:
             installation.character_id,
         name:
+            installation.display_name ||
             installation.proxy_name,
         avatar:
             installation.avatar
@@ -195,7 +196,13 @@ function findV2Installation({
             COALESCE(
                 installation.local_avatar_url,
                 character.avatar_url
-            ) AS avatar
+            ) AS avatar,
+
+            COALESCE(
+                NULLIF(profile.firstname, ''),
+                NULLIF(continuity.firstname, ''),
+                character.proxy_name
+            ) AS display_name
 
         FROM CharactersV2 character
 
@@ -207,6 +214,16 @@ function findV2Installation({
             installation
             ON installation.character_id =
                 character.id
+
+        JOIN CharacterContinuitiesV2
+            continuity
+            ON continuity.id =
+                installation.continuity_id
+
+        LEFT JOIN CharacterProfilesV2
+            profile
+            ON profile.continuity_id =
+                continuity.id
 
         WHERE installation.guild_id = ?
         AND LOWER(character.proxy_name) =

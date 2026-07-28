@@ -86,7 +86,7 @@ test(
                 resolver.resolveProxyCharacter({
                     discordUserId: "guest",
                     guildId: "guild",
-                    proxyName: "Alba"
+                    proxyName: "Ino"
                 });
 
             assert.equal(
@@ -98,12 +98,17 @@ test(
                 resolver.resolveProxyCharacter({
                     discordUserId: "owner",
                     guildId: "guild",
-                    proxyName: "Alba"
+                    proxyName: "Ino"
                 });
 
             assert.equal(
                 personalOwner.character.id,
                 "personal"
+            );
+
+            assert.equal(
+                personalOwner.character.name,
+                "Iño"
             );
         } finally {
             isolated.cleanup();
@@ -130,11 +135,23 @@ function createTables(db) {
         CREATE TABLE CharacterGuildInstallationsV2 (
             id INTEGER PRIMARY KEY,
             character_id TEXT NOT NULL,
+            continuity_id TEXT NOT NULL,
             guild_id TEXT NOT NULL,
             status TEXT NOT NULL,
             proxy_enabled INTEGER NOT NULL,
             local_avatar_url TEXT,
             installed_at TEXT NOT NULL
+        );
+
+        CREATE TABLE CharacterContinuitiesV2 (
+            id TEXT PRIMARY KEY,
+            character_id TEXT NOT NULL,
+            firstname TEXT
+        );
+
+        CREATE TABLE CharacterProfilesV2 (
+            continuity_id TEXT PRIMARY KEY,
+            firstname TEXT
         );
     `);
 }
@@ -144,7 +161,7 @@ function seedCharacters(db) {
         const [id, discordUserId, proxyName, type] of [
             ["random", "owner", "Gars 1", "random"],
             ["reserved", "owner", "Chef", "pnj_reserve"],
-            ["personal", "owner", "Alba", "personnage_joue"]
+            ["personal", "owner", "Ino", "personnage_joue"]
         ]
     ) {
         const userId =
@@ -169,8 +186,30 @@ function seedCharacters(db) {
         );
 
         db.prepare(`
-            INSERT INTO CharacterGuildInstallationsV2 VALUES (NULL, ?, 'guild', 'approved', 1, NULL, 'now')
-        `).run(id);
+            INSERT INTO CharacterContinuitiesV2 VALUES (?, ?, ?)
+        `).run(
+            `continuity-${id}`,
+            id,
+            id === "personal"
+                ? "Ino"
+                : proxyName
+        );
+
+        if (id === "personal") {
+            db.prepare(`
+                INSERT INTO CharacterProfilesV2 VALUES (?, ?)
+            `).run(
+                `continuity-${id}`,
+                "Iño"
+            );
+        }
+
+        db.prepare(`
+            INSERT INTO CharacterGuildInstallationsV2 VALUES (NULL, ?, ?, 'guild', 'approved', 1, NULL, 'now')
+        `).run(
+            id,
+            `continuity-${id}`
+        );
     }
 
     db.prepare(`

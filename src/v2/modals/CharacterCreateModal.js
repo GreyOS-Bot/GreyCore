@@ -54,7 +54,7 @@ class CharacterCreateModal {
                     "character_proxy_name"
                 )
                 .setLabel(
-                    "Nom du proxy (messages RP)"
+                    "Proxy à taper (ex. Ino)"
                 )
                 .setStyle(
                     TextInputStyle.Short
@@ -63,7 +63,7 @@ class CharacterCreateModal {
                 .setMinLength(1)
                 .setMaxLength(32)
                 .setPlaceholder(
-                    "Nom affiché lors des messages RP"
+                    "Exemple : Ino"
                 );
 
         if (proxyName) {
@@ -79,7 +79,7 @@ class CharacterCreateModal {
                     "profile_fullname"
                 )
                 .setLabel(
-                    "Prénom (affiché sur la fiche)"
+                    "Prénom affiché avec l'avatar"
                 )
                 .setStyle(
                     TextInputStyle.Short
@@ -87,7 +87,7 @@ class CharacterCreateModal {
                 .setRequired(true)
                 .setMaxLength(80)
                 .setPlaceholder(
-                    "Exemple : Gars 1"
+                    "Exemple : Iño"
                 );
 
         if (isSimpleCreation) {
@@ -111,7 +111,7 @@ class CharacterCreateModal {
                     "profile_firstname"
                 )
                 .setLabel(
-                    "Prénom réel (fiche personnage)"
+                    "Prénom affiché avec l'avatar"
                 )
                 .setStyle(
                     TextInputStyle.Short
@@ -119,7 +119,7 @@ class CharacterCreateModal {
                 .setRequired(true)
                 .setMaxLength(80)
                 .setPlaceholder(
-                    "Exemple : Alba"
+                    "Exemple : Iño"
                 );
 
         const lastNameInput =

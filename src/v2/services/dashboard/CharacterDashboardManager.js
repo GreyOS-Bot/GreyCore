@@ -218,6 +218,12 @@ class CharacterDashboardManager {
 
             ...character,
 
+            display_name:
+                profile?.firstname ??
+                continuity.firstname ??
+                character.base_firstname ??
+                character.proxy_name,
+
             continuity_id:
                 continuity.id,
 

@@ -58,8 +58,8 @@ test(
                     characterCreateModal.build(type)
                 ),
                 [
-                    "Nom du proxy (messages RP)",
-                    "Prénom (affiché sur la fiche)"
+                    "Proxy à taper (ex. Ino)",
+                    "Prénom affiché avec l'avatar"
                 ],
                 type
             );
@@ -82,8 +82,8 @@ test(
                 )
             ),
             [
-                "Nom du proxy (messages RP)",
-                "Prénom réel (fiche personnage)",
+                "Proxy à taper (ex. Ino)",
+                "Prénom affiché avec l'avatar",
                 "Nom de famille (facultatif)",
                 "Âge (facultatif)",
                 "Histoire (facultatif)"
