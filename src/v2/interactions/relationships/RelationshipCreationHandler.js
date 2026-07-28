@@ -36,6 +36,11 @@ const {
     createRelationshipModal
 } = require("./RelationshipModalFactory");
 
+const relationshipModalContextManager =
+    require(
+        "../../managers/RelationshipModalContextManager"
+    );
+
 const {
     createSearchResults,
     createTypeSelection,
@@ -267,12 +272,44 @@ class RelationshipCreationHandler {
             );
         }
 
-        return interaction.showModal(
-            createRelationshipModal({
+        const contextId =
+            relationshipModalContextManager.create({
+                userId:
+                    interaction.user.id,
+                guildId:
+                    interaction.guildId,
                 continuityAId,
                 continuityBId,
                 relationshipTypeId
+            });
+
+        return interaction.showModal(
+            createRelationshipModal({
+                contextId
             })
+        );
+    }
+
+    async createFromContext(
+        interaction,
+        contextId
+    ) {
+        const context =
+            relationshipModalContextManager.consume(
+                contextId,
+                {
+                    userId:
+                        interaction.user.id,
+                    guildId:
+                        interaction.guildId
+                }
+            );
+
+        return this.create(
+            interaction,
+            context.continuityAId,
+            context.continuityBId,
+            context.relationshipTypeId
         );
     }
 
@@ -573,6 +610,12 @@ module.exports = {
     selectType:
         relationshipCreationHandler
             .selectType
+            .bind(
+                relationshipCreationHandler
+            ),
+    createFromContext:
+        relationshipCreationHandler
+            .createFromContext
             .bind(
                 relationshipCreationHandler
             ),

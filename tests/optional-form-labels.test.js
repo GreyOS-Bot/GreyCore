@@ -50,9 +50,7 @@ test(
     () => {
         assertOptionalLabels(
             relationshipModals.createRelationshipModal({
-                continuityAId: "a",
-                continuityBId: "b",
-                relationshipTypeId: "type"
+                contextId: "relation-context"
             })
         );
 

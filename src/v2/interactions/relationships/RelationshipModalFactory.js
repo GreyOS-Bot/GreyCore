@@ -44,14 +44,12 @@ function createSearchModal(
 }
 
 function createRelationshipModal({
-    continuityAId,
-    continuityBId,
-    relationshipTypeId
+    contextId
 }) {
     const modal =
         new ModalBuilder()
             .setCustomId(
-                `v2_rel_create:${continuityAId}:${continuityBId}:${relationshipTypeId}`
+                `v2_rel_create:${contextId}`
             )
             .setTitle(
                 "Ajouter la relation"

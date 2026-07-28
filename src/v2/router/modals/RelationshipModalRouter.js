@@ -32,18 +32,12 @@ module.exports =
                 "v2_rel_create:"
             )
         ) {
-            const [
-                ,
-                continuityAId,
-                continuityBId,
-                relationshipTypeId
-            ] = customId.split(":");
+            const contextId =
+                customId.split(":")[1];
 
-            await relationshipHandler.create(
+            await relationshipHandler.createFromContext(
                 interaction,
-                continuityAId,
-                continuityBId,
-                relationshipTypeId
+                contextId
             );
 
             return true;

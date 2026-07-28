@@ -314,6 +314,7 @@ test(
                 "acceptRequest",
                 "confirmDelete",
                 "create",
+                "createFromContext",
                 "delete",
                 "edit",
                 "openAdd",
@@ -449,11 +450,18 @@ test(
             "3"
         );
 
-        assert.equal(
+        const relationModalId =
             typeSelection.modal
                 .toJSON()
-                .custom_id,
-            "v2_rel_create:continuity-a:continuity-b:3"
+                .custom_id;
+
+        assert.match(
+            relationModalId,
+            /^v2_rel_create:[a-f0-9]{16}$/
+        );
+
+        assert.ok(
+            relationModalId.length <= 100
         );
 
         const createRequestInteraction =
@@ -461,11 +469,9 @@ test(
                 calls
             );
 
-        await handler.create(
+        await handler.createFromContext(
             createRequestInteraction,
-            "continuity-a",
-            "continuity-b",
-            "3"
+            relationModalId.split(":")[1]
         );
 
         assert.equal(
