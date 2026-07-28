@@ -83,6 +83,16 @@ module.exports =
                             interaction,
                             "profile_age"
                         ),
+                    gang:
+                        readField(
+                            interaction,
+                            "profile_gang"
+                        ),
+                    birthday:
+                        readField(
+                            interaction,
+                            "profile_birthday"
+                        ),
                     story:
                         readField(
                             interaction,

@@ -7,15 +7,15 @@ const {
 
 const TYPE_LABELS = {
     personnage_joue:
-        "Personnage joué",
+        "Personnage jou\u00e9",
     pnj:
         "PNJ",
     random:
         "Random",
     pnj_reserve:
-        "PNJ réservé",
+        "PNJ r\u00e9serv\u00e9",
     reserve_staff:
-        "Réservé staff"
+        "R\u00e9serv\u00e9 staff"
 };
 
 class CharacterCreateModal {
@@ -24,7 +24,6 @@ class CharacterCreateModal {
         type,
         proxyName = ""
     ) {
-
         if (!TYPE_LABELS[type]) {
             throw new Error(
                 "Type de personnage invalide."
@@ -44,7 +43,7 @@ class CharacterCreateModal {
                     `v2_character_create_submit:${type}`
                 )
                 .setTitle(
-                    `Créer · ${TYPE_LABELS[type]}`
+                    `Cr\u00e9er \u00b7 ${TYPE_LABELS[type]}`
                         .slice(0, 45)
                 );
 
@@ -54,7 +53,7 @@ class CharacterCreateModal {
                     "character_proxy_name"
                 )
                 .setLabel(
-                    "Proxy à taper (ex. Ino)"
+                    "Proxy \u00e0 taper (ex. Ino)"
                 )
                 .setStyle(
                     TextInputStyle.Short
@@ -73,21 +72,21 @@ class CharacterCreateModal {
             );
         }
 
-        const simpleFirstNameInput =
+        const fullNameInput =
             new TextInputBuilder()
                 .setCustomId(
                     "profile_fullname"
                 )
                 .setLabel(
-                    "Prénom affiché avec l'avatar"
+                    "Pr\u00e9nom affich\u00e9 (nom facultatif)"
                 )
                 .setStyle(
                     TextInputStyle.Short
                 )
                 .setRequired(true)
-                .setMaxLength(80)
+                .setMaxLength(160)
                 .setPlaceholder(
-                    "Exemple : Iño"
+                    "Exemple : I\u00f1o Alvarez"
                 );
 
         if (isSimpleCreation) {
@@ -98,58 +97,46 @@ class CharacterCreateModal {
                     ),
                 new ActionRowBuilder()
                     .addComponents(
-                        simpleFirstNameInput
+                        fullNameInput
                     )
             );
 
             return modal;
         }
 
-        const firstNameInput =
+        const organizationInput =
             new TextInputBuilder()
                 .setCustomId(
-                    "profile_firstname"
+                    "profile_gang"
                 )
                 .setLabel(
-                    "Prénom affiché avec l'avatar"
+                    "Organisation ou gang (\u00e9cris Sans si aucun)"
                 )
                 .setStyle(
                     TextInputStyle.Short
                 )
                 .setRequired(true)
-                .setMaxLength(80)
+                .setMaxLength(100)
                 .setPlaceholder(
-                    "Exemple : Iño"
+                    "Exemple : La Mano de Dios ou Sans"
                 );
 
-        const lastNameInput =
+        const birthdayInput =
             new TextInputBuilder()
                 .setCustomId(
-                    "profile_lastname"
+                    "profile_birthday"
                 )
                 .setLabel(
-                    "Nom de famille (facultatif)"
+                    "Date anniversaire (facultatif)"
                 )
                 .setStyle(
                     TextInputStyle.Short
                 )
                 .setRequired(false)
-                .setMaxLength(80)
+                .setMaxLength(50)
                 .setPlaceholder(
-                    "Exemple : Alvarez"
+                    "Ex. 27 juillet ou 27/07/2026"
                 );
-
-        const ageInput =
-            new TextInputBuilder()
-                .setCustomId(
-                    "profile_age"
-                )
-                .setLabel("Âge (facultatif)")
-                .setStyle(
-                    TextInputStyle.Short
-                )
-                .setRequired(false)
-                .setMaxLength(3);
 
         const storyInput =
             new TextInputBuilder()
@@ -172,15 +159,15 @@ class CharacterCreateModal {
                 ),
             new ActionRowBuilder()
                 .addComponents(
-                    firstNameInput
+                    fullNameInput
                 ),
             new ActionRowBuilder()
                 .addComponents(
-                    lastNameInput
+                    organizationInput
                 ),
             new ActionRowBuilder()
                 .addComponents(
-                    ageInput
+                    birthdayInput
                 ),
             new ActionRowBuilder()
                 .addComponents(
@@ -189,7 +176,6 @@ class CharacterCreateModal {
         );
 
         return modal;
-
     }
 
 }

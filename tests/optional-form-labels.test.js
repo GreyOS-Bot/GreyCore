@@ -1,6 +1,5 @@
 const test =
     require("node:test");
-
 const assert =
     require("node:assert/strict");
 
@@ -47,7 +46,7 @@ function assertOptionalLabels(modal) {
 }
 
 test(
-    "les champs facultatifs sont signalés dans les formulaires",
+    "les champs facultatifs sont signal\u00e9s dans les formulaires",
     () => {
         assertOptionalLabels(
             relationshipModals.createRelationshipModal({
@@ -90,22 +89,30 @@ test(
             })
         );
 
-        const creationLabels =
-            labels(
-                characterCreateModal.build(
-                    "pnj"
-                )
-            );
+        const creationInputs =
+            characterCreateModal
+                .build("pnj")
+                .toJSON()
+                .components
+                .map(row => row.components[0]);
 
-        for (const prefix of [
-            "Nom de famille",
-            "Âge",
-            "Histoire"
-        ]) {
+        assert.deepEqual(
+            creationInputs
+                .filter(input => !input.required)
+                .map(input => input.custom_id),
+            [
+                "profile_birthday",
+                "profile_story"
+            ]
+        );
+
+        for (
+            const input of creationInputs.filter(
+                input => !input.required
+            )
+        ) {
             assert.match(
-                creationLabels.find(label =>
-                    label.startsWith(prefix)
-                ),
+                input.label,
                 /\(facultatif\)$/
             );
         }

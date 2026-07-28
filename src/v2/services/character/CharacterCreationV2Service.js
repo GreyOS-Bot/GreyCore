@@ -181,9 +181,13 @@ class CharacterCreationV2Service {
                         || null,
             age,
             gang:
-                String(
-                    data.gang || ""
-                ).trim()
+                this.normalizeOrganization(
+                    data.gang
+                ),
+            birthday:
+                this.normalizeDisplayText(
+                    data.birthday
+                )
                 || null,
             story:
                 String(
@@ -252,6 +256,8 @@ class CharacterCreationV2Service {
                     data.age,
                 gang:
                     data.gang,
+                birthday:
+                    data.birthday,
                 story:
                     data.story
             });
@@ -295,6 +301,19 @@ class CharacterCreationV2Service {
         return String(value || "")
             .normalize("NFC")
             .trim();
+    }
+
+    normalizeOrganization(
+        value
+    ) {
+        const organization =
+            this.normalizeDisplayText(value);
+
+        return organization.toLocaleLowerCase(
+            "fr-FR"
+        ) === "sans"
+            ? "Sans"
+            : organization || null;
     }
 
 }

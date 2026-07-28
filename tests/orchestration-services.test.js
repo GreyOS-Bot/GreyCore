@@ -76,6 +76,8 @@ test(
                         "23",
                     gang:
                         "La Mano de Dios",
+                    birthday:
+                        "27 juillet 2026",
                     story:
                         "Une histoire"
                 });
@@ -92,6 +94,10 @@ test(
             assert.equal(
                 result.profile.lastname,
                 "Grey"
+            );
+            assert.equal(
+                result.profile.birthday,
+                "27 juillet 2026"
             );
             assert.equal(
                 result.phone

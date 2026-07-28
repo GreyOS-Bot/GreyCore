@@ -26,7 +26,7 @@ function labels(modal) {
 }
 
 test(
-    "les personnages secondaires ont une création simplifiée et des règles explicites",
+    "les personnages secondaires ont une cr\u00e9ation simplifi\u00e9e et des r\u00e8gles explicites",
     () => {
         assert.equal(
             characterTypes.usesSimpleCreation(
@@ -58,8 +58,8 @@ test(
                     characterCreateModal.build(type)
                 ),
                 [
-                    "Proxy à taper (ex. Ino)",
-                    "Prénom affiché avec l'avatar"
+                    "Proxy \u00e0 taper (ex. Ino)",
+                    "Pr\u00e9nom affich\u00e9 (nom facultatif)"
                 ],
                 type
             );
@@ -82,10 +82,10 @@ test(
                 )
             ),
             [
-                "Proxy à taper (ex. Ino)",
-                "Prénom affiché avec l'avatar",
-                "Nom de famille (facultatif)",
-                "Âge (facultatif)",
+                "Proxy \u00e0 taper (ex. Ino)",
+                "Pr\u00e9nom affich\u00e9 (nom facultatif)",
+                "Organisation ou gang (\u00e9cris Sans si aucun)",
+                "Date anniversaire (facultatif)",
                 "Histoire (facultatif)"
             ]
         );
@@ -111,10 +111,14 @@ test(
                 guildName: "Serveur",
                 type: "pnj",
                 proxyName: "Parent",
-                fullName: "Parent Test"
+                fullName: "Parent Test",
+                gang: "sans",
+                birthday: "27 juillet 2026"
             });
 
         assert.equal(pnj.age, null);
+        assert.equal(pnj.gang, "Sans");
+        assert.equal(pnj.birthday, "27 juillet 2026");
 
         const namedPnj =
             characterCreationService.normalize({
@@ -123,11 +127,11 @@ test(
                 guildName: "Serveur",
                 type: "pnj",
                 proxyName: "Le Gardien",
-                firstname: "Émile",
+                firstname: "\u00c9mile",
                 lastname: "Du Pont"
             });
 
-        assert.equal(namedPnj.firstname, "Émile");
+        assert.equal(namedPnj.firstname, "\u00c9mile");
         assert.equal(namedPnj.lastname, "Du Pont");
     }
 );
