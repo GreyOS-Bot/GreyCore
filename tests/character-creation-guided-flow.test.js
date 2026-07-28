@@ -29,14 +29,14 @@ test(
                     values: {
                         character_proxy_name:
                             "Alba",
-                        profile_firstname:
+                        profile_alias:
                             "Alba",
+                        profile_firstname:
+                            "Alba-Rose",
                         profile_lastname:
                             "Grey",
                         profile_age:
-                            "23",
-                        profile_occupation:
-                            "Avocate"
+                            "23"
                     }
                 });
 
@@ -83,9 +83,9 @@ test(
                 ),
                 [
                     "profile_gang",
+                    "profile_occupation",
                     "profile_birthday",
                     "profile_creation_date",
-                    "profile_alias",
                     "profile_story"
                 ]
             );

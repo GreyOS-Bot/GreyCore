@@ -108,6 +108,21 @@ class CharacterCreationV2Service {
                 data.lastname
             );
 
+        const alias =
+            this.normalizeDisplayText(
+                data.alias
+            )
+            || (
+                isSimpleCreation
+                    ? null
+                    : suppliedFirstname
+                    || this.normalizeDisplayText(
+                        data.fullName
+                    )
+                        ?.split(/\s+/)[0]
+                    || null
+            );
+
         const providedName =
             fullName ||
             [
@@ -117,9 +132,21 @@ class CharacterCreationV2Service {
                 .filter(Boolean)
                 .join(" ");
 
-        if (!providedName) {
+        if (
+            isSimpleCreation
+            && !providedName
+        ) {
             throw new Error(
                 "Le pr\u00e9nom est obligatoire."
+            );
+        }
+
+        if (
+            !isSimpleCreation
+            && !alias
+        ) {
+            throw new Error(
+                "Le pr\u00e9nom ou l'alias est obligatoire."
             );
         }
 
@@ -144,18 +171,21 @@ class CharacterCreationV2Service {
             );
         }
 
-        const nameParts =
-            isSimpleCreation
-                ? []
-                : providedName
+        const legacyNameParts =
+            !isSimpleCreation
+            && !suppliedFirstname
+            && fullName
+                ? fullName
                     .split(/\s+/)
-                    .filter(Boolean);
+                    .filter(Boolean)
+                : [];
 
         const firstname =
             isSimpleCreation
                 ? providedName
-                : suppliedFirstname ||
-                    nameParts.shift();
+                : suppliedFirstname
+                || legacyNameParts.shift()
+                || null;
 
         const story =
             String(
@@ -184,12 +214,6 @@ class CharacterCreationV2Service {
             )
             || null;
 
-        const alias =
-            this.normalizeDisplayText(
-                data.alias
-            )
-            || null;
-
         return {
             discordUserId:
                 String(
@@ -208,10 +232,9 @@ class CharacterCreationV2Service {
             lastname:
                 isSimpleCreation
                     ? null
-                    : suppliedFirstname
-                        ? suppliedLastname || null
-                        : nameParts.join(" ")
-                        || null,
+                    : suppliedLastname
+                    || legacyNameParts.join(" ")
+                    || null,
             age,
             gang:
                 this.normalizeOrganization(

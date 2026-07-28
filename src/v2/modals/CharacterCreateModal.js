@@ -106,13 +106,13 @@ class CharacterCreateModal {
             return modal;
         }
 
-        const firstnameInput =
+        const aliasInput =
             new TextInputBuilder()
                 .setCustomId(
-                    "profile_firstname"
+                    "profile_alias"
                 )
                 .setLabel(
-                    "Pr\u00e9nom affich\u00e9"
+                    "Pr\u00e9nom ou alias affich\u00e9"
                 )
                 .setStyle(
                     TextInputStyle.Short
@@ -120,7 +120,24 @@ class CharacterCreateModal {
                 .setRequired(true)
                 .setMaxLength(80)
                 .setPlaceholder(
-                    "Exemple : I\u00f1o"
+                    "Exemple : Story"
+                );
+
+        const firstnameInput =
+            new TextInputBuilder()
+                .setCustomId(
+                    "profile_firstname"
+                )
+                .setLabel(
+                    "Vrai pr\u00e9nom (facultatif)"
+                )
+                .setStyle(
+                    TextInputStyle.Short
+                )
+                .setRequired(false)
+                .setMaxLength(80)
+                .setPlaceholder(
+                    "Exemple : Astoria"
                 );
 
         const lastnameInput =
@@ -157,27 +174,14 @@ class CharacterCreateModal {
                     "Exemple : 23"
                 );
 
-        const occupationInput =
-            new TextInputBuilder()
-                .setCustomId(
-                    "profile_occupation"
-                )
-                .setLabel(
-                    "M\u00e9tier (facultatif)"
-                )
-                .setStyle(
-                    TextInputStyle.Short
-                )
-                .setRequired(false)
-                .setMaxLength(100)
-                .setPlaceholder(
-                    "Exemple : Avocate"
-                );
-
         modal.addComponents(
             new ActionRowBuilder()
                 .addComponents(
                     proxyNameInput
+                ),
+            new ActionRowBuilder()
+                .addComponents(
+                    aliasInput
                 ),
             new ActionRowBuilder()
                 .addComponents(
@@ -190,10 +194,6 @@ class CharacterCreateModal {
             new ActionRowBuilder()
                 .addComponents(
                     ageInput
-                ),
-            new ActionRowBuilder()
-                .addComponents(
-                    occupationInput
                 )
         );
 
@@ -280,21 +280,21 @@ class CharacterCreateModal {
                     "Ex. 27 juillet 2026"
                 );
 
-        const aliasInput =
+        const occupationInput =
             new TextInputBuilder()
                 .setCustomId(
-                    "profile_alias"
+                    "profile_occupation"
                 )
                 .setLabel(
-                    "Alias ou surnom (facultatif)"
+                    "M\u00e9tier (facultatif)"
                 )
                 .setStyle(
                     TextInputStyle.Short
                 )
                 .setRequired(false)
-                .setMaxLength(80)
+                .setMaxLength(100)
                 .setPlaceholder(
-                    "Exemple : Story"
+                    "Exemple : Avocate"
                 );
 
         const storyIsRequired =
@@ -323,15 +323,15 @@ class CharacterCreateModal {
                 ),
             new ActionRowBuilder()
                 .addComponents(
+                    occupationInput
+                ),
+            new ActionRowBuilder()
+                .addComponents(
                     birthdayInput
                 ),
             new ActionRowBuilder()
                 .addComponents(
                     creationDateInput
-                ),
-            new ActionRowBuilder()
-                .addComponents(
-                    aliasInput
                 ),
             new ActionRowBuilder()
                 .addComponents(

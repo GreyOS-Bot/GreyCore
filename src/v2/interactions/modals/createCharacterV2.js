@@ -97,6 +97,11 @@ async function startCharacterCreation(
                         interaction,
                         "character_proxy_name"
                     ),
+                alias:
+                    readField(
+                        interaction,
+                        "profile_alias"
+                    ),
                 firstname:
                     readField(
                         interaction,
@@ -111,11 +116,6 @@ async function startCharacterCreation(
                     readField(
                         interaction,
                         "profile_age"
-                    ),
-                occupation:
-                    readField(
-                        interaction,
-                        "profile_occupation"
                     )
             }
         });
@@ -161,6 +161,11 @@ async function completeCharacterCreation(
                         interaction,
                         "profile_gang"
                     ),
+                occupation:
+                    readField(
+                        interaction,
+                        "profile_occupation"
+                    ),
                 birthday:
                     readField(
                         interaction,
@@ -170,11 +175,6 @@ async function completeCharacterCreation(
                     readField(
                         interaction,
                         "profile_creation_date"
-                    ),
-                alias:
-                    readField(
-                        interaction,
-                        "profile_alias"
                     ),
                 story:
                     readField(

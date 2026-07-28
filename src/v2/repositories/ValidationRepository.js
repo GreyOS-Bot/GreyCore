@@ -81,6 +81,7 @@ class ValidationRepository {
                 END AS story,
 
                 profile.gender,
+                profile.alias,
                 profile.height,
                 profile.weight,
                 profile.birthday,

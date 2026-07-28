@@ -271,6 +271,10 @@ class ValidationCardBuilder {
                 installation
             )}`,
 
+            `**Alias :** ${this.cleanText(
+                installation.alias
+            )}`,
+
             `**Âge :** ${this.cleanText(
                 installation.age
             )}`,

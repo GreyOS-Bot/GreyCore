@@ -219,6 +219,7 @@ class CharacterDashboardManager {
             ...character,
 
             display_name:
+                profile?.alias ??
                 profile?.firstname ??
                 continuity.firstname ??
                 character.base_firstname ??

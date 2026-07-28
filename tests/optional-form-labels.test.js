@@ -101,9 +101,9 @@ test(
                 .filter(input => !input.required)
                 .map(input => input.custom_id),
             [
+                "profile_firstname",
                 "profile_lastname",
-                "profile_age",
-                "profile_occupation"
+                "profile_age"
             ]
         );
 
@@ -130,9 +130,9 @@ test(
                 .filter(input => !input.required)
                 .map(input => input.custom_id),
             [
+                "profile_occupation",
                 "profile_birthday",
                 "profile_creation_date",
-                "profile_alias",
                 "profile_story"
             ]
         );

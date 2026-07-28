@@ -83,10 +83,10 @@ test(
             ),
             [
                 "Proxy \u00e0 taper (ex. Ino)",
-                "Pr\u00e9nom affich\u00e9",
+                "Pr\u00e9nom ou alias affich\u00e9",
+                "Vrai pr\u00e9nom (facultatif)",
                 "Nom (facultatif)",
-                "\u00c2ge (facultatif)",
-                "M\u00e9tier (facultatif)"
+                "\u00c2ge (facultatif)"
             ]
         );
 
@@ -105,9 +105,9 @@ test(
             ),
             [
                 "Organisation ou gang (\u00e9cris Sans si aucun)",
+                "M\u00e9tier (facultatif)",
                 "Date anniversaire (facultatif)",
                 "Date de cr\u00e9ation (facultatif)",
-                "Alias ou surnom (facultatif)",
                 "Histoire"
             ]
         );
