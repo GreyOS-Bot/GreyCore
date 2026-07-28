@@ -46,9 +46,7 @@ class StaffErrorLogService {
 
         try {
             const channel =
-                await this.getChannel(
-                    channelId
-                );
+                await this.getChannel(channelId);
 
             if (
                 !channel
@@ -70,7 +68,7 @@ class StaffErrorLogService {
             return true;
         } catch (reportError) {
             this.log.warn(
-                "Impossible d’envoyer le journal staff :",
+                "Impossible d'envoyer le journal staff :",
                 reportError
             );
 
@@ -102,6 +100,14 @@ function buildErrorEmbed({
 }) {
     const fields = [
         {
+            name: "Erreur",
+            value: toCodeBlock(
+                getErrorSummary(error),
+                1_024
+            ),
+            inline: false
+        },
+        {
             name: "Origine",
             value: truncate(
                 scope
@@ -122,6 +128,26 @@ function buildErrorEmbed({
         });
     }
 
+    const channel = getChannel(interaction);
+
+    if (channel) {
+        fields.push({
+            name: "Salon concern\u00e9",
+            value: truncate(channel, 1_024),
+            inline: true
+        });
+    }
+
+    const guild = getGuild(interaction);
+
+    if (guild) {
+        fields.push({
+            name: "Serveur",
+            value: truncate(guild, 1_024),
+            inline: true
+        });
+    }
+
     const user = getUser(interaction);
 
     if (user) {
@@ -132,23 +158,61 @@ function buildErrorEmbed({
         });
     }
 
+    const trace = getTechnicalTrace(error);
+
+    if (trace) {
+        fields.push({
+            name: "Trace technique",
+            value: toCodeBlock(trace, 1_024),
+            inline: false
+        });
+    }
+
     return new EmbedBuilder()
         .setColor(0xED4245)
-        .setTitle("⚠️ Erreur GreyCore")
+        .setTitle("\u26a0\ufe0f Erreur GreyCore")
         .setDescription(
-            `\`\`\`${truncate(getErrorMessage(error), 1_500)}\`\`\``
+            "GreyCore a interrompu une action. Les d\u00e9tails ci-dessous permettent au staff de la reproduire et de la corriger."
         )
         .addFields(fields)
         .setTimestamp();
 }
 
+function getErrorSummary(error) {
+    const name =
+        error?.name
+        || "Erreur";
+    const code =
+        error?.code
+            ? ` [${error.code}]`
+            : "";
+
+    return `${name}${code}: ${getErrorMessage(error)}`;
+}
+
 function getErrorMessage(error) {
-    return String(
+    const message =
         error instanceof Error
             ? error.message
-            : error
-            || "Erreur inconnue."
-    ).replace(/`/g, "’");
+            : error;
+
+    return String(
+        message
+        || "Erreur inconnue."
+    ).replace(/`/g, "'");
+}
+
+function getTechnicalTrace(error) {
+    if (!error?.stack) {
+        return null;
+    }
+
+    const trace =
+        String(error.stack)
+            .replace(/`/g, "'")
+            .trim();
+
+    return trace || null;
 }
 
 function getAction(interaction) {
@@ -164,27 +228,77 @@ function getAction(interaction) {
     );
 }
 
+function getChannel(interaction) {
+    const channel =
+        interaction?.channel;
+    const channelId =
+        interaction?.channelId
+        || channel?.id;
+
+    if (!channel && !channelId) {
+        return null;
+    }
+
+    const name =
+        channel?.name
+            ? `#${channel.name}`
+            : "Salon inconnu";
+
+    return channelId
+        ? `${name} (${channelId})`
+        : name;
+}
+
+function getGuild(interaction) {
+    const guild =
+        interaction?.guild;
+    const guildId =
+        interaction?.guildId
+        || guild?.id;
+
+    if (!guild && !guildId) {
+        return null;
+    }
+
+    const name =
+        guild?.name
+        || "Serveur inconnu";
+
+    return guildId
+        ? `${name} (${guildId})`
+        : name;
+}
+
 function getUser(interaction) {
     if (!interaction?.user) {
         return null;
     }
 
-    return (
+    const name =
         interaction.user.tag
         || interaction.user.username
-        || interaction.user.id
-        || null
-    );
+        || "Utilisateur inconnu";
+
+    return interaction.user.id
+        ? `${name} (${interaction.user.id})`
+        : name;
+}
+
+function toCodeBlock(value, maximum) {
+    const content =
+        truncate(value, maximum - 6);
+
+    return `\`\`\`${content}\`\`\``;
 }
 
 function truncate(value, maximum) {
     const text = String(value || "").trim();
 
     if (text.length <= maximum) {
-        return text || "Non précisé";
+        return text || "Non pr\u00e9cis\u00e9";
     }
 
-    return `${text.slice(0, maximum - 1)}…`;
+    return `${text.slice(0, maximum - 1)}\u2026`;
 }
 
 const service = new StaffErrorLogService();

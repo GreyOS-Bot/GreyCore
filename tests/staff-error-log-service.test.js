@@ -20,7 +20,7 @@ const {
 );
 
 test(
-    "le journal staff transmet une erreur inattendue dans le salon configuré",
+    "le journal staff d\u00e9taille l'erreur, l'action et le salon concern\u00e9",
     async () => {
         const sent = [];
 
@@ -59,8 +59,17 @@ test(
                 ),
                 interaction: {
                     commandName: "personnage",
+                    channelId: "channel-123",
+                    channel: {
+                        name: "tests-greycore"
+                    },
+                    guildId: "guild",
+                    guild: {
+                        name: "Serveur b\u00eata"
+                    },
                     user: {
-                        tag: "Sky.dkr"
+                        tag: "Sky.dkr",
+                        id: "user-123"
                     }
                 }
             }),
@@ -71,10 +80,10 @@ test(
 
         assert.equal(
             embed.title,
-            "⚠️ Erreur GreyCore"
+            "\u26a0\ufe0f Erreur GreyCore"
         );
         assert.match(
-            embed.description,
+            embed.fields[0].value,
             /Personnage introuvable/
         );
         assert.deepEqual(
@@ -82,16 +91,32 @@ test(
                 field => field.name
             ),
             [
+                "Erreur",
                 "Origine",
                 "Action",
-                "Utilisateur"
+                "Salon concern\u00e9",
+                "Serveur",
+                "Utilisateur",
+                "Trace technique"
             ]
+        );
+        assert.match(
+            embed.fields[3].value,
+            /#tests-greycore \(channel-123\)/
+        );
+        assert.match(
+            embed.fields[4].value,
+            /Serveur b\u00eata \(guild\)/
+        );
+        assert.match(
+            embed.fields[5].value,
+            /Sky\.dkr \(user-123\)/
         );
     }
 );
 
 test(
-    "le journal n’envoie rien sans salon configuré",
+    "le journal n'envoie rien sans salon configur\u00e9",
     async () => {
         const service =
             new StaffErrorLogService({
@@ -107,7 +132,9 @@ test(
             channels: {
                 cache: new Map(),
                 fetch: async () => {
-                    throw new Error("ne doit pas être appelé");
+                    throw new Error(
+                        "ne doit pas \u00eatre appel\u00e9"
+                    );
                 }
             }
         });
@@ -124,7 +151,7 @@ test(
 );
 
 test(
-    "l’embed masque les caractères de bloc de code de l’erreur",
+    "l'embed masque les caract\u00e8res de bloc de code de l'erreur",
     () => {
         const embed = buildErrorEmbed({
             scope: "Test",
@@ -132,7 +159,7 @@ test(
         }).toJSON();
 
         assert.doesNotMatch(
-            embed.description.slice(3, -3),
+            embed.fields[0].value.slice(3, -3),
             /`/
         );
     }
