@@ -242,8 +242,8 @@ installDefaultRelationshipTypes(guildId) {
         },
         {
             key: "sexfriend",
-            labelAToB: "Sexfriend de",
-            labelBToA: "Sexfriend de",
+            labelAToB: "Friends with benefits de",
+            labelBToA: "Friends with benefits de",
             isSymmetric: 1
         },
         {
@@ -417,6 +417,21 @@ installDefaultRelationshipTypes(guildId) {
                 now
             );
         }
+
+        db.prepare(`
+            UPDATE RelationshipTypes
+            SET
+                label_a_to_b = ?,
+                label_b_to_a = ?
+            WHERE guild_id = ?
+            AND key = 'sexfriend'
+            AND label_a_to_b = 'Sexfriend de'
+            AND label_b_to_a = 'Sexfriend de'
+        `).run(
+            "Friends with benefits de",
+            "Friends with benefits de",
+            guildId
+        );
     });
 
     installAll();
