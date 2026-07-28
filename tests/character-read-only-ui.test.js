@@ -79,6 +79,9 @@ test(
                 getDashboardData:
                     () => ({
                         character,
+                        continuity: {
+                            id: "continuity"
+                        },
                         profile: {
                             firstname:
                                 "Alba",
@@ -88,6 +91,16 @@ test(
                                 "Une histoire visible."
                         }
                     })
+            }
+        );
+
+        stubModule(
+            "src/v2/managers/InstallationV2Manager.js",
+            {
+                getByContinuityAndGuild: () => ({
+                    id: "installation",
+                    status: "approved"
+                })
             }
         );
 
@@ -154,6 +167,33 @@ test(
         assert.equal(
             profileIds.includes(
                 "v2_profile_story_view:character:0"
+            ),
+            true
+        );
+
+        const ownerInteraction = {
+            guildId:
+                "guild",
+            user: {
+                id:
+                    "owner"
+            },
+            update:
+                async payload => {
+                    ownerInteraction.payload = payload;
+                }
+        };
+
+        await profilePage.execute(
+            ownerInteraction,
+            character.id
+        );
+
+        assert.equal(
+            getCustomIds(
+                ownerInteraction.payload
+            ).includes(
+                "v2_installation_avatar_request:character:installation"
             ),
             true
         );

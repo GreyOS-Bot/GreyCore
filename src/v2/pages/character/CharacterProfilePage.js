@@ -396,6 +396,26 @@ class CharacterProfilePage {
 
         const actionButtons = [];
 
+        if (
+            isOwner
+            && installation
+        ) {
+            actionButtons.push(
+                UI.button.primary({
+
+                id:
+                    `v2_installation_avatar_request:${characterId}:${installation.id}`,
+
+                label:
+                    "Changer l'avatar",
+
+                emoji:
+                    "\u{1F5BC}\uFE0F"
+
+                })
+            );
+        }
+
         if (isOwner) {
             actionButtons.push(
                 UI.button.primary({
