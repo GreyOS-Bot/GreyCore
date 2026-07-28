@@ -107,12 +107,13 @@ test(
                 "Organisation ou gang (\u00e9cris Sans si aucun)",
                 "Date anniversaire (facultatif)",
                 "Date de cr\u00e9ation (facultatif)",
+                "Alias ou surnom (facultatif)",
                 "Histoire"
             ]
         );
 
         assert.equal(
-            playerDetails[3].required,
+            playerDetails[4].required,
             true
         );
 
@@ -141,7 +142,8 @@ test(
                 gang: "sans",
                 birthday: "27 juillet 2026",
                 occupation: "M\u00e9decin",
-                creationDate: "1er ao\u00fbt 2026"
+                creationDate: "1er ao\u00fbt 2026",
+                alias: "Le Parent"
             });
 
         assert.equal(pnj.age, null);
@@ -149,6 +151,7 @@ test(
         assert.equal(pnj.birthday, "27 juillet 2026");
         assert.equal(pnj.occupation, "M\u00e9decin");
         assert.equal(pnj.creationDate, "1er ao\u00fbt 2026");
+        assert.equal(pnj.alias, "Le Parent");
 
         const namedPnj =
             characterCreationService.normalize({

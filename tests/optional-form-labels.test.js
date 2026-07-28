@@ -132,6 +132,7 @@ test(
             [
                 "profile_birthday",
                 "profile_creation_date",
+                "profile_alias",
                 "profile_story"
             ]
         );

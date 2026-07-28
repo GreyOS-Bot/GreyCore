@@ -171,6 +171,11 @@ async function completeCharacterCreation(
                         interaction,
                         "profile_creation_date"
                     ),
+                alias:
+                    readField(
+                        interaction,
+                        "profile_alias"
+                    ),
                 story:
                     readField(
                         interaction,

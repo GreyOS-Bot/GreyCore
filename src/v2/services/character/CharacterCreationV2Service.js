@@ -184,6 +184,12 @@ class CharacterCreationV2Service {
             )
             || null;
 
+        const alias =
+            this.normalizeDisplayText(
+                data.alias
+            )
+            || null;
+
         return {
             discordUserId:
                 String(
@@ -218,6 +224,7 @@ class CharacterCreationV2Service {
                 || null,
             occupation,
             creationDate,
+            alias,
             story
         };
 
@@ -277,6 +284,8 @@ class CharacterCreationV2Service {
                     data.firstname,
                 lastname:
                     data.lastname,
+                alias:
+                    data.alias,
                 age:
                     data.age,
                 gang:

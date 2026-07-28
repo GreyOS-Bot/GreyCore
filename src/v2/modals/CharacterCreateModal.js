@@ -280,6 +280,23 @@ class CharacterCreateModal {
                     "Ex. 27 juillet 2026"
                 );
 
+        const aliasInput =
+            new TextInputBuilder()
+                .setCustomId(
+                    "profile_alias"
+                )
+                .setLabel(
+                    "Alias ou surnom (facultatif)"
+                )
+                .setStyle(
+                    TextInputStyle.Short
+                )
+                .setRequired(false)
+                .setMaxLength(80)
+                .setPlaceholder(
+                    "Exemple : Story"
+                );
+
         const storyIsRequired =
             type === "personnage_joue";
 
@@ -311,6 +328,10 @@ class CharacterCreateModal {
             new ActionRowBuilder()
                 .addComponents(
                     creationDateInput
+                ),
+            new ActionRowBuilder()
+                .addComponents(
+                    aliasInput
                 ),
             new ActionRowBuilder()
                 .addComponents(

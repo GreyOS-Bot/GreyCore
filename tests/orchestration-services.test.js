@@ -82,6 +82,8 @@ test(
                         "Avocate",
                     creationDate:
                         "1er ao\u00fbt 2026",
+                    alias:
+                        "Avocate Alba",
                     story:
                         "Une histoire"
                 });
@@ -110,6 +112,10 @@ test(
             assert.equal(
                 result.profile.creation_date,
                 "1er ao\u00fbt 2026"
+            );
+            assert.equal(
+                result.profile.alias,
+                "Avocate Alba"
             );
             assert.equal(
                 result.phone
