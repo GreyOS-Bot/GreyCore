@@ -83,11 +83,37 @@ test(
             ),
             [
                 "Proxy \u00e0 taper (ex. Ino)",
-                "Pr\u00e9nom affich\u00e9 (nom facultatif)",
+                "Pr\u00e9nom affich\u00e9",
+                "Nom (facultatif)",
+                "\u00c2ge (facultatif)",
+                "M\u00e9tier (facultatif)"
+            ]
+        );
+
+        const playerDetails =
+            characterCreateModal
+                .buildDetails(
+                    "personnage_joue"
+                )
+                .toJSON()
+                .components
+                .map(row => row.components[0]);
+
+        assert.deepEqual(
+            playerDetails.map(
+                input => input.label
+            ),
+            [
                 "Organisation ou gang (\u00e9cris Sans si aucun)",
                 "Date anniversaire (facultatif)",
+                "Date de cr\u00e9ation (facultatif)",
                 "Histoire"
             ]
+        );
+
+        assert.equal(
+            playerDetails[3].required,
+            true
         );
 
         const random =
@@ -113,12 +139,16 @@ test(
                 proxyName: "Parent",
                 fullName: "Parent Test",
                 gang: "sans",
-                birthday: "27 juillet 2026"
+                birthday: "27 juillet 2026",
+                occupation: "M\u00e9decin",
+                creationDate: "1er ao\u00fbt 2026"
             });
 
         assert.equal(pnj.age, null);
         assert.equal(pnj.gang, "Sans");
         assert.equal(pnj.birthday, "27 juillet 2026");
+        assert.equal(pnj.occupation, "M\u00e9decin");
+        assert.equal(pnj.creationDate, "1er ao\u00fbt 2026");
 
         const namedPnj =
             characterCreationService.normalize({

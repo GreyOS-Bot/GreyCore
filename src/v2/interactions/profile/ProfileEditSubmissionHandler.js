@@ -310,7 +310,6 @@ async function returnToCreationIfDraft(
 ) {
     if (
         writable.installation.status !== "draft"
-        || !interaction.message
     ) {
         return false;
     }
@@ -342,7 +341,14 @@ async function returnToCreationIfDraft(
             interaction.guild
         );
 
-    await interaction.update(view);
+    if (interaction.message) {
+        await interaction.update(view);
+    } else {
+        await replyPrivate(
+            interaction,
+            view
+        );
+    }
 
     return true;
 }

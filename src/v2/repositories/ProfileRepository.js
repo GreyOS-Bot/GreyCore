@@ -11,6 +11,7 @@ const PROFILE_FIELDS = [
     "height",
     "weight",
     "birthday",
+    "creation_date",
     "origin",
     "occupation",
     "gang",
@@ -47,6 +48,7 @@ class ProfileRepository {
                 height,
                 weight,
                 birthday,
+                creation_date,
                 origin,
                 occupation,
                 gang,
@@ -57,7 +59,7 @@ class ProfileRepository {
             )
             VALUES (
                 ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?, ?
             )
         `).run(
             continuityId,
@@ -89,6 +91,7 @@ class ProfileRepository {
                 height = ?,
                 weight = ?,
                 birthday = ?,
+                creation_date = ?,
                 origin = ?,
                 occupation = ?,
                 gang = ?,

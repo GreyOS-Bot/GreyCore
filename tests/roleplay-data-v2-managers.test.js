@@ -585,6 +585,7 @@ function createProfileTables(
             height TEXT,
             weight TEXT,
             birthday TEXT,
+            creation_date TEXT,
             origin TEXT,
             occupation TEXT,
             gang TEXT,

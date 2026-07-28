@@ -78,6 +78,10 @@ test(
                         "La Mano de Dios",
                     birthday:
                         "27 juillet 2026",
+                    occupation:
+                        "Avocate",
+                    creationDate:
+                        "1er ao\u00fbt 2026",
                     story:
                         "Une histoire"
                 });
@@ -98,6 +102,14 @@ test(
             assert.equal(
                 result.profile.birthday,
                 "27 juillet 2026"
+            );
+            assert.equal(
+                result.profile.occupation,
+                "Avocate"
+            );
+            assert.equal(
+                result.profile.creation_date,
+                "1er ao\u00fbt 2026"
             );
             assert.equal(
                 result.phone

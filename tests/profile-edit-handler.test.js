@@ -344,17 +344,8 @@ test(
         );
 
         assert.equal(
-            storySubmit.customId,
-            "v2_profile_story_view:character:0"
-        );
-
-        assert.equal(
-            calls.some(
-                call =>
-                    call[0] ===
-                        "story.page"
-                    && call[1] ===
-                        "v2_profile_story_view:character:0"
+            Boolean(
+                storySubmit.updated
             ),
             true
         );
@@ -434,6 +425,12 @@ function createInteraction(
     return {
         guildId:
             "guild",
+        guild: {
+            name: "Serveur test"
+        },
+        message: {
+            id: "creation-message"
+        },
         user: {
             id:
                 userId
@@ -452,6 +449,11 @@ function createInteraction(
             payload
         ) {
             this.replied = payload;
+        },
+        update: async function (
+            payload
+        ) {
+            this.updated = payload;
         },
         showModal: async function (
             modal

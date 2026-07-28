@@ -94,15 +94,16 @@ test(
                 .build("pnj")
                 .toJSON()
                 .components
-                .map(row => row.components[0]);
+            .map(row => row.components[0]);
 
         assert.deepEqual(
             creationInputs
                 .filter(input => !input.required)
                 .map(input => input.custom_id),
             [
-                "profile_birthday",
-                "profile_story"
+                "profile_lastname",
+                "profile_age",
+                "profile_occupation"
             ]
         );
 
@@ -116,5 +117,23 @@ test(
                 /\(facultatif\)$/
             );
         }
+
+        const detailInputs =
+            characterCreateModal
+                .buildDetails("pnj")
+                .toJSON()
+                .components
+                .map(row => row.components[0]);
+
+        assert.deepEqual(
+            detailInputs
+                .filter(input => !input.required)
+                .map(input => input.custom_id),
+            [
+                "profile_birthday",
+                "profile_creation_date",
+                "profile_story"
+            ]
+        );
     }
 );

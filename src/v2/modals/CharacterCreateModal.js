@@ -43,7 +43,9 @@ class CharacterCreateModal {
                     `v2_character_create_submit:${type}`
                 )
                 .setTitle(
-                    `Cr\u00e9er \u00b7 ${TYPE_LABELS[type]}`
+                    isSimpleCreation
+                        ? `Cr\u00e9er \u00b7 ${TYPE_LABELS[type]}`
+                        : `Cr\u00e9ation 1/2 \u00b7 ${TYPE_LABELS[type]}`
                         .slice(0, 45)
                 );
 
@@ -104,6 +106,129 @@ class CharacterCreateModal {
             return modal;
         }
 
+        const firstnameInput =
+            new TextInputBuilder()
+                .setCustomId(
+                    "profile_firstname"
+                )
+                .setLabel(
+                    "Pr\u00e9nom affich\u00e9"
+                )
+                .setStyle(
+                    TextInputStyle.Short
+                )
+                .setRequired(true)
+                .setMaxLength(80)
+                .setPlaceholder(
+                    "Exemple : I\u00f1o"
+                );
+
+        const lastnameInput =
+            new TextInputBuilder()
+                .setCustomId(
+                    "profile_lastname"
+                )
+                .setLabel(
+                    "Nom (facultatif)"
+                )
+                .setStyle(
+                    TextInputStyle.Short
+                )
+                .setRequired(false)
+                .setMaxLength(80)
+                .setPlaceholder(
+                    "Exemple : Alvarez"
+                );
+
+        const ageInput =
+            new TextInputBuilder()
+                .setCustomId(
+                    "profile_age"
+                )
+                .setLabel(
+                    "\u00c2ge (facultatif)"
+                )
+                .setStyle(
+                    TextInputStyle.Short
+                )
+                .setRequired(false)
+                .setMaxLength(3)
+                .setPlaceholder(
+                    "Exemple : 23"
+                );
+
+        const occupationInput =
+            new TextInputBuilder()
+                .setCustomId(
+                    "profile_occupation"
+                )
+                .setLabel(
+                    "M\u00e9tier (facultatif)"
+                )
+                .setStyle(
+                    TextInputStyle.Short
+                )
+                .setRequired(false)
+                .setMaxLength(100)
+                .setPlaceholder(
+                    "Exemple : Avocate"
+                );
+
+        modal.addComponents(
+            new ActionRowBuilder()
+                .addComponents(
+                    proxyNameInput
+                ),
+            new ActionRowBuilder()
+                .addComponents(
+                    firstnameInput
+                ),
+            new ActionRowBuilder()
+                .addComponents(
+                    lastnameInput
+                ),
+            new ActionRowBuilder()
+                .addComponents(
+                    ageInput
+                ),
+            new ActionRowBuilder()
+                .addComponents(
+                    occupationInput
+                )
+        );
+
+        return modal;
+    }
+
+    buildDetails(type) {
+        if (!TYPE_LABELS[type]) {
+            throw new Error(
+                "Type de personnage invalide."
+            );
+        }
+
+        if (
+            [
+                "random",
+                "pnj_reserve",
+                "reserve_staff"
+            ].includes(type)
+        ) {
+            throw new Error(
+                "Ce type de personnage n'a pas de seconde \u00e9tape."
+            );
+        }
+
+        const modal =
+            new ModalBuilder()
+                .setCustomId(
+                    `v2_character_create_details_submit:${type}`
+                )
+                .setTitle(
+                    `Cr\u00e9ation 2/2 \u00b7 ${TYPE_LABELS[type]}`
+                        .slice(0, 45)
+                );
+
         const organizationInput =
             new TextInputBuilder()
                 .setCustomId(
@@ -138,6 +263,23 @@ class CharacterCreateModal {
                     "Ex. 27 juillet ou 27/07/2026"
                 );
 
+        const creationDateInput =
+            new TextInputBuilder()
+                .setCustomId(
+                    "profile_creation_date"
+                )
+                .setLabel(
+                    "Date de cr\u00e9ation (facultatif)"
+                )
+                .setStyle(
+                    TextInputStyle.Short
+                )
+                .setRequired(false)
+                .setMaxLength(50)
+                .setPlaceholder(
+                    "Ex. 27 juillet 2026"
+                );
+
         const storyIsRequired =
             type === "personnage_joue";
 
@@ -160,19 +302,15 @@ class CharacterCreateModal {
         modal.addComponents(
             new ActionRowBuilder()
                 .addComponents(
-                    proxyNameInput
-                ),
-            new ActionRowBuilder()
-                .addComponents(
-                    fullNameInput
-                ),
-            new ActionRowBuilder()
-                .addComponents(
                     organizationInput
                 ),
             new ActionRowBuilder()
                 .addComponents(
                     birthdayInput
+                ),
+            new ActionRowBuilder()
+                .addComponents(
+                    creationDateInput
                 ),
             new ActionRowBuilder()
                 .addComponents(

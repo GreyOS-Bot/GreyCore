@@ -12,16 +12,28 @@ module.exports =
         }
 
         if (
-            !interaction.customId.startsWith(
+            interaction.customId.startsWith(
                 "v2_character_create_submit:"
             )
         ) {
-            return false;
+            await createCharacter(
+                interaction
+            );
+
+            return true;
         }
 
-        await createCharacter(
-            interaction
-        );
+        if (
+            interaction.customId.startsWith(
+                "v2_character_create_details_submit:"
+            )
+        ) {
+            await createCharacter.complete(
+                interaction
+            );
 
-        return true;
+            return true;
+        }
+
+        return false;
     };

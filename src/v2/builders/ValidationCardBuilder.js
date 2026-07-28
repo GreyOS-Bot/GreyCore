@@ -289,6 +289,7 @@ class ValidationCardBuilder {
         const details = [
             ["Genre", installation.gender],
             ["Date de naissance", installation.birthday],
+            ["Date de création", installation.creation_date],
             ["Origine", installation.origin],
             ["M\u00e9tier", installation.occupation],
             ["Taille", installation.height],

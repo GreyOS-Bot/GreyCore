@@ -13,28 +13,27 @@ class CharacterAvatarRequiredView {
         installation,
         guild
     ) {
-
         const embed =
             new EmbedBuilder()
                 .setColor("#FEE75C")
                 .setTitle(
-                    "🖼️ Avatar obligatoire"
+                    "Avatar obligatoire"
                 )
                 .setDescription([
-                    `**${character.proxy_name}** et sa continuité **${continuity.name}** ont été créés.`,
+                    `**${character.proxy_name}** et sa continuit\u00e9 **${continuity.name}** ont \u00e9t\u00e9 cr\u00e9\u00e9s.`,
                     "",
-                    `L’installation sur **${guild.name}** est enregistrée en brouillon.`,
+                    `L'installation sur **${guild?.name || "ce serveur"}** est enregistr\u00e9e en brouillon.`,
                     "",
-                    "Tu peux compl\u00E9ter les informations facultatives de la fiche avant son envoi au staff.",
-                    "Elles sont enregistr\u00E9es directement tant que la validation n’a pas \u00E9t\u00E9 demand\u00E9e.",
+                    "Les informations essentielles de la fiche sont d\u00e9j\u00e0 enregistr\u00e9es.",
+                    "Tu pourras ajouter des d\u00e9tails comme la taille ou le poids une fois la fiche valid\u00e9e.",
                     "",
-                    "Envoie maintenant l’image du personnage dans ce salon.",
+                    "Envoie maintenant l'image du personnage dans ce salon.",
                     "",
-                    "L’avatar doit être ajouté avant que l’installation puisse être envoyée au staff."
+                    "L'avatar doit \u00eatre ajout\u00e9 avant que l'installation puisse \u00eatre envoy\u00e9e au staff."
                 ].join("\n"))
                 .setFooter({
                     text:
-                        "Greycore V2 • En attente de l’avatar"
+                        "Greycore V2 \u2022 En attente de l'avatar"
                 })
                 .setTimestamp();
 
@@ -46,31 +45,20 @@ class CharacterAvatarRequiredView {
                             `v2_character_avatar_request:${character.id}:${installation.id}`
                         )
                         .setLabel(
-                            "Ajouter l’avatar"
+                            "Ajouter l'avatar"
                         )
-                        .setEmoji("🖼️")
+                        .setEmoji("\u{1F5BC}\uFE0F")
                         .setStyle(
                             ButtonStyle.Primary
-                        ),
-                    new ButtonBuilder()
-                        .setCustomId(
-                            `page:character:profile:${character.id}`
-                        )
-                        .setLabel(
-                            "Compl\u00E9ter la fiche"
-                        )
-                        .setEmoji("\u{1F4DD}")
-                        .setStyle(
-                            ButtonStyle.Secondary
                         ),
                     new ButtonBuilder()
                         .setCustomId(
                             "v2_library_open"
                         )
                         .setLabel(
-                            "Bibliothèque"
+                            "Biblioth\u00e8que"
                         )
-                        .setEmoji("📚")
+                        .setEmoji("\u{1F4DA}")
                         .setStyle(
                             ButtonStyle.Secondary
                         )

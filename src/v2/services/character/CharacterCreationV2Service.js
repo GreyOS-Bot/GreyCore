@@ -172,6 +172,18 @@ class CharacterCreationV2Service {
             );
         }
 
+        const occupation =
+            this.normalizeDisplayText(
+                data.occupation
+            )
+            || null;
+
+        const creationDate =
+            this.normalizeDisplayText(
+                data.creationDate
+            )
+            || null;
+
         return {
             discordUserId:
                 String(
@@ -204,6 +216,8 @@ class CharacterCreationV2Service {
                     data.birthday
                 )
                 || null,
+            occupation,
+            creationDate,
             story
         };
 
@@ -269,6 +283,10 @@ class CharacterCreationV2Service {
                     data.gang,
                 birthday:
                     data.birthday,
+                occupation:
+                    data.occupation,
+                creation_date:
+                    data.creationDate,
                 story:
                     data.story
             });

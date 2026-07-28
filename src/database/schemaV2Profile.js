@@ -21,6 +21,8 @@ function initializeProfileSchemaV2() {
 
             birthday TEXT,
 
+            creation_date TEXT,
+
             origin TEXT,
 
             occupation TEXT,
@@ -42,6 +44,18 @@ function initializeProfileSchemaV2() {
         )
     `).run();
 
+    if (
+        !columnExists(
+            "CharacterProfilesV2",
+            "creation_date"
+        )
+    ) {
+        db.prepare(`
+            ALTER TABLE CharacterProfilesV2
+            ADD COLUMN creation_date TEXT
+        `).run();
+    }
+
     db.prepare(`
         CREATE INDEX IF NOT EXISTS
             idx_profiles_v2_continuity
@@ -52,6 +66,18 @@ function initializeProfileSchemaV2() {
         "✅ Table CharacterProfilesV2 prête."
     );
 
+}
+
+function columnExists(
+    tableName,
+    columnName
+) {
+    return db.prepare(`
+        PRAGMA table_info(${tableName})
+    `).all().some(
+        column =>
+            column.name === columnName
+    );
 }
 
 module.exports =

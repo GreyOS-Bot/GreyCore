@@ -10,6 +10,16 @@ const characterCreationService =
         "../../services/character/CharacterCreationV2Service"
     );
 
+const characterTypeCatalog =
+    require(
+        "../../core/character/CharacterTypeCatalog"
+    );
+
+const characterCreateModal =
+    require(
+        "../../modals/CharacterCreateModal"
+    );
+
 const characterAvatarRequiredView =
     require(
         "../../views/character/CharacterAvatarRequiredView"
@@ -32,138 +42,307 @@ const {
     "../../core/services/InteractionResponseService"
 );
 
-module.exports =
-    async function createCharacterV2(
-        interaction
-    ) {
+const {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle
+} = require("discord.js");
 
-        try {
+async function startCharacterCreation(
+    interaction
+) {
+    try {
+        ensureGuild(interaction);
 
-            if (!interaction.guild) {
-                throw new Error(
-                    "La création doit être effectuée depuis un serveur."
-                );
-            }
+        const type = getType(interaction);
 
-            const type =
-                interaction.customId
-                    .split(":")[1];
-
-            const result =
-                characterCreationService.create({
-                    discordUserId:
-                        interaction.user.id,
-                    guildId:
-                        interaction.guild.id,
-                    guildName:
-                        interaction.guild.name,
+        if (
+            characterTypeCatalog
+                .usesSimpleCreation(type)
+        ) {
+            return createCharacter(
+                interaction,
+                {
                     type,
                     proxyName:
-                        interaction.fields
-                            .getTextInputValue(
-                                "character_proxy_name"
-                            ),
+                        readField(
+                            interaction,
+                            "character_proxy_name"
+                        ),
                     fullName:
                         readField(
                             interaction,
                             "profile_fullname"
-                        ),
-                    firstname:
-                        readField(
-                            interaction,
-                            "profile_firstname"
-                        ),
-                    lastname:
-                        readField(
-                            interaction,
-                            "profile_lastname"
-                        ),
-                    age:
-                        readField(
-                            interaction,
-                            "profile_age"
-                        ),
-                    gang:
-                        readField(
-                            interaction,
-                            "profile_gang"
-                        ),
-                    birthday:
-                        readField(
-                            interaction,
-                            "profile_birthday"
-                        ),
-                    story:
-                        readField(
-                            interaction,
-                            "profile_story"
                         )
-                });
-
-            pendingActionManager.create({
-                userId:
-                    interaction.user.id,
-                type:
-                    "character_avatar_upload",
-                guildId:
-                    interaction.guild.id,
-                channelId:
-                    interaction.channelId,
-                characterId:
-                    result.character.id,
-                continuityId:
-                    result.continuity.id,
-                installationId:
-                    result.installation.id
-            });
-
-            await staffTrackingService
-                .sync({
-                    client:
-                        interaction.client,
-                    guild:
-                        interaction.guild,
-                    installationId:
-                        result.installation.id,
-                    requesterId:
-                        interaction.user.id
-                });
-
-            const view =
-                characterAvatarRequiredView.build(
-                    result.character,
-                    result.continuity,
-                    result.installation,
-                    interaction.guild
-                );
-
-            if (interaction.message) {
-                return interaction.update(
-                    view
-                );
-            }
-
-            return replyPrivate(
-                interaction,
-                view
+                }
             );
-
-        } catch (error) {
-
-            logger.error(
-                "❌ Erreur création personnage V2 :",
-                error
-            );
-
-            return replyError(
-                interaction,
-                error.message
-                || "Impossible de créer le personnage."
-            );
-
         }
 
+        pendingActionManager.create({
+            userId:
+                interaction.user.id,
+            type:
+                "character_creation_details",
+            guildId:
+                interaction.guild.id,
+            guildName:
+                interaction.guild.name,
+            channelId:
+                interaction.channelId,
+            characterType:
+                type,
+            data: {
+                proxyName:
+                    readField(
+                        interaction,
+                        "character_proxy_name"
+                    ),
+                firstname:
+                    readField(
+                        interaction,
+                        "profile_firstname"
+                    ),
+                lastname:
+                    readField(
+                        interaction,
+                        "profile_lastname"
+                    ),
+                age:
+                    readField(
+                        interaction,
+                        "profile_age"
+                    ),
+                occupation:
+                    readField(
+                        interaction,
+                        "profile_occupation"
+                    )
+            }
+        });
+
+        return replyPrivate(
+            interaction,
+            buildDetailsPrompt(type)
+        );
+    } catch (error) {
+        logger.error(
+            "Erreur cr\u00e9ation personnage V2 :",
+            error
+        );
+
+        return replyError(
+            interaction,
+            error.message
+            || "Impossible de cr\u00e9er le personnage."
+        );
+    }
+}
+
+async function completeCharacterCreation(
+    interaction
+) {
+    try {
+        ensureGuild(interaction);
+
+        const type = getType(interaction);
+        const pending =
+            getPendingDetails(
+                interaction,
+                type
+            );
+
+        return createCharacter(
+            interaction,
+            {
+                ...pending.data,
+                type,
+                gang:
+                    readField(
+                        interaction,
+                        "profile_gang"
+                    ),
+                birthday:
+                    readField(
+                        interaction,
+                        "profile_birthday"
+                    ),
+                creationDate:
+                    readField(
+                        interaction,
+                        "profile_creation_date"
+                    ),
+                story:
+                    readField(
+                        interaction,
+                        "profile_story"
+                    )
+            }
+        );
+    } catch (error) {
+        logger.error(
+            "Erreur cr\u00e9ation personnage V2 :",
+            error
+        );
+
+        return replyError(
+            interaction,
+            error.message
+            || "Impossible de cr\u00e9er le personnage."
+        );
+    }
+}
+
+async function openCharacterCreationDetails(
+    interaction,
+    type
+) {
+    try {
+        ensureGuild(interaction);
+        getPendingDetails(
+            interaction,
+            type
+        );
+
+        return interaction.showModal(
+            characterCreateModal.buildDetails(type)
+        );
+    } catch (error) {
+        logger.error(
+            "Erreur ouverture seconde \u00e9tape cr\u00e9ation V2 :",
+            error
+        );
+
+        return replyError(
+            interaction,
+            error.message
+            || "Impossible de poursuivre la cr\u00e9ation."
+        );
+    }
+}
+
+async function createCharacter(
+    interaction,
+    data
+) {
+    const result =
+        characterCreationService.create({
+            discordUserId:
+                interaction.user.id,
+            guildId:
+                interaction.guild.id,
+            guildName:
+                interaction.guild.name,
+            ...data
+        });
+
+    pendingActionManager.create({
+        userId:
+            interaction.user.id,
+        type:
+            "character_avatar_upload",
+        guildId:
+            interaction.guild.id,
+        channelId:
+            interaction.channelId,
+        characterId:
+            result.character.id,
+        continuityId:
+            result.continuity.id,
+        installationId:
+            result.installation.id
+    });
+
+    await staffTrackingService
+        .sync({
+            client:
+                interaction.client,
+            guild:
+                interaction.guild,
+            installationId:
+                result.installation.id,
+            requesterId:
+                interaction.user.id
+        });
+
+    const view =
+        characterAvatarRequiredView.build(
+            result.character,
+            result.continuity,
+            result.installation,
+            interaction.guild
+        );
+
+    if (interaction.message) {
+        return interaction.update(view);
+    }
+
+    return replyPrivate(
+        interaction,
+        view
+    );
+}
+
+function ensureGuild(interaction) {
+    if (!interaction.guild) {
+        throw new Error(
+            "La cr\u00e9ation doit \u00eatre effectu\u00e9e depuis un serveur."
+        );
+    }
+}
+
+function getPendingDetails(
+    interaction,
+    type
+) {
+    const pending =
+        pendingActionManager.get(
+            interaction.user.id
+        );
+
+    if (
+        !pending
+        || pending.type !==
+            "character_creation_details"
+        || pending.characterType !== type
+        || String(pending.guildId) !==
+            String(interaction.guild.id)
+    ) {
+        throw new Error(
+            "La premi\u00e8re \u00e9tape de cr\u00e9ation a expir\u00e9. Recommence simplement la cr\u00e9ation du personnage."
+        );
+    }
+
+    return pending;
+}
+
+function buildDetailsPrompt(type) {
+    return {
+        content: [
+            "Premi\u00e8re \u00e9tape enregistr\u00e9e.",
+            "Compl\u00e8te maintenant l'organisation, l'histoire et les dates avant de pr\u00e9parer l'avatar."
+        ].join("\n"),
+        components: [
+            new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `v2_character_create_details_open:${type}`
+                        )
+                        .setLabel(
+                            "Continuer la cr\u00e9ation (2/2)"
+                        )
+                        .setStyle(
+                            ButtonStyle.Primary
+                        )
+                )
+        ]
     };
+}
+
+function getType(interaction) {
+    return interaction.customId
+        .split(":")[1];
+}
 
 function readField(
     interaction,
@@ -176,3 +355,12 @@ function readField(
         return "";
     }
 }
+
+module.exports =
+    startCharacterCreation;
+
+module.exports.complete =
+    completeCharacterCreation;
+
+module.exports.openDetails =
+    openCharacterCreationDetails;

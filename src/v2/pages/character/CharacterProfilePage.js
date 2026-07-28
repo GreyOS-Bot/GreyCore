@@ -15,6 +15,21 @@ const characterManagementPolicy =
         "../../core/policies/CharacterManagementPolicy"
     );
 
+const installationManager =
+    require(
+        "../../managers/InstallationV2Manager"
+    );
+
+const characterAvatarRequiredView =
+    require(
+        "../../views/character/CharacterAvatarRequiredView"
+    );
+
+const installationCreatedView =
+    require(
+        "../../views/deployment/InstallationCreatedView"
+    );
+
 class CharacterProfilePage {
 
     async execute(
@@ -48,7 +63,8 @@ class CharacterProfilePage {
 
         const {
             character,
-            profile
+            profile,
+            continuity
         } = dashboardData;
 
         const isOwner =
@@ -57,6 +73,45 @@ class CharacterProfilePage {
                     interaction,
                     character
                 );
+
+        const installation =
+            continuity
+            && interaction.guildId
+                ? installationManager
+                    .getByContinuityAndGuild(
+                        continuity.id,
+                        interaction.guildId
+                    )
+                : null;
+
+        if (
+            isOwner
+            && installation?.status === "draft"
+        ) {
+            const hasAvatar = Boolean(
+                installation.local_avatar_url
+                || character.avatar_url
+            );
+
+            const draftView = hasAvatar
+                ? installationCreatedView.build(
+                    character,
+                    continuity,
+                    installation,
+                    interaction.guild,
+                    {
+                        created: false
+                    }
+                )
+                : characterAvatarRequiredView.build(
+                    character,
+                    continuity,
+                    installation,
+                    interaction.guild
+                );
+
+            return interaction.update(draftView);
+        }
 
         const characterHeader =
             UI.components.characterHeader;
@@ -189,6 +244,12 @@ class CharacterProfilePage {
             identity,
             "Date de naissance",
             profile?.birthday
+        );
+
+        add(
+            identity,
+            "Date de cr\u00e9ation",
+            profile?.creation_date
         );
 
         add(
@@ -356,7 +417,7 @@ class CharacterProfilePage {
                     `v2_profile_information_edit:${characterId}`,
 
                 label:
-                    "Informations",
+                    "Ajouter des d\u00e9tails",
 
                 emoji:
                     "📝"

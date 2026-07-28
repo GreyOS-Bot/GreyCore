@@ -84,6 +84,7 @@ class ValidationRepository {
                 profile.height,
                 profile.weight,
                 profile.birthday,
+                profile.creation_date,
                 profile.origin,
                 profile.occupation,
                 profile.faceclaim

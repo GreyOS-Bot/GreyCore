@@ -94,6 +94,32 @@ module.exports =
             interaction.isButton()
             && interaction.customId
                 .startsWith(
+                    "v2_character_create_details_open:"
+                )
+        ) {
+
+            const type =
+                interaction.customId
+                    .split(":")[1];
+
+            const createCharacter =
+                require(
+                    "../../interactions/modals/createCharacterV2"
+                );
+
+            await createCharacter.openDetails(
+                interaction,
+                type
+            );
+
+            return true;
+
+        }
+
+        if (
+            interaction.isButton()
+            && interaction.customId
+                .startsWith(
                     "v2_character_avatar_request:"
                 )
         ) {
