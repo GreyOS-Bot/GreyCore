@@ -131,7 +131,7 @@ test(
 
         assert.equal(
             interaction.payload.components.length,
-            1
+            2
         );
 
         assert.equal(
@@ -153,9 +153,9 @@ test(
 
         assert.equal(
             profileIds.includes(
-                "v2_profile_story_view:character"
+                "v2_profile_story_view:character:0"
             ),
-            false
+            true
         );
     }
 );

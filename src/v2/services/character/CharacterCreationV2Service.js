@@ -112,16 +112,6 @@ class CharacterCreationV2Service {
             : null;
 
         if (
-            !characterTypeCatalog
-                .usesSimpleCreation(type)
-            && age === null
-        ) {
-            throw new Error(
-                "L’âge doit être un nombre compris entre 1 et 150."
-            );
-        }
-
-        if (
             age !== null
             && (
                 !Number.isInteger(age)

@@ -283,6 +283,36 @@ class ValidationCardBuilder {
         ].join("\n");
     }
 
+    buildProfileDetails(
+        installation
+    ) {
+        const details = [
+            ["Genre", installation.gender],
+            ["Date de naissance", installation.birthday],
+            ["Origine", installation.origin],
+            ["M\u00e9tier", installation.occupation],
+            ["Taille", installation.height],
+            ["Poids", installation.weight],
+            ["Faceclaim", installation.faceclaim]
+        ].filter(
+            ([, value]) => Boolean(
+                String(value || "").trim()
+            )
+        );
+
+        if (!details.length) {
+            return null;
+        }
+
+        return this.truncate(
+            details.map(
+                ([label, value]) =>
+                    `**${label} :** ${this.cleanText(value)}`
+            ).join("\n"),
+            1000
+        );
+    }
+
     buildCreationStepFields(
         installation
     ) {
@@ -402,7 +432,8 @@ class ValidationCardBuilder {
 
     buildComponents(
         installationId,
-        status
+        status,
+        hasStory = false
     ) {
         const buttons = [];
 
@@ -447,6 +478,22 @@ class ValidationCardBuilder {
                     ButtonStyle.Secondary
                 )
         );
+
+        if (hasStory) {
+            buttons.push(
+                new ButtonBuilder()
+                    .setCustomId(
+                        `v2_validation_story:${installationId}`
+                    )
+                    .setLabel(
+                        "Histoire compl\u00e8te"
+                    )
+                    .setEmoji("\u{1F4D6}")
+                    .setStyle(
+                        ButtonStyle.Secondary
+                    )
+            );
+        }
 
         return [
             new ActionRowBuilder()
@@ -692,6 +739,22 @@ class ValidationCardBuilder {
                 })
                 .setTimestamp();
 
+        const profileDetails =
+            this.buildProfileDetails(
+                installation
+            );
+
+        if (profileDetails) {
+            embed.addFields({
+                name:
+                    "\u{1F4CB} D\u00e9tails de la fiche",
+                value:
+                    profileDetails,
+                inline:
+                    false
+            });
+        }
+
         if (avatarUrl) {
             embed.setThumbnail(
                 avatarUrl
@@ -708,7 +771,12 @@ class ValidationCardBuilder {
         const components =
             this.buildComponents(
                 installation.id,
-                status
+                status,
+                Boolean(
+                    this.getStorySummary(
+                        installation
+                    )
+                )
             );
 
         return {

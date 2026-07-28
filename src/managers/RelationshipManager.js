@@ -241,6 +241,18 @@ installDefaultRelationshipTypes(guildId) {
             isSymmetric: 1
         },
         {
+            key: "sexfriend",
+            labelAToB: "Sexfriend de",
+            labelBToA: "Sexfriend de",
+            isSymmetric: 1
+        },
+        {
+            key: "polyamorous_relationship",
+            labelAToB: "En relation polyamoureuse avec",
+            labelBToA: "En relation polyamoureuse avec",
+            isSymmetric: 1
+        },
+        {
             key: "spouse",
             labelAToB: "Marié·e à",
             labelBToA: "Marié·e à",

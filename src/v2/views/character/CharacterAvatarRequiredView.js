@@ -25,6 +25,9 @@ class CharacterAvatarRequiredView {
                     "",
                     `L’installation sur **${guild.name}** est enregistrée en brouillon.`,
                     "",
+                    "Tu peux compl\u00E9ter les informations facultatives de la fiche avant son envoi au staff.",
+                    "Elles sont enregistr\u00E9es directement tant que la validation n’a pas \u00E9t\u00E9 demand\u00E9e.",
+                    "",
                     "Envoie maintenant l’image du personnage dans ce salon.",
                     "",
                     "L’avatar doit être ajouté avant que l’installation puisse être envoyée au staff."
@@ -48,6 +51,17 @@ class CharacterAvatarRequiredView {
                         .setEmoji("🖼️")
                         .setStyle(
                             ButtonStyle.Primary
+                        ),
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `page:character:profile:${character.id}`
+                        )
+                        .setLabel(
+                            "Compl\u00E9ter la fiche"
+                        )
+                        .setEmoji("\u{1F4DD}")
+                        .setStyle(
+                            ButtonStyle.Secondary
                         ),
                     new ButtonBuilder()
                         .setCustomId(

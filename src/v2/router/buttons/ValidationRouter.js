@@ -18,6 +18,11 @@ const openValidationHistory =
         "../../interactions/buttons/openValidationHistory"
     );
 
+const openValidationStory =
+    require(
+        "../../interactions/buttons/openValidationStory"
+    );
+
 const openRejectedProfileEdit =
     require(
         "../../interactions/buttons/openRejectedProfileEdit"
@@ -75,6 +80,18 @@ module.exports =
             )
         ) {
             await validationReject(
+                interaction
+            );
+
+            return true;
+        }
+
+        if (
+            customId.startsWith(
+                "v2_validation_story:"
+            )
+        ) {
+            await openValidationStory.execute(
                 interaction
             );
 

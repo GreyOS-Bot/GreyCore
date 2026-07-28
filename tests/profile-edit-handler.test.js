@@ -32,6 +32,8 @@ test(
                     "Grey",
                 age:
                     "23 ans",
+                gender:
+                    "Femme",
                 birthday:
                     "12 avril 2003",
                 origin:
@@ -40,6 +42,12 @@ test(
                     "Artiste",
                 gang:
                     "La Mano de Dios",
+                height:
+                    "1m70",
+                weight:
+                    "58 kg",
+                faceclaim:
+                    "Nom de faceclaim",
                 story:
                     "Une longue histoire"
             }
@@ -182,7 +190,8 @@ test(
                 "firstname",
                 "lastname",
                 "age",
-                "birthday"
+                "birthday",
+                "gender"
             ]
         );
 
@@ -209,7 +218,9 @@ test(
             [
                 "origin",
                 "occupation",
-                "gang"
+                "gang",
+                "height",
+                "weight"
             ]
         );
 
@@ -236,8 +247,9 @@ test(
                     "   ",
                 age:
                     " 23 ans ",
-                birthday:
-                    ""
+                birthday: "",
+                gender:
+                    " Femme "
             });
 
         await handler.submitIdentity(
@@ -265,8 +277,9 @@ test(
                     null,
                 age:
                     "23 ans",
-                birthday:
-                    null
+                birthday: null,
+                gender:
+                    "Femme"
             }
         );
 
@@ -277,7 +290,11 @@ test(
                 occupation:
                     "  Artiste ",
                 gang:
-                    "  La Mano  "
+                    "  La Mano  ",
+                height:
+                    " 1m70 ",
+                weight:
+                    " 58 kg "
             });
 
         await handler
@@ -305,12 +322,18 @@ test(
                 occupation:
                     "Artiste",
                 gang:
-                    "La Mano"
+                    "La Mano",
+                height:
+                    "1m70",
+                weight:
+                    "58 kg"
             }
         );
 
         const storySubmit =
             createInteraction({
+                faceclaim:
+                    " Nom de faceclaim ",
                 story:
                     "  Nouveau récit  "
             });

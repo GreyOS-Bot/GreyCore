@@ -122,7 +122,7 @@ class CharacterCreateModal {
                 .setStyle(
                     TextInputStyle.Short
                 )
-                .setRequired(true)
+                .setRequired(false)
                 .setMaxLength(3);
 
         const gangInput =
@@ -148,12 +148,12 @@ class CharacterCreateModal {
                     "profile_story"
                 )
                 .setLabel(
-                    "Histoire du personnage"
+                    "Histoire (facultatif)"
                 )
                 .setStyle(
                     TextInputStyle.Paragraph
                 )
-                .setRequired(true)
+                .setRequired(false)
                 .setMaxLength(4000);
 
         modal.addComponents(

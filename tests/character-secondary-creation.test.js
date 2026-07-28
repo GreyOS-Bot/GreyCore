@@ -89,17 +89,16 @@ test(
         assert.equal(random.lastname, null);
         assert.equal(random.age, null);
 
-        assert.throws(
-            () =>
-                characterCreationService.normalize({
-                    discordUserId: "user",
-                    guildId: "guild",
-                    guildName: "Serveur",
-                    type: "pnj",
-                    proxyName: "Parent",
-                    fullName: "Parent Test"
-                }),
-            /âge/
-        );
+        const pnj =
+            characterCreationService.normalize({
+                discordUserId: "user",
+                guildId: "guild",
+                guildName: "Serveur",
+                type: "pnj",
+                proxyName: "Parent",
+                fullName: "Parent Test"
+            });
+
+        assert.equal(pnj.age, null);
     }
 );

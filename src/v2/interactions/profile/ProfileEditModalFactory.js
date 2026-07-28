@@ -72,6 +72,18 @@ function createIdentityModal(
                 optionalText(
                     profile.birthday
                 )
+        }),
+        textRow({
+            id:
+                "gender",
+            label:
+                "Genre",
+            maxLength:
+                80,
+            value:
+                optionalText(
+                    profile.gender
+                )
         })
     );
 
@@ -127,6 +139,34 @@ function createInformationModal(
                 optionalText(
                     profile.gang
                 )
+        }),
+        textRow({
+            id:
+                "height",
+            label:
+                "Taille",
+            placeholder:
+                "Exemple : 1m72",
+            maxLength:
+                30,
+            value:
+                optionalText(
+                    profile.height
+                )
+        }),
+        textRow({
+            id:
+                "weight",
+            label:
+                "Poids",
+            placeholder:
+                "Exemple : 58 kg",
+            maxLength:
+                30,
+            value:
+                optionalText(
+                    profile.weight
+                )
         })
     );
 
@@ -137,6 +177,21 @@ function createStoryModal(
     characterId,
     profile = {}
 ) {
+    const faceclaim =
+        new TextInputBuilder()
+            .setCustomId("faceclaim")
+            .setLabel("Faceclaim (facultatif)")
+            .setStyle(
+                TextInputStyle.Short
+            )
+            .setRequired(false)
+            .setMaxLength(100)
+            .setValue(
+                optionalText(
+                    profile.faceclaim
+                ).slice(0, 100)
+            );
+
     const story =
         new TextInputBuilder()
             .setCustomId("story")
@@ -163,6 +218,10 @@ function createStoryModal(
             "Demander une modification d’histoire"
         )
         .addComponents(
+            new ActionRowBuilder()
+                .addComponents(
+                    faceclaim
+                ),
             new ActionRowBuilder()
                 .addComponents(
                     story

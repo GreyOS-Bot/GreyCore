@@ -28,14 +28,18 @@ const REQUEST_FIELDS = Object.freeze({
         "firstname",
         "lastname",
         "age",
-        "birthday"
+        "birthday",
+        "gender"
     ],
     [REQUEST_TYPES.PROFILE_INFORMATION]: [
         "origin",
         "occupation",
-        "gang"
+        "gang",
+        "height",
+        "weight"
     ],
     [REQUEST_TYPES.PROFILE_STORY]: [
+        "faceclaim",
         "story"
     ],
     [REQUEST_TYPES.AVATAR]: [

@@ -190,6 +190,12 @@ class CharacterProfilePage {
         );
 
         add(
+            identity,
+            "Genre",
+            profile?.gender
+        );
+
+        add(
             information,
             "Origine",
             profile?.origin
@@ -205,6 +211,24 @@ class CharacterProfilePage {
             information,
             "Organisation",
             profile?.gang
+        );
+
+        add(
+            information,
+            "Taille",
+            profile?.height
+        );
+
+        add(
+            information,
+            "Poids",
+            profile?.weight
+        );
+
+        add(
+            information,
+            "Faceclaim",
+            profile?.faceclaim
         );
 
         const fields = [];
@@ -246,7 +270,10 @@ class CharacterProfilePage {
         const fullStory =
             profile?.story
                 ? String(profile.story).trim()
-                : "";
+                : String(
+                    character.story ||
+                    ""
+                ).trim();
 
         const storyPreview =
             this.getStoryPreview(fullStory);
@@ -347,6 +374,23 @@ class CharacterProfilePage {
 
                 })
 
+            );
+        }
+
+        if (fullStory) {
+            actionButtons.push(
+                UI.button.secondary({
+
+                    id:
+                        `v2_profile_story_view:${characterId}:0`,
+
+                    label:
+                        "Lire l'histoire",
+
+                    emoji:
+                        "📖"
+
+                })
             );
         }
 

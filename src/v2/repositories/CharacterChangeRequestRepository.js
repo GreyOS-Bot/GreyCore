@@ -172,10 +172,14 @@ class CharacterChangeRequestRepository {
                 profile.firstname,
                 profile.lastname,
                 profile.age,
+                profile.gender,
+                profile.height,
+                profile.weight,
                 profile.birthday,
                 profile.origin,
                 profile.occupation,
                 profile.gang,
+                profile.faceclaim,
                 profile.story
 
             FROM CharacterChangeRequestsV2 AS request

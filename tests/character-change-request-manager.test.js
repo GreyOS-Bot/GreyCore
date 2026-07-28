@@ -140,6 +140,8 @@ test(
                     age:
                         "24",
                     birthday:
+                        null,
+                    gender:
                         null
                 },
                 submittedBy:
@@ -176,6 +178,8 @@ test(
                     age:
                         "24",
                     birthday:
+                        null,
+                    gender:
                         null
                 }
             ]

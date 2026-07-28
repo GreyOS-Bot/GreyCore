@@ -16,10 +16,7 @@ async function getImageAttachment(
     const attachment =
         message.attachments.first();
 
-    if (
-        !attachment.contentType
-            ?.startsWith("image/")
-    ) {
+    if (!isImageAttachment(attachment)) {
         await message.reply(
             invalidMessage
         );
@@ -30,6 +27,27 @@ async function getImageAttachment(
     return attachment;
 }
 
+function isImageAttachment(
+    attachment
+) {
+    if (
+        attachment.contentType
+            ?.startsWith("image/")
+    ) {
+        return true;
+    }
+
+    const filename =
+        String(
+            attachment.name ||
+            ""
+        ).toLowerCase();
+
+    return /\.(apng|avif|gif|jpe?g|png|webp)$/
+        .test(filename);
+}
+
 module.exports = {
-    getImageAttachment
+    getImageAttachment,
+    isImageAttachment
 };

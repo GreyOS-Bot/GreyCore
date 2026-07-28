@@ -62,7 +62,10 @@ class OpenProfileStory {
         const story =
             profile?.story
                 ? String(profile.story).trim()
-                : "";
+                : String(
+                    character.story ||
+                    ""
+                ).trim();
 
         if (!story) {
 

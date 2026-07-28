@@ -23,6 +23,12 @@ const FIELD_LABELS = Object.freeze({
         "Nom",
     age:
         "Âge",
+    gender:
+        "Genre",
+    height:
+        "Taille",
+    weight:
+        "Poids",
     birthday:
         "Date de naissance",
     origin:
@@ -31,6 +37,8 @@ const FIELD_LABELS = Object.freeze({
         "Métier",
     gang:
         "Organisation",
+    faceclaim:
+        "Faceclaim",
     story:
         "Histoire"
 });

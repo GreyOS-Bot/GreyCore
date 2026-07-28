@@ -73,6 +73,11 @@ async function submitIdentity(
             readNormalizedField(
                 interaction,
                 "birthday"
+            ),
+        gender:
+            readNormalizedField(
+                interaction,
+                "gender"
             )
     };
 
@@ -130,6 +135,16 @@ async function submitInformation(
             readNormalizedField(
                 interaction,
                 "gang"
+            ),
+        height:
+            readNormalizedField(
+                interaction,
+                "height"
+            ),
+        weight:
+            readNormalizedField(
+                interaction,
+                "weight"
             )
     };
 
@@ -173,6 +188,11 @@ async function submitStory(
     }
 
     const changes = {
+        faceclaim:
+            readNormalizedField(
+                interaction,
+                "faceclaim"
+            ),
         story:
             readNormalizedField(
                 interaction,
