@@ -66,8 +66,7 @@ class CharacterHeader {
     }
 
     getDisplayName(character) {
-
-        return (
+        const displayName = (
             character.display_name
             || character.displayName
             || character.proxy_name
@@ -75,6 +74,9 @@ class CharacterHeader {
             || character.firstname
             || "Personnage"
         );
+
+        return String(displayName)
+            .normalize("NFC");
 
     }
 

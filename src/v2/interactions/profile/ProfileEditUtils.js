@@ -16,6 +16,7 @@ function normalize(
 ) {
     const text =
         String(value || "")
+            .normalize("NFC")
             .trim();
 
     return text || null;

@@ -79,9 +79,9 @@ class CharacterCreationV2Service {
         }
 
         const proxyName =
-            String(
-                data.proxyName || ""
-            ).trim();
+            this.normalizeDisplayText(
+                data.proxyName
+            );
 
         if (!proxyName) {
             throw new Error(
@@ -90,9 +90,9 @@ class CharacterCreationV2Service {
         }
 
         const fullName =
-            String(
-                data.fullName || ""
-            ).trim();
+            this.normalizeDisplayText(
+                data.fullName
+            );
 
         if (!fullName) {
             throw new Error(
@@ -268,6 +268,14 @@ class CharacterCreationV2Service {
             installation
         };
 
+    }
+
+    normalizeDisplayText(
+        value
+    ) {
+        return String(value || "")
+            .normalize("NFC")
+            .trim();
     }
 
 }

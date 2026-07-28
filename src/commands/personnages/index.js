@@ -379,6 +379,15 @@ function normalizeLetter(value) {
 }
 
 function formatCharacter(character) {
+    character = {
+        ...character,
+        firstname:
+            String(
+                character.firstname ||
+                ""
+            ).normalize("NFC")
+    };
+
     return [
         `• **${character.firstname}**`,
         `<@${character.discord_user_id}>`,

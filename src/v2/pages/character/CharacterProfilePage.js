@@ -153,7 +153,9 @@ class CharacterProfilePage {
             }
 
             const text =
-                String(value).trim();
+                String(value)
+                    .normalize("NFC")
+                    .trim();
 
             if (!text) {
                 return;
