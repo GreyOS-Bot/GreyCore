@@ -8,6 +8,16 @@ const characterProfilePage =
         "../../pages/character/CharacterProfilePage"
     );
 
+const characterAvatarRequiredView =
+    require(
+        "../../views/character/CharacterAvatarRequiredView"
+    );
+
+const installationCreatedView =
+    require(
+        "../../views/deployment/InstallationCreatedView"
+    );
+
 const openProfileStory =
     require(
         "../buttons/openProfileStory"
@@ -98,6 +108,15 @@ async function submitIdentity(
         changes
     );
 
+    if (
+        await returnToCreationIfDraft(
+            interaction,
+            writable
+        )
+    ) {
+        return;
+    }
+
     return characterProfilePage
         .execute(
             interaction,
@@ -165,6 +184,15 @@ async function submitInformation(
         changes
     );
 
+    if (
+        await returnToCreationIfDraft(
+            interaction,
+            writable
+        )
+    ) {
+        return;
+    }
+
     return characterProfilePage
         .execute(
             interaction,
@@ -217,6 +245,15 @@ async function submitStory(
         changes
     );
 
+    if (
+        await returnToCreationIfDraft(
+            interaction,
+            writable
+        )
+    ) {
+        return;
+    }
+
     interaction.customId =
         `v2_profile_story_view:${characterId}:0`;
 
@@ -263,6 +300,49 @@ async function submitForReviewIfNeeded(
             `Salon de suivi : <#${result.validationChannel.id}>`
         ].join("\n")
     );
+
+    return true;
+}
+
+async function returnToCreationIfDraft(
+    interaction,
+    writable
+) {
+    if (
+        writable.installation.status !== "draft"
+        || !interaction.message
+    ) {
+        return false;
+    }
+
+    const {
+        character,
+        continuity
+    } = writable.dashboardData;
+
+    const hasAvatar = Boolean(
+        writable.installation.local_avatar_url
+        || character.avatar_url
+    );
+
+    const view = hasAvatar
+        ? installationCreatedView.build(
+            character,
+            continuity,
+            writable.installation,
+            interaction.guild,
+            {
+                created: false
+            }
+        )
+        : characterAvatarRequiredView.build(
+            character,
+            continuity,
+            writable.installation,
+            interaction.guild
+        );
+
+    await interaction.update(view);
 
     return true;
 }
