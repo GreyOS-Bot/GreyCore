@@ -16,6 +16,11 @@ const proxyMessageManager =
         "../../../managers/ProxyMessageManager"
     );
 
+const proxyMessageHandler =
+    require(
+        "../messageCreate/ProxyMessageHandler"
+    );
+
 module.exports =
     async function proxyMessageUpdateHandler(
         message
@@ -34,7 +39,15 @@ module.exports =
             );
 
         if (!proxyRecord) {
-            return false;
+            /*
+             * Un GIF ou une image peut \u00eatre envoy\u00e9(e) avant
+             * d'ajouter le proxy par modification du message.
+             * Le message n'a alors pas encore d'enregistrement
+             * GreyCore : on le traite comme un nouveau proxy.
+             */
+            return proxyMessageHandler(
+                message
+            );
         }
 
         const proxy =
