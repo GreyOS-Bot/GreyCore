@@ -241,6 +241,135 @@ test(
     }
 );
 
+test(
+    "l'envoi d'un SMS ferme l'interface de conversation",
+    async () => {
+        const calls = [];
+
+        stubModule(
+            "src/v2/managers/CharacterV2Manager.js",
+            {
+                getById:
+                    () => ({
+                        id: "character",
+                        discord_user_id: "user"
+                    })
+            }
+        );
+
+        stubModule(
+            "src/v2/managers/PhoneV2Manager.js",
+            {
+                getPhoneByContinuity:
+                    () => ({
+                        id: 7
+                    })
+            }
+        );
+
+        stubModule(
+            "src/v2/services/dashboard/CharacterDashboardManager.js",
+            {
+                getPlayableDashboardData:
+                    () => ({
+                        continuity: {
+                            id: "continuity"
+                        }
+                    })
+            }
+        );
+
+        stubModule(
+            "src/v2/services/phone/PhoneService.js",
+            {
+                sendSms:
+                    async data => {
+                        calls.push([
+                            "sendSms",
+                            data.conversationId,
+                            data.content
+                        ]);
+                    }
+            }
+        );
+
+        stubModule(
+            "src/v2/core/services/InteractionResponseService.js",
+            {
+                replyError:
+                    async () => {
+                        throw new Error(
+                            "Une erreur ne devait pas être envoyée."
+                        );
+                    }
+            }
+        );
+
+        const handler =
+            require(
+                "../src/v2/interactions/modals/PhoneMessageV2"
+            );
+
+        const interaction = {
+            customId:
+                "v2_phone_message_modal:12:character",
+            guildId:
+                "guild",
+            channel: {},
+            client: {},
+            user: {
+                id: "user"
+            },
+            fields: {
+                getTextInputValue:
+                    () => "Bonjour !"
+            },
+            update:
+                async payload => {
+                    calls.push([
+                        "update",
+                        payload
+                    ]);
+                },
+            message: {
+                delete:
+                    async () => {
+                        calls.push([
+                            "delete"
+                        ]);
+                    }
+            }
+        };
+
+        await handler(
+            interaction
+        );
+
+        assert.deepEqual(
+            calls,
+            [
+                [
+                    "sendSms",
+                    12,
+                    "Bonjour !"
+                ],
+                [
+                    "update",
+                    {
+                        content:
+                            "✅ SMS envoyé.",
+                        embeds: [],
+                        components: []
+                    }
+                ],
+                [
+                    "delete"
+                ]
+            ]
+        );
+    }
+);
+
 function createInteraction(
     senderPhoneId
 ) {

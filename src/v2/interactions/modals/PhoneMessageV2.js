@@ -25,16 +25,38 @@ const PhoneServiceV2 =
         "../../services/phone/PhoneService"
     );
 
-const CharacterPhoneConversationPage =
-    require(
-        "../../pages/character/CharacterPhoneConversationPage"
-    );
-
 const {
     replyError
 } = require(
     "../../core/services/InteractionResponseService"
 );
+
+async function closeConversationPanel(
+    interaction
+) {
+    await interaction.update({
+        content:
+            "✅ SMS envoyé.",
+        embeds: [],
+        components: []
+    });
+
+    if (
+        typeof interaction.message?.delete !==
+        "function"
+    ) {
+        return;
+    }
+
+    try {
+        await interaction.message.delete();
+    } catch (error) {
+        logger.warn(
+            "Impossible de fermer l'interface SMS après l'envoi :",
+            error
+        );
+    }
+}
 
 module.exports =
     async function PhoneMessageV2(
@@ -148,12 +170,9 @@ module.exports =
     content
 });
 
-    return CharacterPhoneConversationPage
-        .execute(
-            interaction,
-            conversationId,
-            characterId
-        );
+    return closeConversationPanel(
+        interaction
+    );
 
 } catch (error) {
 
