@@ -58,8 +58,8 @@ test(
                     characterCreateModal.build(type)
                 ),
                 [
-                    "Nom du proxy",
-                    "Prénom"
+                    "Nom du proxy (messages RP)",
+                    "Prénom (affiché sur la fiche)"
                 ],
                 type
             );
@@ -73,6 +73,21 @@ test(
         assert.equal(
             characterTypes.getUsageScope("pnj_reserve"),
             "staff"
+        );
+
+        assert.deepEqual(
+            labels(
+                characterCreateModal.build(
+                    "personnage_joue"
+                )
+            ),
+            [
+                "Nom du proxy (messages RP)",
+                "Prénom réel (fiche personnage)",
+                "Nom de famille (facultatif)",
+                "Âge (facultatif)",
+                "Histoire (facultatif)"
+            ]
         );
 
         const random =
@@ -100,5 +115,19 @@ test(
             });
 
         assert.equal(pnj.age, null);
+
+        const namedPnj =
+            characterCreationService.normalize({
+                discordUserId: "user",
+                guildId: "guild",
+                guildName: "Serveur",
+                type: "pnj",
+                proxyName: "Le Gardien",
+                firstname: "Émile",
+                lastname: "Du Pont"
+            });
+
+        assert.equal(namedPnj.firstname, "Émile");
+        assert.equal(namedPnj.lastname, "Du Pont");
     }
 );

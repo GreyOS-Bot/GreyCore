@@ -90,17 +90,24 @@ test(
             })
         );
 
-        assert.match(
+        const creationLabels =
             labels(
                 characterCreateModal.build(
                     "pnj"
                 )
-            ).find(label =>
-                label.startsWith(
-                    "Gang ou organisation"
-                )
-            ),
-            /\(facultatif\)$/
-        );
+            );
+
+        for (const prefix of [
+            "Nom de famille",
+            "Âge",
+            "Histoire"
+        ]) {
+            assert.match(
+                creationLabels.find(label =>
+                    label.startsWith(prefix)
+                ),
+                /\(facultatif\)$/
+            );
+        }
     }
 );

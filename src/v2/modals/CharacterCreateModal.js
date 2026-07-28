@@ -54,7 +54,7 @@ class CharacterCreateModal {
                     "character_proxy_name"
                 )
                 .setLabel(
-                    "Nom du proxy"
+                    "Nom du proxy (messages RP)"
                 )
                 .setStyle(
                     TextInputStyle.Short
@@ -73,29 +73,21 @@ class CharacterCreateModal {
             );
         }
 
-        const fullNameInput =
+        const simpleFirstNameInput =
             new TextInputBuilder()
                 .setCustomId(
                     "profile_fullname"
                 )
                 .setLabel(
-                    isSimpleCreation
-                        ? "Prénom"
-                        : "Nom complet"
+                    "Prénom (affiché sur la fiche)"
                 )
                 .setStyle(
                     TextInputStyle.Short
                 )
                 .setRequired(true)
-                .setMaxLength(
-                    isSimpleCreation
-                        ? 80
-                        : 150
-                )
+                .setMaxLength(80)
                 .setPlaceholder(
-                    isSimpleCreation
-                        ? "Exemple : Gars 1"
-                        : "Exemple : Alba Alvarez"
+                    "Exemple : Gars 1"
                 );
 
         if (isSimpleCreation) {
@@ -106,41 +98,58 @@ class CharacterCreateModal {
                     ),
                 new ActionRowBuilder()
                     .addComponents(
-                        fullNameInput
+                        simpleFirstNameInput
                     )
             );
 
             return modal;
         }
 
+        const firstNameInput =
+            new TextInputBuilder()
+                .setCustomId(
+                    "profile_firstname"
+                )
+                .setLabel(
+                    "Prénom réel (fiche personnage)"
+                )
+                .setStyle(
+                    TextInputStyle.Short
+                )
+                .setRequired(true)
+                .setMaxLength(80)
+                .setPlaceholder(
+                    "Exemple : Alba"
+                );
+
+        const lastNameInput =
+            new TextInputBuilder()
+                .setCustomId(
+                    "profile_lastname"
+                )
+                .setLabel(
+                    "Nom de famille (facultatif)"
+                )
+                .setStyle(
+                    TextInputStyle.Short
+                )
+                .setRequired(false)
+                .setMaxLength(80)
+                .setPlaceholder(
+                    "Exemple : Alvarez"
+                );
+
         const ageInput =
             new TextInputBuilder()
                 .setCustomId(
                     "profile_age"
                 )
-                .setLabel("Âge")
+                .setLabel("Âge (facultatif)")
                 .setStyle(
                     TextInputStyle.Short
                 )
                 .setRequired(false)
                 .setMaxLength(3);
-
-        const gangInput =
-            new TextInputBuilder()
-                .setCustomId(
-                    "profile_gang"
-                )
-                .setLabel(
-                    "Gang ou organisation (facultatif)"
-                )
-                .setStyle(
-                    TextInputStyle.Short
-                )
-                .setRequired(false)
-                .setMaxLength(100)
-                .setPlaceholder(
-                    "Laisser vide si aucun"
-                );
 
         const storyInput =
             new TextInputBuilder()
@@ -163,15 +172,15 @@ class CharacterCreateModal {
                 ),
             new ActionRowBuilder()
                 .addComponents(
-                    fullNameInput
+                    firstNameInput
+                ),
+            new ActionRowBuilder()
+                .addComponents(
+                    lastNameInput
                 ),
             new ActionRowBuilder()
                 .addComponents(
                     ageInput
-                ),
-            new ActionRowBuilder()
-                .addComponents(
-                    gangInput
                 ),
             new ActionRowBuilder()
                 .addComponents(

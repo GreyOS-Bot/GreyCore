@@ -89,17 +89,37 @@ class CharacterCreationV2Service {
             );
         }
 
+        const isSimpleCreation =
+            characterTypeCatalog
+                .usesSimpleCreation(type);
+
         const fullName =
             this.normalizeDisplayText(
                 data.fullName
             );
 
-        if (!fullName) {
+        const suppliedFirstname =
+            this.normalizeDisplayText(
+                data.firstname
+            );
+
+        const suppliedLastname =
+            this.normalizeDisplayText(
+                data.lastname
+            );
+
+        const providedName =
+            fullName ||
+            [
+                suppliedFirstname,
+                suppliedLastname
+            ]
+                .filter(Boolean)
+                .join(" ");
+
+        if (!providedName) {
             throw new Error(
-                characterTypeCatalog
-                    .usesSimpleCreation(type)
-                    ? "Le prénom est obligatoire."
-                    : "Le nom complet est obligatoire."
+                "Le pr\u00e9nom est obligatoire."
             );
         }
 
@@ -124,21 +144,18 @@ class CharacterCreationV2Service {
             );
         }
 
-        const isSimpleCreation =
-            characterTypeCatalog
-                .usesSimpleCreation(type);
-
         const nameParts =
             isSimpleCreation
                 ? []
-                : fullName
+                : providedName
                     .split(/\s+/)
                     .filter(Boolean);
 
         const firstname =
             isSimpleCreation
-                ? fullName
-                : nameParts.shift();
+                ? providedName
+                : suppliedFirstname ||
+                    nameParts.shift();
 
         return {
             discordUserId:
@@ -158,8 +175,10 @@ class CharacterCreationV2Service {
             lastname:
                 isSimpleCreation
                     ? null
-                    : nameParts.join(" ")
-                    || null,
+                    : suppliedFirstname
+                        ? suppliedLastname || null
+                        : nameParts.join(" ")
+                        || null,
             age,
             gang:
                 String(

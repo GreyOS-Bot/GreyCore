@@ -68,15 +68,20 @@ module.exports =
                             interaction,
                             "profile_fullname"
                         ),
+                    firstname:
+                        readField(
+                            interaction,
+                            "profile_firstname"
+                        ),
+                    lastname:
+                        readField(
+                            interaction,
+                            "profile_lastname"
+                        ),
                     age:
                         readField(
                             interaction,
                             "profile_age"
-                        ),
-                    gang:
-                        readField(
-                            interaction,
-                            "profile_gang"
                         ),
                     story:
                         readField(
