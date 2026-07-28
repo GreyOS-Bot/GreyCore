@@ -421,6 +421,19 @@ class CharacterProfilePage {
                 UI.button.primary({
 
                 id:
+                    `v2_aliases_open:${characterId}`,
+
+                label:
+                    "Alias",
+
+                emoji:
+                    "\u{1F3F7}\uFE0F"
+
+                }),
+
+                UI.button.primary({
+
+                id:
                     `v2_profile_identity_edit:${characterId}`,
 
                 label:
@@ -500,6 +513,11 @@ class CharacterProfilePage {
 
                 );
 
+        const actionRows =
+            buildActionRows(
+                actionButtons
+            );
+
         return interaction.update(
 
             UI.page.create({
@@ -507,14 +525,7 @@ class CharacterProfilePage {
                 embed,
 
                 components: [
-                    ...(actionButtons.length
-                        ? [
-                            new ActionRowBuilder()
-                                .addComponents(
-                                    ...actionButtons
-                                )
-                        ]
-                        : []),
+                    ...actionRows,
                     navigationRow
                 ]
 
@@ -564,6 +575,28 @@ class CharacterProfilePage {
         return 700;
     }
 
+}
+
+function buildActionRows(buttons) {
+    const rows = [];
+
+    for (
+        let index = 0;
+        index < buttons.length;
+        index += 5
+    ) {
+        rows.push(
+            new ActionRowBuilder()
+                .addComponents(
+                    ...buttons.slice(
+                        index,
+                        index + 5
+                    )
+                )
+        );
+    }
+
+    return rows;
 }
 
 module.exports =

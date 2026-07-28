@@ -21,6 +21,9 @@ const modalRouters = [
         "./modals/ProfileModalRouter"
     ),
     require(
+        "./modals/AliasModalRouter"
+    ),
+    require(
         "./modals/StateModalRouter"
     ),
     require(

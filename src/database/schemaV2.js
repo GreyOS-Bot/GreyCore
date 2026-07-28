@@ -83,6 +83,30 @@ function initializeSchemaV2() {
         `).run();
     }
 
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS CharacterAliasesV2 (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            character_id TEXT NOT NULL,
+
+            alias TEXT NOT NULL,
+
+            created_at TEXT NOT NULL,
+
+            FOREIGN KEY(character_id)
+                REFERENCES CharactersV2(id)
+                ON DELETE CASCADE,
+
+            UNIQUE(character_id, alias)
+        )
+    `).run();
+
+    db.prepare(`
+        CREATE INDEX IF NOT EXISTS
+            idx_character_aliases_v2_character
+        ON CharacterAliasesV2(character_id)
+    `).run();
+
     /*
      * CONTINUITÉS RP
      */

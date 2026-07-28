@@ -226,8 +226,18 @@ function findV2Installation({
                 continuity.id
 
         WHERE installation.guild_id = ?
-        AND LOWER(character.proxy_name) =
-            LOWER(?)
+        AND (
+            LOWER(character.proxy_name) =
+                LOWER(?)
+            OR EXISTS (
+                SELECT 1
+                FROM CharacterAliasesV2 AS characterAlias
+                WHERE characterAlias.character_id =
+                    character.id
+                AND LOWER(characterAlias.alias) =
+                    LOWER(?)
+            )
+        )
         AND character.is_archived = 0
         AND (
             user.discord_user_id = ?
@@ -251,6 +261,7 @@ function findV2Installation({
         LIMIT 1
     `).get(
         guildId,
+        proxyName,
         proxyName,
         discordUserId,
         discordUserId

@@ -15,6 +15,9 @@ const buttonRouters = [
         "./buttons/ProfileRouter"
     ),
     require(
+        "./buttons/AliasRouter"
+    ),
+    require(
         "./buttons/PhoneRouter"
     ),
     require(

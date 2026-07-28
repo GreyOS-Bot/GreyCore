@@ -56,6 +56,7 @@ test(
             "ProxyMessages",
             "UsersV2",
             "CharactersV2",
+            "CharacterAliasesV2",
             "CharacterContinuitiesV2",
             "CharacterProfilesV2",
             "ContinuityPhonesV2",

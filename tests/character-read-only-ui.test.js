@@ -197,6 +197,15 @@ test(
             ),
             true
         );
+
+        assert.equal(
+            getCustomIds(
+                ownerInteraction.payload
+            ).includes(
+                "v2_aliases_open:character"
+            ),
+            true
+        );
     }
 );
 

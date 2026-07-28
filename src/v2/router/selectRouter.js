@@ -22,6 +22,9 @@ const selectRouters = [
     ),
     require(
         "./selects/LibrarySelectRouter"
+    ),
+    require(
+        "./selects/AliasSelectRouter"
     )
 ];
 

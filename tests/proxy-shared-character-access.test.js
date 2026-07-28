@@ -110,6 +110,17 @@ test(
                 personalOwner.character.name,
                 "Iño"
             );
+            const personalAlias =
+                resolver.resolveProxyCharacter({
+                    discordUserId: "owner",
+                    guildId: "guild",
+                    proxyName: "In"
+                });
+
+            assert.equal(
+                personalAlias.character.id,
+                "personal"
+            );
         } finally {
             isolated.cleanup();
         }
@@ -130,6 +141,12 @@ function createTables(db) {
             avatar_url TEXT,
             character_type TEXT NOT NULL,
             is_archived INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE TABLE CharacterAliasesV2 (
+            id INTEGER PRIMARY KEY,
+            character_id TEXT NOT NULL,
+            alias TEXT NOT NULL
         );
 
         CREATE TABLE CharacterGuildInstallationsV2 (
@@ -214,5 +231,13 @@ function seedCharacters(db) {
 
     db.prepare(`
         INSERT INTO UsersV2 VALUES (2, 'staff')
+    `).run();
+
+    db.prepare(`
+        INSERT INTO CharacterAliasesV2 (
+            character_id,
+            alias
+        )
+        VALUES ('personal', 'In')
     `).run();
 }
