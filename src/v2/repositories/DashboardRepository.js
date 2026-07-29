@@ -93,16 +93,59 @@ class DashboardRepository {
                 ON character.id =
                     installation.character_id
 
+            JOIN CharacterContinuitiesV2
+                AS continuity
+                ON continuity.id =
+                    installation.continuity_id
+
+            LEFT JOIN CharacterProfilesV2
+                AS profile
+                ON profile.continuity_id =
+                    continuity.id
+
             WHERE installation.guild_id = ?
             AND installation.status = 'approved'
             AND installation.proxy_enabled = 1
             AND character.is_archived = 0
-            AND LOWER(character.proxy_name) =
-                LOWER(?)
+            AND (
+                LOWER(character.proxy_name) =
+                    LOWER(?)
+
+                OR EXISTS (
+                    SELECT 1
+                    FROM CharacterAliasesV2
+                        AS characterAlias
+                    WHERE characterAlias.character_id =
+                        character.id
+                    AND LOWER(characterAlias.alias) =
+                        LOWER(?)
+                )
+
+                OR LOWER(
+                    COALESCE(profile.alias, '')
+                ) = LOWER(?)
+
+                OR LOWER(
+                    COALESCE(profile.firstname, '')
+                ) = LOWER(?)
+
+                OR LOWER(
+                    COALESCE(continuity.firstname, '')
+                ) = LOWER(?)
+
+                OR LOWER(
+                    COALESCE(character.base_firstname, '')
+                ) = LOWER(?)
+            )
 
             ORDER BY installation.installed_at ASC
         `).all(
             guildId,
+            proxyName,
+            proxyName,
+            proxyName,
+            proxyName,
+            proxyName,
             proxyName
         );
     }

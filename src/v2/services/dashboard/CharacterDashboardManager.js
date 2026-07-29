@@ -366,7 +366,9 @@ class CharacterDashboardManager {
 
     /**
      * Retrouve une fiche jouable à partir du nom affiché
-     * par un proxy externe sur le même serveur.
+     * par un proxy externe sur le même serveur. Le proxy
+     * technique, les proxies secondaires et l'identité
+     * affichée du personnage sont reconnus.
      *
      * Un nom partagé par plusieurs installations reste
      * volontairement ambigu : aucune fiche n’est choisie.

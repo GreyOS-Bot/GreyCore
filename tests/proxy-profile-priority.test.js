@@ -147,3 +147,152 @@ test(
         }
     }
 );
+
+test(
+    "Voir la fiche reconnaît le prénom affiché quand le proxy est simplifié",
+    () => {
+        const isolated =
+            createIsolatedDatabase({
+                initializeSchema: true
+            });
+
+        try {
+            const now =
+                "2026-07-29T00:00:00.000Z";
+
+            isolated.database.exec(`
+                INSERT INTO Guilds (
+                    id,
+                    name,
+                    created_at
+                )
+                VALUES (
+                    'guild',
+                    'GreyOS',
+                    '${now}'
+                );
+
+                INSERT INTO UsersV2 (
+                    discord_user_id,
+                    created_at,
+                    updated_at
+                )
+                VALUES (
+                    'owner',
+                    '${now}',
+                    '${now}'
+                );
+
+                INSERT INTO CharactersV2 (
+                    id,
+                    owner_user_id,
+                    proxy_name,
+                    base_firstname,
+                    character_type,
+                    is_archived,
+                    created_at,
+                    updated_at
+                )
+                VALUES (
+                    'character',
+                    1,
+                    'Ino',
+                    'Iño',
+                    'personnage_joue',
+                    0,
+                    '${now}',
+                    '${now}'
+                );
+
+                INSERT INTO CharacterContinuitiesV2 (
+                    id,
+                    character_id,
+                    name,
+                    mode,
+                    firstname,
+                    is_archived,
+                    created_at,
+                    updated_at
+                )
+                VALUES (
+                    'continuity',
+                    'character',
+                    'GreyOS',
+                    'original',
+                    'Iño',
+                    0,
+                    '${now}',
+                    '${now}'
+                );
+
+                INSERT INTO CharacterProfilesV2 (
+                    continuity_id,
+                    firstname,
+                    alias,
+                    created_at,
+                    updated_at
+                )
+                VALUES (
+                    'continuity',
+                    'Iño',
+                    'Iño',
+                    '${now}',
+                    '${now}'
+                );
+
+                INSERT INTO CharacterGuildInstallationsV2 (
+                    character_id,
+                    continuity_id,
+                    guild_id,
+                    status,
+                    visibility,
+                    proxy_enabled,
+                    installed_at,
+                    updated_at
+                )
+                VALUES (
+                    'character',
+                    'continuity',
+                    'guild',
+                    'approved',
+                    'private',
+                    1,
+                    '${now}',
+                    '${now}'
+                );
+            `);
+
+            const repositoryPath =
+                require.resolve(
+                    "../src/v2/repositories/DashboardRepository"
+                );
+
+            delete require.cache[
+                repositoryPath
+            ];
+
+            const repository =
+                require(
+                    "../src/v2/repositories/DashboardRepository"
+                );
+
+            assert.deepEqual(
+                repository
+                    .getPlayableProxyReferences(
+                        "guild",
+                        "Iño"
+                    ),
+                [
+                    {
+                        character_id:
+                            "character",
+                        continuity_id:
+                            "continuity"
+                    }
+                ]
+            );
+        } finally {
+            isolated.cleanup();
+        }
+    }
+);
