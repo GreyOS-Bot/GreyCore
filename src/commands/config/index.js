@@ -148,6 +148,14 @@ module.exports = {
                 .setDescription(
                     "Configure l’accueil après des personnages validés."
                 )
+                .addRoleOption(option =>
+                    option
+                        .setName("role_a_verifier")
+                        .setDescription(
+                            "Rôle que le membre doit avoir avant l’automatisation."
+                        )
+                        .setRequired(true)
+                )
                 .addIntegerOption(option =>
                     option
                         .setName("personnages_valides")
@@ -157,14 +165,6 @@ module.exports = {
                         .setMinValue(1)
                         .setMaxValue(100)
                         .setRequired(false)
-                )
-                .addRoleOption(option =>
-                    option
-                        .setName("role_a_verifier")
-                        .setDescription(
-                            "Rôle que le membre doit avoir avant l’automatisation."
-                        )
-                        .setRequired(true)
                 )
                 .addRoleOption(option =>
                     option

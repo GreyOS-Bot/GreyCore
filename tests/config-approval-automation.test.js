@@ -86,6 +86,30 @@ test(
         const command =
             require("../src/commands/config");
 
+        const automationOptions =
+            command.data
+                .toJSON()
+                .options
+                .find(
+                    option =>
+                        option.name === "automatisation"
+                )
+                .options;
+
+        assert.equal(
+            automationOptions.every(
+                (option, index) =>
+                    !option.required
+                    || automationOptions
+                        .slice(0, index)
+                        .every(
+                            previous => previous.required
+                        )
+            ),
+            true,
+            "Discord exige que les options obligatoires soient placées avant les facultatives."
+        );
+
         const roles = {
             role_a_verifier: {
                 id: "newcomer"
