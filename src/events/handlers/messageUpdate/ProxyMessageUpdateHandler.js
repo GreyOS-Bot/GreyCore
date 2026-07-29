@@ -21,6 +21,12 @@ const proxyMessageHandler =
         "../messageCreate/ProxyMessageHandler"
     );
 
+const {
+    withThreadId
+} = require(
+    "../../../v2/core/services/ProxyThreadContext"
+);
+
 module.exports =
     async function proxyMessageUpdateHandler(
         message
@@ -93,10 +99,13 @@ module.exports =
         }
 
         const channel =
-            message.guild.channels.cache
-                .get(
-                    proxyRecord.channel_id
-                );
+            message.channel?.id ===
+                proxyRecord.channel_id
+                ? message.channel
+                : message.guild.channels.cache
+                    .get(
+                        proxyRecord.channel_id
+                    );
 
         if (!channel) {
             return false;
@@ -110,10 +119,13 @@ module.exports =
 
         await webhook.editMessage(
             proxyRecord.webhook_message_id,
-            {
-                content:
-                    proxy.content
-            }
+            withThreadId(
+                channel,
+                {
+                    content:
+                        proxy.content
+                }
+            )
         );
 
         return true;

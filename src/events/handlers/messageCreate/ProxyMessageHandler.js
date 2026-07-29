@@ -36,6 +36,12 @@ const validationStaffPolicy =
         "../../../v2/core/policies/ValidationStaffPolicy"
     );
 
+const {
+    withThreadId
+} = require(
+    "../../../v2/core/services/ProxyThreadContext"
+);
+
 module.exports =
     async function proxyMessageHandler(
         message
@@ -118,20 +124,25 @@ module.exports =
             );
 
         const webhookMessage =
-            await webhook.send({
-                content:
-                    proxy.content
-                    ||
-                    undefined,
-                username:
-                    character.name,
-                avatarURL:
-                    character.avatar
-                    ||
-                    null,
-                files,
-                embeds
-            });
+            await webhook.send(
+                withThreadId(
+                    message.channel,
+                    {
+                        content:
+                            proxy.content
+                            ||
+                            undefined,
+                        username:
+                            character.name,
+                        avatarURL:
+                            character.avatar
+                            ||
+                            null,
+                        files,
+                        embeds
+                    }
+                )
+            );
 
         proxyMessageManager.save({
             discordMessageId:

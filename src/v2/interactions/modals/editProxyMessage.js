@@ -17,6 +17,12 @@ const {
     "../../core/services/InteractionResponseService"
 );
 
+const {
+    withThreadId
+} = require(
+    "../../core/services/ProxyThreadContext"
+);
+
 module.exports =
     async function editProxyMessage(
         interaction
@@ -81,10 +87,13 @@ module.exports =
             await webhook.editMessage(
                 proxyRecord
                     .webhook_message_id,
-                {
-                    content:
-                        newContent
-                }
+                withThreadId(
+                    interaction.channel,
+                    {
+                        content:
+                            newContent
+                    }
+                )
             );
 
             return replyPrivate(

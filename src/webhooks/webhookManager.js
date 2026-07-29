@@ -1,20 +1,60 @@
 class WebhookManager {
     async getOrCreateWebhook(channel) {
-        const webhooks = await channel.fetchWebhooks();
+        const webhookChannel =
+            await this.resolveWebhookChannel(
+                channel
+            );
+
+        if (!webhookChannel) {
+            throw new Error(
+                "Le salon parent de ce fil est introuvable."
+            );
+        }
+
+        const webhooks =
+            await webhookChannel.fetchWebhooks();
 
         let webhook = webhooks.find(wh =>
-            wh.owner?.id === channel.client.user.id &&
+            wh.owner?.id === webhookChannel.client.user.id &&
             wh.name === "Greycore Proxy"
         );
 
         if (!webhook) {
-            webhook = await channel.createWebhook({
+            webhook = await webhookChannel.createWebhook({
                 name: "Greycore Proxy",
                 reason: "Webhook proxy Greycore"
             });
         }
 
         return webhook;
+    }
+
+    async resolveWebhookChannel(
+        channel
+    ) {
+        if (
+            typeof channel?.isThread !==
+            "function"
+            || !channel.isThread()
+        ) {
+            return channel;
+        }
+
+        if (channel.parent) {
+            return channel.parent;
+        }
+
+        if (
+            channel.parentId
+            && typeof channel.guild?.channels?.fetch ===
+                "function"
+        ) {
+            return channel.guild.channels.fetch(
+                channel.parentId
+            );
+        }
+
+        return null;
     }
 }
 

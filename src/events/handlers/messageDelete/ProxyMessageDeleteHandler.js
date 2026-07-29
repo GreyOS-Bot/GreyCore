@@ -9,6 +9,12 @@ const {
     "../../../services/internalDeleteService"
 );
 
+const {
+    getThreadId
+} = require(
+    "../../../v2/core/services/ProxyThreadContext"
+);
+
 module.exports =
     async function proxyMessageDeleteHandler(
         message
@@ -50,10 +56,23 @@ module.exports =
                             .webhook_id
                     );
 
-            await webhook.deleteMessage(
-                proxyRecord
-                    .webhook_message_id
-            );
+            const threadId =
+                getThreadId(
+                    message.channel
+                );
+
+            if (threadId) {
+                await webhook.deleteMessage(
+                    proxyRecord
+                        .webhook_message_id,
+                    threadId
+                );
+            } else {
+                await webhook.deleteMessage(
+                    proxyRecord
+                        .webhook_message_id
+                );
+            }
         } catch (error) {
             if (
                 error.code !== 10008
