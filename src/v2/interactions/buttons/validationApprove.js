@@ -25,6 +25,11 @@ const notificationService =
         "../../services/validation/ValidationNotificationService"
     );
 
+const approvedCharacterAutomationService =
+    require(
+        "../../services/automation/ApprovedCharacterAutomationService"
+    );
+
 module.exports = async interaction => {
     try {
         const installationId =
@@ -137,6 +142,21 @@ module.exports = async interaction => {
             validationData.owner_id
             || validationData.submitted_by
             || null;
+
+        await approvedCharacterAutomationService
+            .runAfterApproval({
+                guild: interaction.guild,
+                playerId,
+                characterName:
+                    validationData.proxy_name,
+                interaction
+            })
+            .catch(
+                error => logger.error(
+                    "Automatisation après validation ignorée :",
+                    error
+                )
+            );
 
         const notified =
             await notificationService

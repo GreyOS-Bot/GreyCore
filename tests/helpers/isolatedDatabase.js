@@ -100,7 +100,8 @@ function clearApplicationSchemaCache() {
         "src/database/schemaV2Roleplay.js",
         "src/database/schemaV2Media.js",
         "src/database/schemaV2Installation.js",
-        "src/database/schemaV2Assets.js"
+        "src/database/schemaV2Assets.js",
+        "src/database/schemaV2Automation.js"
     ];
 
     for (const modulePath of schemaModules) {

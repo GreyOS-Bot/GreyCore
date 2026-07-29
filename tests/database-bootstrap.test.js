@@ -67,7 +67,9 @@ test(
             "CharacterInstallationMessagesV2",
             "CharacterChangeRequestsV2",
             "InstallationValidationHistoryV2",
-            "GuildModulesV2"
+            "GuildModulesV2",
+            "GuildCharacterApprovalAutomationsV2",
+            "GuildCharacterApprovalAutomationRunsV2"
         ];
 
         const tableNames =
