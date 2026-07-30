@@ -8,6 +8,11 @@ const proxyMessageHandler =
         "./ProxyMessageHandler"
     );
 
+const sceneAssistantService =
+    require(
+        "../../../v2/services/scenes/SceneAssistantService"
+    );
+
 module.exports =
     async function messageCreateRouter(
         message
@@ -24,7 +29,30 @@ module.exports =
             return true;
         }
 
-        return proxyMessageHandler(
-            message
-        );
+        const proxyHandled =
+            await proxyMessageHandler(
+                message
+            );
+
+        try {
+            const result =
+                await sceneAssistantService
+                    .processMessage(message);
+
+            if (result?.justReachedThreshold) {
+                await message.channel.send({
+                    embeds: [
+                        sceneAssistantService
+                            .buildThresholdEmbed()
+                    ]
+                });
+            }
+        } catch (error) {
+            console.error(
+                "[SceneAssistant] Impossible de suivre le cycle :",
+                error
+            );
+        }
+
+        return proxyHandled;
     };

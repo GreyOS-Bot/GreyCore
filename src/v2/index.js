@@ -65,6 +65,11 @@ const characterApprovalAutomationManager =
         "./managers/CharacterApprovalAutomationV2Manager"
     );
 
+const sceneAssistantManager =
+    require(
+        "./managers/SceneAssistantV2Manager"
+    );
+
 const validationCardBuilder =
     require(
         "./builders/ValidationCardBuilder"
@@ -129,7 +134,10 @@ const managers = {
         changeRequestManager,
 
     characterApprovalAutomation:
-        characterApprovalAutomationManager
+        characterApprovalAutomationManager,
+
+    sceneAssistant:
+        sceneAssistantManager
 };
 
 const builders = {

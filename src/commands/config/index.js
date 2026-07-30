@@ -223,6 +223,58 @@ module.exports = {
 
         .addSubcommand(sub =>
             sub
+                .setName("scenes")
+                .setDescription(
+                    "Configure l'Assistant de gestion des sc\u00e8nes RP."
+                )
+                .addStringOption(option =>
+                    option
+                        .setName("mode")
+                        .setDescription(
+                            "Crit\u00e8re de recommandation \u00e0 suivre."
+                        )
+                        .addChoices(
+                            {
+                                name: "Dur\u00e9e uniquement",
+                                value: "duration"
+                            },
+                            {
+                                name: "Messages uniquement",
+                                value: "messages"
+                            },
+                            {
+                                name: "Dur\u00e9e et messages",
+                                value: "both"
+                            },
+                            {
+                                name: "D\u00e9sactiver l'assistant",
+                                value: "disabled"
+                            }
+                        )
+                        .setRequired(true)
+                )
+                .addIntegerOption(option =>
+                    option
+                        .setName("duree_jours")
+                        .setDescription(
+                            "Dur\u00e9e recommand\u00e9e d'une sc\u00e8ne, en jours."
+                        )
+                        .setMinValue(1)
+                        .setRequired(false)
+                )
+                .addIntegerOption(option =>
+                    option
+                        .setName("messages_recommandes")
+                        .setDescription(
+                            "Nombre de messages RP recommand\u00e9."
+                        )
+                        .setMinValue(1)
+                        .setRequired(false)
+                )
+        )
+
+        .addSubcommand(sub =>
+            sub
                 .setName("modules")
                 .setDescription(
                     "Active ou désactive les modules du serveur."
@@ -252,6 +304,103 @@ module.exports = {
 
         if (subcommand === "modules") {
             return moduleSettingsHandler.open(interaction);
+        }
+
+        if (subcommand === "scenes") {
+            const mode = interaction.options.getString("mode");
+
+            if (mode === "disabled") {
+                const configuration =
+                    v2.managers.sceneAssistant.disable(
+                        interaction.guild.id
+                    );
+
+                return interaction.reply({
+                    content: configuration
+                        ? "\u2705 L'Assistant de gestion des sc\u00e8nes est d\u00e9sactiv\u00e9. Les zones et seuils configur\u00e9s sont conserv\u00e9s."
+                        : "\u2139\uFE0F L'Assistant de gestion des sc\u00e8nes n'\u00e9tait pas encore configur\u00e9.",
+                    ephemeral: true
+                });
+            }
+
+            const durationDays =
+                interaction.options.getInteger(
+                    "duree_jours"
+                );
+            const recommendedMessageCount =
+                interaction.options.getInteger(
+                    "messages_recommandes"
+                );
+
+            if (
+                (mode === "duration" || mode === "both")
+                && durationDays == null
+            ) {
+                return replyError(
+                    interaction,
+                    "Indique `duree_jours` pour ce mode de suivi."
+                );
+            }
+
+            if (
+                (mode === "messages" || mode === "both")
+                && recommendedMessageCount == null
+            ) {
+                return replyError(
+                    interaction,
+                    "Indique `messages_recommandes` pour ce mode de suivi."
+                );
+            }
+
+            if (
+                mode === "duration"
+                && recommendedMessageCount != null
+            ) {
+                return replyError(
+                    interaction,
+                    "Le mode Dur\u00e9e uniquement ne doit pas recevoir de nombre de messages."
+                );
+            }
+
+            if (
+                mode === "messages"
+                && durationDays != null
+            ) {
+                return replyError(
+                    interaction,
+                    "Le mode Messages uniquement ne doit pas recevoir de dur\u00e9e."
+                );
+            }
+
+            try {
+                const configuration =
+                    v2.managers.sceneAssistant.configure({
+                        guildId: interaction.guild.id,
+                        durationDays: mode === "messages"
+                            ? null
+                            : durationDays,
+                        recommendedMessageCount:
+                            mode === "duration"
+                                ? null
+                                : recommendedMessageCount
+                    });
+
+                return interaction.reply({
+                    content: [
+                        "\u2705 Assistant de gestion des sc\u00e8nes activ\u00e9.",
+                        formatSceneAssistantSummary(
+                            configuration
+                        ),
+                        "Ajoute ensuite les zones RP avec `/scene ajouter-zone`. Le suivi ne bloque et ne ferme jamais les salons."
+                    ].join("\n"),
+                    ephemeral: true
+                });
+            } catch (error) {
+                return replyError(
+                    interaction,
+                    error
+                );
+            }
         }
 
         if (subcommand === "automatisation-voir") {
@@ -612,4 +761,16 @@ function formatChannel(channelId) {
     return channelId
         ? `<#${channelId}>`
         : "Aucun";
+}
+
+function formatSceneAssistantSummary(configuration) {
+    const durationDays =
+        configuration.duration_days;
+    const recommendedMessageCount =
+        configuration.recommended_message_count;
+
+    return [
+        `\u2022 Dur\u00e9e recommand\u00e9e : ${durationDays ? `**${durationDays} jour(s)**` : "non suivie"}`,
+        `\u2022 Messages RP recommand\u00e9s : ${recommendedMessageCount ? `**${recommendedMessageCount}**` : "non suivis"}`
+    ].join("\n");
 }

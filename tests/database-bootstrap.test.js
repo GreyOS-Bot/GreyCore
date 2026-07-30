@@ -69,7 +69,10 @@ test(
             "InstallationValidationHistoryV2",
             "GuildModulesV2",
             "GuildCharacterApprovalAutomationsV2",
-            "GuildCharacterApprovalAutomationRunsV2"
+            "GuildCharacterApprovalAutomationRunsV2",
+            "GuildSceneAssistantSettingsV2",
+            "GuildSceneAssistantScopesV2",
+            "SceneAssistantCyclesV2"
         ];
 
         const tableNames =

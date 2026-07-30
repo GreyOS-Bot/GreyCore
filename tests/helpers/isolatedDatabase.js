@@ -101,7 +101,8 @@ function clearApplicationSchemaCache() {
         "src/database/schemaV2Media.js",
         "src/database/schemaV2Installation.js",
         "src/database/schemaV2Assets.js",
-        "src/database/schemaV2Automation.js"
+        "src/database/schemaV2Automation.js",
+        "src/database/schemaV2SceneAssistant.js"
     ];
 
     for (const modulePath of schemaModules) {

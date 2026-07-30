@@ -1,0 +1,280 @@
+const {
+    SlashCommandBuilder,
+    ChannelType,
+    EmbedBuilder
+} = require("discord.js");
+
+const sceneAssistantService =
+    require(
+        "../../v2/services/scenes/SceneAssistantService"
+    );
+
+const sceneAssistantManager =
+    require(
+        "../../v2/managers/SceneAssistantV2Manager"
+    );
+
+const guildRepository =
+    require(
+        "../../v2/repositories/GuildRepository"
+    );
+
+const {
+    requireStaffCommandAccess
+} = require(
+    "../../v2/core/services/StaffCommandAccessService"
+);
+
+const {
+    replyError,
+    replyPrivate
+} = require(
+    "../../v2/core/services/InteractionResponseService"
+);
+
+module.exports = {
+    data: new SlashCommandBuilder()
+        .setName("scene")
+        .setDescription("Consulte et organise les cycles de sc\u00e8ne RP.")
+
+        .addSubcommand(sub =>
+            sub
+                .setName("statut")
+                .setDescription(
+                    "Affiche le cycle de sc\u00e8ne du salon actuel."
+                )
+        )
+
+        .addSubcommand(sub =>
+            sub
+                .setName("ajouter-zone")
+                .setDescription(
+                    "Ajoute un salon, un forum ou une cat\u00e9gorie RP au suivi."
+                )
+                .addChannelOption(option =>
+                    option
+                        .setName("zone")
+                        .setDescription(
+                            "Salon, forum ou cat\u00e9gorie qui contient les sc\u00e8nes RP."
+                        )
+                        .addChannelTypes(
+                            ChannelType.GuildText,
+                            ChannelType.GuildAnnouncement,
+                            ChannelType.GuildForum,
+                            ChannelType.GuildCategory
+                        )
+                        .setRequired(true)
+                )
+        )
+
+        .addSubcommand(sub =>
+            sub
+                .setName("retirer-zone")
+                .setDescription(
+                    "Retire une zone RP du suivi."
+                )
+                .addChannelOption(option =>
+                    option
+                        .setName("zone")
+                        .setDescription(
+                            "Zone RP \u00e0 retirer du suivi."
+                        )
+                        .addChannelTypes(
+                            ChannelType.GuildText,
+                            ChannelType.GuildAnnouncement,
+                            ChannelType.GuildForum,
+                            ChannelType.GuildCategory
+                        )
+                        .setRequired(true)
+                )
+        )
+
+        .addSubcommand(sub =>
+            sub
+                .setName("zones")
+                .setDescription(
+                    "Affiche les zones actuellement suivies."
+                )
+        )
+
+        .addSubcommand(sub =>
+            sub
+                .setName("nouveau-cycle")
+                .setDescription(
+                    "Relance un cycle dans le salon RP actuel, sans le fermer."
+                )
+        ),
+
+    async execute(interaction) {
+        if (!interaction.guildId) {
+            return replyError(
+                interaction,
+                "Cette commande doit \u00eatre utilis\u00e9e sur un serveur."
+            );
+        }
+
+        const subcommand =
+            interaction.options.getSubcommand();
+
+        if (subcommand === "statut") {
+            return replyPrivate(
+                interaction,
+                buildStatusPayload(
+                    sceneAssistantService.getStatus({
+                        guildId: interaction.guildId,
+                        channel: interaction.channel
+                    })
+                )
+            );
+        }
+
+        if (
+            !await requireStaffCommandAccess(
+                interaction
+            )
+        ) {
+            return;
+        }
+
+        guildRepository.ensure(
+            interaction.guildId,
+            interaction.guild?.name || "Serveur Discord",
+            new Date().toISOString()
+        );
+
+        if (subcommand === "ajouter-zone") {
+            const zone = interaction.options.getChannel("zone");
+
+            const scopes = sceneAssistantManager.addScope({
+                guildId: interaction.guildId,
+                channelId: zone.id,
+                createdBy: interaction.user.id
+            });
+
+            return replyPrivate(
+                interaction,
+                [
+                    `\u2705 ${zone} est maintenant une zone RP suivie.`,
+                    "Le suivi commencera seulement lorsque l'Assistant de gestion des sc\u00e8nes sera activ\u00e9 via `/config scenes`.",
+                    `Zones configur\u00e9es : **${scopes.length}**.`
+                ].join("\n")
+            );
+        }
+
+        if (subcommand === "retirer-zone") {
+            const zone = interaction.options.getChannel("zone");
+            const removed = sceneAssistantManager.removeScope(
+                interaction.guildId,
+                zone.id
+            );
+
+            return replyPrivate(
+                interaction,
+                removed
+                    ? `\u2705 ${zone} ne fait plus partie des zones RP suivies.`
+                    : "\u2139\uFE0F Cette zone n'\u00e9tait pas suivie."
+            );
+        }
+
+        if (subcommand === "zones") {
+            const scopes = sceneAssistantManager.getScopes(
+                interaction.guildId
+            );
+
+            return replyPrivate(
+                interaction,
+                scopes.length
+                    ? [
+                        "\u{1F5FA}\uFE0F **Zones RP suivies**",
+                        ...scopes.map(
+                            scope => `<#${scope.channel_id}>`
+                        )
+                    ].join("\n")
+                    : "\u2139\uFE0F Aucune zone RP n'est encore configur\u00e9e. Utilise `/scene ajouter-zone`."
+            );
+        }
+
+        if (subcommand === "nouveau-cycle") {
+            try {
+                sceneAssistantService.startNewCycle({
+                    guildId: interaction.guildId,
+                    channel: interaction.channel
+                });
+
+                return replyPrivate(
+                    interaction,
+                    "\u2705 Un nouveau cycle de sc\u00e8ne commence ici. Le salon reste enti\u00e8rement ouvert et jouable."
+                );
+            } catch (error) {
+                return replyError(
+                    interaction,
+                    error
+                );
+            }
+        }
+    }
+};
+
+function buildStatusPayload(status) {
+    if (status.kind === "disabled") {
+        return "\u2139\uFE0F L'Assistant de gestion des sc\u00e8nes est d\u00e9sactiv\u00e9 sur ce serveur.";
+    }
+
+    if (status.kind === "untracked") {
+        return "\u2139\uFE0F Ce salon ne fait pas partie d'une zone RP suivie.";
+    }
+
+    if (status.kind === "not_started") {
+        return "\u2139\uFE0F Aucun cycle n'a encore commenc\u00e9 ici. Le suivi d\u00e9marrera au premier message RP.";
+    }
+
+    const {
+        cycle,
+        evaluation
+    } = status;
+    const fields = [];
+
+    if (evaluation.durationDays) {
+        fields.push({
+            name: "\u{1F5D3}\uFE0F Dur\u00e9e",
+            value: `Jour **${evaluation.elapsedDays}** / **${evaluation.durationDays}**`,
+            inline: true
+        });
+    }
+
+    if (evaluation.recommendedMessageCount) {
+        fields.push({
+            name: "\u{1F4AC} Messages RP",
+            value: `**${cycle.rp_message_count}** / **${evaluation.recommendedMessageCount}**`,
+            inline: true
+        });
+    }
+
+    const isConclude = cycle.status === "conclude";
+
+    return {
+        embeds: [
+            new EmbedBuilder()
+                .setColor(
+                    isConclude
+                        ? 0xFEE75C
+                        : 0x57F287
+                )
+                .setTitle(
+                    isConclude
+                        ? "\u{1F7E8} Cycle de sc\u00e8ne : \u00c0 conclure"
+                        : "\u{1F7E9} Cycle de sc\u00e8ne : En cours"
+                )
+                .setDescription(
+                    isConclude
+                        ? "Cette sc\u00e8ne d\u00e9passe les recommandations du serveur. Vous pouvez continuer sans restriction ; conclure la sc\u00e8ne ou en ouvrir une nouvelle peut simplement aider la chronologie RP."
+                        : "Suivi indicatif uniquement : aucune limite ni fermeture automatique n'est appliqu\u00e9e."
+                )
+                .addFields(fields)
+                .setFooter({
+                    text: "Assistant de gestion des sc\u00e8nes GreyCore"
+                })
+                .setTimestamp()
+        ]
+    };
+}
