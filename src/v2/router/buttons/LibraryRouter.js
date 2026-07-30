@@ -99,6 +99,25 @@ module.exports =
 
         if (
             customId.startsWith(
+                "v2_library_previous"
+            )
+            || customId.startsWith(
+                "v2_library_next"
+            )
+        ) {
+            await openLibrary(
+                interaction,
+                getRequestedLibraryPage(
+                    interaction,
+                    customId
+                )
+            );
+
+            return true;
+        }
+
+        if (
+            customId.startsWith(
                 "v2_character_continuities:"
             )
             || customId.startsWith(
@@ -283,3 +302,49 @@ module.exports =
         return false;
 
     };
+
+function getRequestedLibraryPage(
+    interaction,
+    customId
+) {
+    const requestedPage = Number(
+        customId.split(":")[1]
+    );
+
+    if (
+        Number.isInteger(requestedPage)
+        && requestedPage >= 1
+    ) {
+        return requestedPage;
+    }
+
+    const currentPage = getCurrentLibraryPage(
+        interaction
+    );
+
+    return customId === "v2_library_previous"
+        ? Math.max(
+            1,
+            currentPage - 1
+        )
+        : currentPage + 1;
+}
+
+function getCurrentLibraryPage(
+    interaction
+) {
+    const embed =
+        interaction.message?.embeds?.[0]
+        || null;
+    const footerText =
+        embed?.footer?.text
+        || embed?.data?.footer?.text
+        || "";
+    const match = /Page\s+(\d+)\//i.exec(
+        footerText
+    );
+
+    return match
+        ? Number(match[1])
+        : 1;
+}

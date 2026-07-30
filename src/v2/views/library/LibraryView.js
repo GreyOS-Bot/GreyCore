@@ -123,7 +123,7 @@ class LibraryView {
                 .addComponents(
                     new ButtonBuilder()
                         .setCustomId(
-                            "v2_library_previous"
+                            `v2_library_previous:${safePage - 1}`
                         )
                         .setLabel("Précédent")
                         .setEmoji("◀️")
@@ -136,7 +136,7 @@ class LibraryView {
 
                     new ButtonBuilder()
                         .setCustomId(
-                            "v2_library_next"
+                            `v2_library_next:${safePage + 1}`
                         )
                         .setLabel("Suivant")
                         .setEmoji("▶️")

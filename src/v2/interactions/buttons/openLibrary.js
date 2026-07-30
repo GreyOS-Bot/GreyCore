@@ -17,7 +17,10 @@ const {
     "../../core/services/InteractionResponseService"
 );
 
-module.exports = async interaction => {
+module.exports = async (
+    interaction,
+    page = 1
+) => {
     try {
         const user =
             v2.managers.user.getOrCreate(
@@ -31,7 +34,10 @@ module.exports = async interaction => {
 
         const view =
             libraryView.build(
-                characters
+                characters,
+                {
+                    page
+                }
             );
 
         if (
