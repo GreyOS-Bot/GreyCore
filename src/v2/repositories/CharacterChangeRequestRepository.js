@@ -171,6 +171,7 @@ class CharacterChangeRequestRepository {
 
                 profile.firstname,
                 profile.lastname,
+                profile.alias,
                 profile.age,
                 profile.gender,
                 profile.height,

@@ -19,6 +19,8 @@ const REQUEST_LABELS = Object.freeze({
 });
 
 const FIELD_LABELS = Object.freeze({
+    proxyName:
+        "Proxy \u00e0 taper",
     alias:
         "Alias / surnom",
     firstname:
@@ -190,7 +192,10 @@ class CharacterChangeRequestCardBuilder {
                 ([field, value]) => [
                     `**${FIELD_LABELS[field] || field}**`,
                     this.cleanText(
-                        request[field]
+                        this.getCurrentValue(
+                            request,
+                            field
+                        )
                     ),
                     "→",
                     this.cleanText(value)
@@ -208,6 +213,14 @@ class CharacterChangeRequestCardBuilder {
             String(value ?? "").trim();
 
         return text || "Non renseigné";
+    }
+
+    getCurrentValue(request, field) {
+        if (field === "proxyName") {
+            return request.proxy_name;
+        }
+
+        return request[field];
     }
 
     truncate(value, maximumLength = 1024) {

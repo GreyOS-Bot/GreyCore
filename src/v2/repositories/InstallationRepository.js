@@ -86,6 +86,45 @@ class InstallationRepository {
         );
     }
 
+    getPlayableCharactersForGuild(
+        guildId
+    ) {
+        return db.prepare(`
+            SELECT
+                character.id,
+                installation.guild_id,
+                user.discord_user_id
+                    AS owner_id,
+                character.proxy_name
+                    AS name,
+                COALESCE(
+                    installation.local_avatar_url,
+                    character.avatar_url
+                ) AS avatar
+            FROM CharacterGuildInstallationsV2
+                AS installation
+            JOIN CharactersV2
+                AS character
+                ON character.id =
+                    installation.character_id
+            JOIN UsersV2
+                AS user
+                ON user.id =
+                    character.owner_user_id
+            WHERE installation.guild_id = ?
+            AND installation.status = 'approved'
+            AND installation.proxy_enabled = 1
+            AND character.character_type = 'personnage_joue'
+            AND character.is_archived = 0
+            ORDER BY
+                character.proxy_name
+                    COLLATE NOCASE ASC,
+                character.id ASC
+        `).all(
+            guildId
+        );
+    }
+
     getContinuityById(
         continuityId
     ) {

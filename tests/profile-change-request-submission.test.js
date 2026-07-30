@@ -23,6 +23,10 @@ test(
                         character: {
                             id:
                                 "character",
+                            proxy_name:
+                                "Alba",
+                            character_type:
+                                "personnage_joue",
                             discord_user_id:
                                 "owner"
                         },
@@ -143,14 +147,16 @@ test(
                 () => true,
             fields: {
                 getTextInputValue: field => ({
-                    firstname:
+                    character_proxy_name:
                         "Vega",
-                    lastname:
+                    profile_alias:
+                        "Vega",
+                    profile_firstname:
+                        "Vega",
+                    profile_lastname:
                         "Grey",
-                    age:
+                    profile_age:
                         "24",
-                    birthday:
-                        ""
                 })[field] || ""
             },
             reply: async payload => {
@@ -173,16 +179,16 @@ test(
         assert.deepEqual(
             calls[0][1].changes,
             {
+                proxyName:
+                    "Vega",
+                alias:
+                    "Vega",
                 firstname:
                     "Vega",
                 lastname:
                     "Grey",
                 age:
-                    "24",
-                birthday:
-                    null,
-                gender:
-                    null
+                    "24"
             }
         );
 

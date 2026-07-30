@@ -16,6 +16,14 @@ test(
             character: {
                 id:
                     "character",
+                proxy_name:
+                    "Alba",
+                base_firstname:
+                    "Alba",
+                base_lastname:
+                    "Grey",
+                character_type:
+                    "personnage_joue",
                 owner_id:
                     "user"
             },
@@ -113,6 +121,20 @@ test(
         );
 
         stubModule(
+            "src/v2/managers/CharacterV2Manager.js",
+            {
+                updateIdentity: (
+                    characterId,
+                    data
+                ) => calls.push([
+                    "character.update",
+                    characterId,
+                    data
+                ])
+            }
+        );
+
+        stubModule(
             "src/v2/managers/InstallationV2Manager.js",
             {
                 getByContinuityAndGuild:
@@ -191,11 +213,11 @@ test(
                 identityInteraction.modal
             ),
             [
-                "firstname",
-                "lastname",
-                "age",
-                "birthday",
-                "gender"
+                "character_proxy_name",
+                "profile_alias",
+                "profile_firstname",
+                "profile_lastname",
+                "profile_age"
             ]
         );
 
@@ -267,15 +289,16 @@ test(
 
         const identitySubmit =
             createInteraction({
-                firstname:
+                character_proxy_name:
+                    "  Vega  ",
+                profile_alias:
+                    "  Vega  ",
+                profile_firstname:
                     "  Alba  ",
-                lastname:
+                profile_lastname:
                     "   ",
-                age:
+                profile_age:
                     " 23 ans ",
-                birthday: "",
-                gender:
-                    " Femme "
             });
 
         await handler.submitIdentity(
@@ -297,16 +320,33 @@ test(
         assert.deepEqual(
             identityUpdate[2],
             {
+                alias:
+                    "Vega",
                 firstname:
                     "Alba",
                 lastname:
                     null,
                 age:
-                    "23 ans",
-                birthday: null,
-                gender:
-                    "Femme"
+                    "23 ans"
             }
+        );
+
+        assert.deepEqual(
+            calls.find(
+                call => call[0] === "character.update"
+            ),
+            [
+                "character.update",
+                "character",
+                {
+                    proxyName:
+                        "Vega",
+                    baseFirstname:
+                        "Alba",
+                    baseLastname:
+                        null
+                }
+            ]
         );
 
         const aliasSubmit =
@@ -325,10 +365,7 @@ test(
                 call =>
                     call[0] ===
                     "profile.update"
-                    && Object.hasOwn(
-                        call[2],
-                        "alias"
-                    )
+                    && call[2].alias === "Story"
             );
 
         assert.deepEqual(

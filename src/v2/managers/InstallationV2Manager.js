@@ -64,6 +64,25 @@ class InstallationV2Manager {
             );
     }
 
+    getPlayableCharactersForGuild(
+        guildId
+    ) {
+        const normalizedGuildId = String(
+            guildId || ""
+        ).trim();
+
+        if (!normalizedGuildId) {
+            throw new Error(
+                "Le serveur est obligatoire."
+            );
+        }
+
+        return repository
+            .getPlayableCharactersForGuild(
+                normalizedGuildId
+            );
+    }
+
     create(
         data
     ) {

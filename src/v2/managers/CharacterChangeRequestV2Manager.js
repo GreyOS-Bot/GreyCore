@@ -30,11 +30,11 @@ const REQUEST_FIELDS = Object.freeze({
         "alias"
     ],
     [REQUEST_TYPES.PROFILE_IDENTITY]: [
+        "proxyName",
+        "alias",
         "firstname",
         "lastname",
-        "age",
-        "birthday",
-        "gender"
+        "age"
     ],
     [REQUEST_TYPES.PROFILE_INFORMATION]: [
         "origin",
@@ -136,6 +136,7 @@ class CharacterChangeRequestV2Manager {
             requestType,
             continuityId,
             installationId,
+            characterId,
             normalizedChanges
         );
 
@@ -287,9 +288,50 @@ class CharacterChangeRequestV2Manager {
             return;
         }
 
+        if (
+            request.request_type ===
+            REQUEST_TYPES.PROFILE_IDENTITY
+        ) {
+            const characterChanges = {};
+
+            if (
+                Object.hasOwn(changes, "proxyName")
+            ) {
+                characterChanges.proxyName =
+                    changes.proxyName;
+            }
+
+            if (
+                Object.hasOwn(changes, "firstname")
+            ) {
+                characterChanges.baseFirstname =
+                    changes.firstname;
+            }
+
+            if (
+                Object.hasOwn(changes, "lastname")
+            ) {
+                characterChanges.baseLastname =
+                    changes.lastname;
+            }
+
+            if (Object.keys(characterChanges).length) {
+                characterManager.updateIdentity(
+                    request.character_id,
+                    characterChanges
+                );
+            }
+        }
+
+        const profileChanges = {
+            ...changes
+        };
+
+        delete profileChanges.proxyName;
+
         profileManager.update(
             request.continuity_id,
-            changes
+            profileChanges
         );
     }
 
@@ -297,6 +339,7 @@ class CharacterChangeRequestV2Manager {
         requestType,
         continuityId,
         installationId,
+        characterId,
         changes
     ) {
         if (
@@ -324,12 +367,22 @@ class CharacterChangeRequestV2Manager {
                 continuityId
             );
 
+        const character =
+            requestType ===
+                REQUEST_TYPES.PROFILE_IDENTITY
+                ? characterManager.getById(
+                    characterId
+                )
+                : null;
+
         const hasDifference =
             Object.entries(changes)
                 .some(
                     ([field, value]) =>
-                        this.normalizeValue(
-                            profile[field]
+                        this.getCurrentValue(
+                            profile,
+                            character,
+                            field
                         ) !== value
                 );
 
@@ -370,6 +423,22 @@ class CharacterChangeRequestV2Manager {
                 continue;
             }
 
+            if (field === "proxyName") {
+                const proxyName =
+                    String(value || "")
+                        .normalize("NFC")
+                        .trim();
+
+                if (!proxyName) {
+                    throw new Error(
+                        "Le proxy est obligatoire."
+                    );
+                }
+
+                normalized[field] = proxyName;
+                continue;
+            }
+
             normalized[field] =
                 this.normalizeValue(value);
         }
@@ -382,6 +451,22 @@ class CharacterChangeRequestV2Manager {
             String(value ?? "").trim();
 
         return text || null;
+    }
+
+    getCurrentValue(
+        profile,
+        character,
+        field
+    ) {
+        if (field === "proxyName") {
+            return this.normalizeValue(
+                character?.proxy_name
+            );
+        }
+
+        return this.normalizeValue(
+            profile[field]
+        );
     }
 
     parseChanges(value) {

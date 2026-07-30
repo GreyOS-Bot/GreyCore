@@ -32,6 +32,8 @@ test(
                 "Alba",
             lastname:
                 "Grey",
+            alias:
+                "Alba",
             age:
                 "23",
             birthday:
@@ -53,9 +55,19 @@ test(
                     () => ({
                         id:
                             "character",
+                        proxy_name:
+                            "Alba",
                         discord_user_id:
                             "owner"
-                    })
+                    }),
+                updateIdentity: (
+                    characterId,
+                    changes
+                ) => calls.push([
+                    "character.update",
+                    characterId,
+                    changes
+                ])
             }
         );
 
@@ -133,6 +145,10 @@ test(
                 requestType:
                     manager.types.PROFILE_IDENTITY,
                 changes: {
+                    proxyName:
+                        "Vega",
+                    alias:
+                        "Vega",
                     firstname:
                         "Vega",
                     lastname:
@@ -168,19 +184,33 @@ test(
         assert.deepEqual(
             calls[0],
             [
+                "character.update",
+                "character",
+                {
+                    proxyName:
+                        "Vega",
+                    baseFirstname:
+                        "Vega",
+                    baseLastname:
+                        "Grey"
+                }
+            ]
+        );
+
+        assert.deepEqual(
+            calls[1],
+            [
                 "profile.update",
                 "continuity",
                 {
+                    alias:
+                        "Vega",
                     firstname:
                         "Vega",
                     lastname:
                         "Grey",
                     age:
-                        "24",
-                    birthday:
-                        null,
-                    gender:
-                        null
+                        "24"
                 }
             ]
         );
@@ -216,7 +246,7 @@ test(
         });
 
         assert.deepEqual(
-            calls[1],
+            calls[2],
             [
                 "profile.update",
                 "continuity",
@@ -265,7 +295,7 @@ test(
         });
 
         assert.deepEqual(
-            calls[2],
+            calls[3],
             [
                 "avatar.update",
                 "installation",

@@ -3,6 +3,11 @@ const profileManager =
         "../../managers/ProfileV2Manager"
     );
 
+const characterManager =
+    require(
+        "../../managers/CharacterV2Manager"
+    );
+
 const characterProfilePage =
     require(
         "../../pages/character/CharacterProfilePage"
@@ -63,33 +68,11 @@ async function submitIdentity(
         return;
     }
 
-    const changes = {
-        firstname:
-            readNormalizedField(
-                interaction,
-                "firstname"
-            ),
-        lastname:
-            readNormalizedField(
-                interaction,
-                "lastname"
-            ),
-        age:
-            readNormalizedField(
-                interaction,
-                "age"
-            ),
-        birthday:
-            readNormalizedField(
-                interaction,
-                "birthday"
-            ),
-        gender:
-            readNormalizedField(
-                interaction,
-                "gender"
-            )
-    };
+    const changes =
+        buildIdentityChanges(
+            interaction,
+            writable.dashboardData
+        );
 
     if (
         await submitForReviewIfNeeded(
@@ -103,7 +86,8 @@ async function submitIdentity(
         return;
     }
 
-    profileManager.update(
+    applyIdentityChanges(
+        characterId,
         writable.continuityId,
         changes
     );
@@ -407,6 +391,110 @@ async function returnToCreationIfDraft(
     }
 
     return true;
+}
+
+function buildIdentityChanges(
+    interaction,
+    dashboardData
+) {
+    const character =
+        dashboardData.character
+        || {};
+
+    const profile =
+        dashboardData.profile
+        || {};
+
+    const usesSimpleForm = [
+        "random",
+        "pnj_reserve",
+        "reserve_staff"
+    ].includes(
+        character.character_type
+    );
+
+    if (usesSimpleForm) {
+        return {
+            proxyName:
+                readNormalizedField(
+                    interaction,
+                    "character_proxy_name"
+                ),
+            firstname:
+                readNormalizedField(
+                    interaction,
+                    "profile_fullname"
+                ),
+            lastname:
+                null,
+            alias:
+                profile.alias
+                || null,
+            age:
+                profile.age
+                || null
+        };
+    }
+
+    return {
+        proxyName:
+            readNormalizedField(
+                interaction,
+                "character_proxy_name"
+            ),
+        alias:
+            readNormalizedField(
+                interaction,
+                "profile_alias"
+            ),
+        firstname:
+            readNormalizedField(
+                interaction,
+                "profile_firstname"
+            ),
+        lastname:
+            readNormalizedField(
+                interaction,
+                "profile_lastname"
+            ),
+        age:
+            readNormalizedField(
+                interaction,
+                "profile_age"
+            )
+    };
+}
+
+function applyIdentityChanges(
+    characterId,
+    continuityId,
+    changes
+) {
+    characterManager.updateIdentity(
+        characterId,
+        {
+            proxyName:
+                changes.proxyName,
+            baseFirstname:
+                changes.firstname,
+            baseLastname:
+                changes.lastname
+        }
+    );
+
+    profileManager.update(
+        continuityId,
+        {
+            alias:
+                changes.alias,
+            firstname:
+                changes.firstname,
+            lastname:
+                changes.lastname,
+            age:
+                changes.age
+        }
+    );
 }
 
 module.exports = {

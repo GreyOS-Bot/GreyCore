@@ -9,6 +9,9 @@ const {
     optionalText
 } = require("./ProfileEditUtils");
 
+const characterCreateModal =
+    require("../../modals/CharacterCreateModal");
+
 function createIdentityModal(
     characterId,
     profile = {}
@@ -88,6 +91,17 @@ function createIdentityModal(
     );
 
     return modal;
+}
+
+function createCreationIdentityModal(
+    character,
+    profile = {}
+) {
+    return characterCreateModal
+        .buildIdentityEdit(
+            character,
+            profile
+        );
 }
 
 function createInformationModal(
@@ -290,6 +304,7 @@ function textRow({
 
 module.exports = {
     createIdentityModal,
+    createCreationIdentityModal,
     createAliasModal,
     createInformationModal,
     createStoryModal

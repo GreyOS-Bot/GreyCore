@@ -50,6 +50,112 @@ class CharacterCreateModal {
                 );
 
         const proxyNameInput =
+            this.createProxyNameInput(
+                proxyName
+            );
+
+        const fullNameInput =
+            this.createFullNameInput();
+
+        if (isSimpleCreation) {
+            modal.addComponents(
+                new ActionRowBuilder()
+                    .addComponents(
+                        proxyNameInput
+                    ),
+                new ActionRowBuilder()
+                    .addComponents(
+                        fullNameInput
+                    )
+            );
+
+            return modal;
+        }
+
+        this.addDetailedIdentityInputs(
+            modal,
+            {
+                proxyName
+            }
+        );
+
+        return modal;
+    }
+
+    buildIdentityEdit(
+        character,
+        profile = {}
+    ) {
+        const type =
+            character.character_type
+            || "personnage_joue";
+
+        if (!TYPE_LABELS[type]) {
+            throw new Error(
+                "Type de personnage invalide."
+            );
+        }
+
+        const modal =
+            new ModalBuilder()
+                .setCustomId(
+                    `v2_profile_identity_submit:${character.id}`
+                )
+                .setTitle("Modifier l'identit\u00e9");
+
+        if (
+            [
+                "random",
+                "pnj_reserve",
+                "reserve_staff"
+            ].includes(type)
+        ) {
+            modal.addComponents(
+                new ActionRowBuilder()
+                    .addComponents(
+                        this.createProxyNameInput(
+                            character.proxy_name
+                        )
+                    ),
+                new ActionRowBuilder()
+                    .addComponents(
+                        this.createFullNameInput(
+                            profile.firstname
+                            || character.base_firstname
+                            || character.proxy_name
+                        )
+                    )
+            );
+
+            return modal;
+        }
+
+        this.addDetailedIdentityInputs(
+            modal,
+            {
+                proxyName:
+                    character.proxy_name,
+                alias:
+                    profile.alias
+                    || profile.firstname
+                    || character.base_firstname
+                    || character.proxy_name,
+                firstname:
+                    profile.firstname
+                    || character.base_firstname,
+                lastname:
+                    profile.lastname
+                    || character.base_lastname,
+                age:
+                    profile.age
+            }
+        );
+
+        return modal;
+    }
+
+    createProxyNameInput(value = "") {
+        const input =
             new TextInputBuilder()
                 .setCustomId(
                     "character_proxy_name"
@@ -67,14 +173,17 @@ class CharacterCreateModal {
                     "Exemple : Ino"
                 );
 
-        if (proxyName) {
-            proxyNameInput.setValue(
-                String(proxyName)
-                    .slice(0, 32)
-            );
-        }
+        this.setInputValue(
+            input,
+            value,
+            32
+        );
 
-        const fullNameInput =
+        return input;
+    }
+
+    createFullNameInput(value = "") {
+        const input =
             new TextInputBuilder()
                 .setCustomId(
                     "profile_fullname"
@@ -91,113 +200,109 @@ class CharacterCreateModal {
                     "Exemple : I\u00f1o Alvarez"
                 );
 
-        if (isSimpleCreation) {
-            modal.addComponents(
-                new ActionRowBuilder()
-                    .addComponents(
-                        proxyNameInput
-                    ),
-                new ActionRowBuilder()
-                    .addComponents(
-                        fullNameInput
-                    )
-            );
+        this.setInputValue(
+            input,
+            value,
+            160
+        );
 
-            return modal;
-        }
+        return input;
+    }
 
+    addDetailedIdentityInputs(
+        modal,
+        values = {}
+    ) {
         const aliasInput =
             new TextInputBuilder()
-                .setCustomId(
-                    "profile_alias"
-                )
+                .setCustomId("profile_alias")
                 .setLabel(
                     "Pr\u00e9nom ou alias affich\u00e9"
                 )
-                .setStyle(
-                    TextInputStyle.Short
-                )
+                .setStyle(TextInputStyle.Short)
                 .setRequired(true)
                 .setMaxLength(80)
-                .setPlaceholder(
-                    "Exemple : Story"
-                );
+                .setPlaceholder("Exemple : Story");
 
         const firstnameInput =
             new TextInputBuilder()
-                .setCustomId(
-                    "profile_firstname"
-                )
+                .setCustomId("profile_firstname")
                 .setLabel(
                     "Vrai pr\u00e9nom (facultatif)"
                 )
-                .setStyle(
-                    TextInputStyle.Short
-                )
+                .setStyle(TextInputStyle.Short)
                 .setRequired(false)
                 .setMaxLength(80)
-                .setPlaceholder(
-                    "Exemple : Astoria"
-                );
+                .setPlaceholder("Exemple : Astoria");
 
         const lastnameInput =
             new TextInputBuilder()
-                .setCustomId(
-                    "profile_lastname"
-                )
-                .setLabel(
-                    "Nom (facultatif)"
-                )
-                .setStyle(
-                    TextInputStyle.Short
-                )
+                .setCustomId("profile_lastname")
+                .setLabel("Nom (facultatif)")
+                .setStyle(TextInputStyle.Short)
                 .setRequired(false)
                 .setMaxLength(80)
-                .setPlaceholder(
-                    "Exemple : Alvarez"
-                );
+                .setPlaceholder("Exemple : Alvarez");
 
         const ageInput =
             new TextInputBuilder()
-                .setCustomId(
-                    "profile_age"
-                )
-                .setLabel(
-                    "\u00c2ge (facultatif)"
-                )
-                .setStyle(
-                    TextInputStyle.Short
-                )
+                .setCustomId("profile_age")
+                .setLabel("\u00c2ge (facultatif)")
+                .setStyle(TextInputStyle.Short)
                 .setRequired(false)
                 .setMaxLength(3)
-                .setPlaceholder(
-                    "Exemple : 23"
-                );
+                .setPlaceholder("Exemple : 23");
+
+        this.setInputValue(
+            aliasInput,
+            values.alias,
+            80
+        );
+        this.setInputValue(
+            firstnameInput,
+            values.firstname,
+            80
+        );
+        this.setInputValue(
+            lastnameInput,
+            values.lastname,
+            80
+        );
+        this.setInputValue(
+            ageInput,
+            values.age,
+            3
+        );
 
         modal.addComponents(
             new ActionRowBuilder()
                 .addComponents(
-                    proxyNameInput
+                    this.createProxyNameInput(
+                        values.proxyName
+                    )
                 ),
             new ActionRowBuilder()
-                .addComponents(
-                    aliasInput
-                ),
+                .addComponents(aliasInput),
             new ActionRowBuilder()
-                .addComponents(
-                    firstnameInput
-                ),
+                .addComponents(firstnameInput),
             new ActionRowBuilder()
-                .addComponents(
-                    lastnameInput
-                ),
+                .addComponents(lastnameInput),
             new ActionRowBuilder()
-                .addComponents(
-                    ageInput
-                )
+                .addComponents(ageInput)
         );
+    }
 
-        return modal;
+    setInputValue(
+        input,
+        value,
+        maximumLength
+    ) {
+        const text = String(value || "")
+            .slice(0, maximumLength);
+
+        if (text) {
+            input.setValue(text);
+        }
     }
 
     buildDetails(type) {

@@ -25,8 +25,8 @@ async function openIdentity(
 
     return interaction.showModal(
         modalFactory
-            .createIdentityModal(
-                characterId,
+            .createCreationIdentityModal(
+                dashboardData.character,
                 dashboardData.profile
                 || {}
             )
