@@ -117,7 +117,16 @@ class CharacterRelationshipsPage {
 
         });
 
-        const actionButtons = [];
+        const actionButtons = [
+            UI.button.secondary({
+                id:
+                    `v2_relationship_tree:${characterId}`,
+                label:
+                    "Arbre familial",
+                emoji:
+                    "🌳"
+            })
+        ];
 
         if (isOwner) {
             actionButtons.push(

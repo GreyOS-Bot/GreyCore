@@ -18,6 +18,11 @@ const unitOfWork =
         "../repositories/RelationshipUnitOfWork"
     );
 
+const familyTreeService =
+    require(
+        "../services/relationships/FamilyTreeService"
+    );
+
 class RelationshipV2Manager {
 
     getTypes(
@@ -73,6 +78,18 @@ class RelationshipV2Manager {
                             continuityId
                         )
             );
+    }
+
+    getFamilyTree(
+        continuityId
+    ) {
+        return familyTreeService.build({
+            continuityId,
+            relationships:
+                this.getDisplayRelationships(
+                    continuityId
+                )
+        });
     }
 
     hasActiveRelationship(

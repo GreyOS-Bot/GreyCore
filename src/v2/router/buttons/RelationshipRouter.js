@@ -3,6 +3,11 @@ const relationshipV2Handler =
         "../../interactions/relationships/RelationshipV2Handler"
     );
 
+const familyTreePage =
+    require(
+        "../../pages/character/CharacterFamilyTreePage"
+    );
+
 module.exports =
     async function relationshipRouter(
         interaction
@@ -10,6 +15,20 @@ module.exports =
 
         const customId =
             interaction.customId;
+
+        if (
+            interaction.isButton()
+            && customId.startsWith(
+                "v2_relationship_tree:"
+            )
+        ) {
+            await familyTreePage.execute(
+                interaction,
+                customId.split(":")[1]
+            );
+
+            return true;
+        }
 
         if (
             interaction.isButton()
