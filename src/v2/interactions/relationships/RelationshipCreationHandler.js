@@ -290,6 +290,48 @@ class RelationshipCreationHandler {
         );
     }
 
+    async selectTypePage(
+        interaction,
+        characterId,
+        otherCharacterId,
+        page
+    ) {
+        const dashboardData =
+            characterDashboardManager
+                .getPlayableDashboardData(
+                    characterId,
+                    {
+                        guildId:
+                            interaction.guildId
+                    }
+                );
+
+        if (
+            !dashboardData
+            || !canManageCharacter(
+                interaction,
+                dashboardData.character
+            )
+        ) {
+            return replyError(
+                interaction,
+                "Tu ne peux pas modifier les relations de ce personnage."
+            );
+        }
+
+        return interaction.update(
+            createTypeSelection({
+                characterId,
+                otherCharacterId,
+                relationshipTypes:
+                    relationshipManager.getTypes(
+                        interaction.guildId
+                    ),
+                page
+            })
+        );
+    }
+
     async createFromContext(
         interaction,
         contextId
@@ -610,6 +652,12 @@ module.exports = {
     selectType:
         relationshipCreationHandler
             .selectType
+            .bind(
+                relationshipCreationHandler
+            ),
+    selectTypePage:
+        relationshipCreationHandler
+            .selectTypePage
             .bind(
                 relationshipCreationHandler
             ),

@@ -124,7 +124,7 @@ test(
             assert.equal(
                 forRequester
                     .otherCharacterName,
-                "Beth"
+                "Icaro Salazar"
             );
             assert.equal(
                 forRequester
@@ -451,7 +451,17 @@ function createRelationshipTables(
             id TEXT
                 PRIMARY KEY,
             character_id TEXT
-                NOT NULL
+                NOT NULL,
+            firstname TEXT,
+            lastname TEXT
+        );
+
+        CREATE TABLE CharacterProfilesV2 (
+            continuity_id TEXT
+                PRIMARY KEY,
+            firstname TEXT,
+            lastname TEXT,
+            alias TEXT
         );
 
         CREATE TABLE RelationshipTypes (
@@ -548,6 +558,19 @@ function createRelationshipTables(
             ('continuity-a', 'character-a'),
             ('continuity-b', 'character-b'),
             ('continuity-c', 'character-c');
+
+        INSERT INTO CharacterProfilesV2 (
+            continuity_id,
+            firstname,
+            lastname,
+            alias
+        )
+        VALUES (
+            'continuity-b',
+            'Icaro',
+            'Salazar',
+            NULL
+        );
 
         INSERT INTO RelationshipTypes (
             id,

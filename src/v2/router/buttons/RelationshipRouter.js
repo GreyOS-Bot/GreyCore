@@ -19,6 +19,30 @@ module.exports =
         if (
             interaction.isButton()
             && customId.startsWith(
+                "v2rtp:"
+            )
+        ) {
+            const [
+                ,
+                characterId,
+                otherCharacterId,
+                page
+            ] = customId.split(":");
+
+            await relationshipV2Handler
+                .selectTypePage(
+                    interaction,
+                    characterId,
+                    otherCharacterId,
+                    Number(page)
+                );
+
+            return true;
+        }
+
+        if (
+            interaction.isButton()
+            && customId.startsWith(
                 "v2_relationship_tree:"
             )
         ) {

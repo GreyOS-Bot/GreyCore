@@ -241,6 +241,12 @@ installDefaultRelationshipTypes(guildId) {
             isSymmetric: 1
         },
         {
+            key: "unacknowledged_couple",
+            labelAToB: "En couple sans l'assumer avec",
+            labelBToA: "En couple sans l'assumer avec",
+            isSymmetric: 1
+        },
+        {
             key: "sexfriend",
             labelAToB: "Friends with benefits de",
             labelBToA: "Friends with benefits de",

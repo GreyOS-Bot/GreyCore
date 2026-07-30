@@ -324,7 +324,8 @@ test(
                 "rejectRequest",
                 "search",
                 "selectCharacter",
-                "selectType"
+                "selectType",
+                "selectTypePage"
             ]
         );
 

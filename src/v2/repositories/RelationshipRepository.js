@@ -14,14 +14,47 @@ const SELECT_RELATIONSHIP = `
             NULLIF(
                 TRIM(
                     COALESCE(
-                        characterA.base_firstname,
+                        NULLIF(
+                            profileA.alias,
+                            ''
+                        ),
+                        NULLIF(
+                            profileA.firstname,
+                            ''
+                        ),
+                        NULLIF(
+                            continuityA.firstname,
+                            ''
+                        ),
+                        NULLIF(
+                            characterA.base_firstname,
+                            ''
+                        ),
                         ''
                     )
                     || ' '
-                    || COALESCE(
-                        characterA.base_lastname,
-                        ''
-                    )
+                    || CASE
+                        WHEN NULLIF(
+                            profileA.alias,
+                            ''
+                        ) IS NOT NULL
+                        THEN ''
+                        ELSE COALESCE(
+                            NULLIF(
+                                profileA.lastname,
+                                ''
+                            ),
+                            NULLIF(
+                                continuityA.lastname,
+                                ''
+                            ),
+                            NULLIF(
+                                characterA.base_lastname,
+                                ''
+                            ),
+                            ''
+                        )
+                    END
                 ),
                 ''
             ),
@@ -31,14 +64,47 @@ const SELECT_RELATIONSHIP = `
             NULLIF(
                 TRIM(
                     COALESCE(
-                        characterB.base_firstname,
+                        NULLIF(
+                            profileB.alias,
+                            ''
+                        ),
+                        NULLIF(
+                            profileB.firstname,
+                            ''
+                        ),
+                        NULLIF(
+                            continuityB.firstname,
+                            ''
+                        ),
+                        NULLIF(
+                            characterB.base_firstname,
+                            ''
+                        ),
                         ''
                     )
                     || ' '
-                    || COALESCE(
-                        characterB.base_lastname,
-                        ''
-                    )
+                    || CASE
+                        WHEN NULLIF(
+                            profileB.alias,
+                            ''
+                        ) IS NOT NULL
+                        THEN ''
+                        ELSE COALESCE(
+                            NULLIF(
+                                profileB.lastname,
+                                ''
+                            ),
+                            NULLIF(
+                                continuityB.lastname,
+                                ''
+                            ),
+                            NULLIF(
+                                characterB.base_lastname,
+                                ''
+                            ),
+                            ''
+                        )
+                    END
                 ),
                 ''
             ),
@@ -58,6 +124,22 @@ const SELECT_RELATIONSHIP = `
         AS characterB
         ON characterB.id =
             relationship.character_b_id
+    LEFT JOIN CharacterContinuitiesV2
+        AS continuityA
+        ON continuityA.id =
+            relationship.continuity_a_id
+    LEFT JOIN CharacterContinuitiesV2
+        AS continuityB
+        ON continuityB.id =
+            relationship.continuity_b_id
+    LEFT JOIN CharacterProfilesV2
+        AS profileA
+        ON profileA.continuity_id =
+            relationship.continuity_a_id
+    LEFT JOIN CharacterProfilesV2
+        AS profileB
+        ON profileB.continuity_id =
+            relationship.continuity_b_id
 `;
 
 class RelationshipRepository {

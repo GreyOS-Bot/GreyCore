@@ -79,11 +79,78 @@ function createSearchResults({
     };
 }
 
+function buildTypePageNavigation({
+    characterId,
+    otherCharacterId,
+    currentPage,
+    totalPages
+}) {
+    if (totalPages <= 1) {
+        return [];
+    }
+
+    return [
+        new ActionRowBuilder()
+            .addComponents(
+                UI.button.secondary({
+                    id:
+                        `v2rtp:${characterId}:${otherCharacterId}:${currentPage - 1}`,
+                    label:
+                        "Pr\u00e9c\u00e9dent",
+                    emoji:
+                        "\u25c0\ufe0f",
+                    disabled:
+                        currentPage === 0
+                }),
+                UI.button.secondary({
+                    id:
+                        `v2rtp:${characterId}:${otherCharacterId}:${currentPage}`,
+                    label:
+                        `Page ${currentPage + 1}/${totalPages}`,
+                    emoji:
+                        "\u{1F4C4}",
+                    disabled: true
+                }),
+                UI.button.secondary({
+                    id:
+                        `v2rtp:${characterId}:${otherCharacterId}:${currentPage + 1}`,
+                    label:
+                        "Suivant",
+                    emoji:
+                        "\u25b6\ufe0f",
+                    disabled:
+                        currentPage === totalPages - 1
+                })
+            )
+    ];
+}
+
 function createTypeSelection({
     characterId,
     otherCharacterId,
-    relationshipTypes
+    relationshipTypes,
+    page = 0
 }) {
+    const typesPerPage = 25;
+    const totalPages = Math.max(
+        1,
+        Math.ceil(
+            relationshipTypes.length
+            / typesPerPage
+        )
+    );
+    const currentPage = Math.min(
+        Math.max(
+            0,
+            Number(page) || 0
+        ),
+        totalPages - 1
+    );
+    const start = currentPage * typesPerPage;
+    const pageTypes = relationshipTypes.slice(
+        start,
+        start + typesPerPage
+    );
     const select =
         new StringSelectMenuBuilder()
             .setCustomId(
@@ -93,8 +160,7 @@ function createTypeSelection({
                 "Choisir le type de relation"
             )
             .addOptions(
-                relationshipTypes
-                    .slice(0, 25)
+                pageTypes
                     .map(type => ({
                         label:
                             String(
@@ -124,6 +190,12 @@ function createTypeSelection({
                 .addComponents(
                     select
                 ),
+            ...buildTypePageNavigation({
+                characterId,
+                otherCharacterId,
+                currentPage,
+                totalPages
+            }),
             new ActionRowBuilder()
                 .addComponents(
                     UI.button.secondary({

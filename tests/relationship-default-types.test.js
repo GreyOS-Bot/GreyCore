@@ -68,6 +68,22 @@ test(
                 friendsWithBenefits.label_b_to_a,
                 "Friends with benefits de"
             );
+
+            for (
+                const key
+                of [
+                    "parent",
+                    "uncle_aunt",
+                    "unacknowledged_couple"
+                ]
+            ) {
+                assert.ok(
+                    types.some(
+                        type => type.key === key
+                    ),
+                    key
+                );
+            }
         } finally {
             isolated.cleanup();
         }
