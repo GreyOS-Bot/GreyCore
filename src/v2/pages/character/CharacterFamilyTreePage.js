@@ -15,6 +15,11 @@ const relationshipManager =
         "../../managers/RelationshipV2Manager"
     );
 
+const familyTreeImageRenderer =
+    require(
+        "../../services/relationships/FamilyTreeImageRenderer"
+    );
+
 class CharacterFamilyTreePage {
 
     async execute(
@@ -55,6 +60,18 @@ class CharacterFamilyTreePage {
             )
             : [];
 
+        const navigationRow =
+            new ActionRowBuilder()
+                .addComponents(
+                    UI.button.secondary({
+                        id:
+                            `page:character:relationships:${characterId}`,
+                        label: "Relations",
+                        emoji: "↩️"
+                    }),
+                    UI.components.navigation.close()
+                );
+
         const embed =
             UI.embed.create({
                 title: "🌳 Arbre généalogique",
@@ -72,63 +89,49 @@ class CharacterFamilyTreePage {
                 ].join("\n")
             });
 
-        for (const group of tree) {
-            embed.addFields({
-                name: group.label,
-                value: formatMembers(
-                    group.members
-                )
+        if (tree.length > 0) {
+            const filename =
+                "greycore-arbre-genealogique.png";
+
+            embed.setImage(
+                `attachment://${filename}`
+            );
+
+            const image =
+                familyTreeImageRenderer.render({
+                    characterName:
+                        continuity?.firstname
+                        || character.base_firstname
+                        || character.proxy_name,
+                    tree
+                });
+
+            return interaction.update({
+                embeds: [embed],
+                components: [
+                    navigationRow
+                ],
+                files: [
+                    {
+                        attachment: image,
+                        name: filename
+                    }
+                ],
+                attachments: []
             });
         }
 
-        const navigationRow =
-            new ActionRowBuilder()
-                .addComponents(
-                    UI.button.secondary({
-                        id:
-                            `page:character:relationships:${characterId}`,
-                        label: "Relations",
-                        emoji: "↩️"
-                    }),
-                    UI.components.navigation.close()
-                );
-
-        return interaction.update(
-            UI.page.create({
+        return interaction.update({
+            ...UI.page.create({
                 embed,
                 components: [
                     navigationRow
                 ]
-            })
-        );
+            }),
+            attachments: []
+        });
     }
 
-}
-
-function formatMembers(members) {
-    const content = members
-        .map(member => {
-            const label = member.label
-                ? ` — ${member.label}`
-                : "";
-            const note = member.note
-                ? `\n> ${member.note}`
-                : "";
-
-            return `• **${member.name}**${label}${note}`;
-        })
-        .join("\n");
-
-    return truncate(
-        content,
-        1_024
-    );
-}
-
-function truncate(value, maximum) {
-    return value.length > maximum
-        ? `${value.slice(0, maximum - 1)}…`
-        : value;
 }
 
 module.exports =

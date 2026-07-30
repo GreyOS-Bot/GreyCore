@@ -181,9 +181,8 @@ class CharacterRelationshipsPage {
 
                 );
 
-        return interaction.update(
-
-            UI.page.create({
+        return interaction.update({
+            ...UI.page.create({
 
                 embed,
 
@@ -200,9 +199,9 @@ class CharacterRelationshipsPage {
                             navigationRow
                         ]
 
-            })
-
-        );
+            }),
+            attachments: []
+        });
 
     }
 

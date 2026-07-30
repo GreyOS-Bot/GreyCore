@@ -9,7 +9,6 @@
     "deploy": "node src/deploy/deployCommands.js",
     "audit:v1": "node audit-v1.js",
     "migrate:v1-v2": "node migrate-v1-to-v2.js"
-
   },
   "keywords": [],
   "author": "",
@@ -17,10 +16,10 @@
   "type": "commonjs",
   "dependencies": {
     "@discordjs/rest": "^2.6.1",
+    "@resvg/resvg-js": "^2.6.2",
     "better-sqlite3": "^12.11.1",
     "discord.js": "^14.26.4",
     "dotenv": "^17.4.2",
     "uuid": "^14.0.1"
-   
   }
 }
