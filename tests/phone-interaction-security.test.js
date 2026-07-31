@@ -242,7 +242,7 @@ test(
 );
 
 test(
-    "l'envoi d'un SMS ferme l'interface de conversation",
+    "l'envoi d'un SMS ferme son interface sans supprimer le SMS auquel on rÃ©pond",
     async () => {
         const calls = [];
 
@@ -296,6 +296,14 @@ test(
         stubModule(
             "src/v2/core/services/InteractionResponseService.js",
             {
+                replyPrivate:
+                    async (
+                        interaction,
+                        content
+                    ) => interaction.reply({
+                        content,
+                        flags: 64
+                    }),
                 replyError:
                     async () => {
                         throw new Error(
@@ -364,6 +372,66 @@ test(
                 ],
                 [
                     "delete"
+                ]
+            ]
+        );
+
+        const quickReplyInteraction = {
+            customId:
+                "v2_phone_message_modal:12:character:quick_reply",
+            guildId:
+                "guild",
+            channel: {},
+            client: {},
+            user: {
+                id: "user"
+            },
+            fields: {
+                getTextInputValue:
+                    () => "Je te rÃ©ponds !"
+            },
+            update:
+                async () => {
+                    throw new Error(
+                        "Le SMS d'origine ne doit pas Ãªtre modifiÃ©."
+                    );
+                },
+            message: {
+                delete:
+                    async () => {
+                        throw new Error(
+                            "Le SMS d'origine ne doit pas Ãªtre supprimÃ©."
+                        );
+                    }
+            },
+            reply:
+                async payload => {
+                    calls.push([
+                        "reply",
+                        payload
+                    ]);
+                }
+        };
+
+        await handler(
+            quickReplyInteraction
+        );
+
+        assert.deepEqual(
+            calls.slice(3),
+            [
+                [
+                    "sendSms",
+                    12,
+                    "Je te rÃ©ponds !"
+                ],
+                [
+                    "reply",
+                    {
+                        content:
+                            "\u2705 SMS envoy\u00e9.",
+                        flags: 64
+                    }
                 ]
             ]
         );

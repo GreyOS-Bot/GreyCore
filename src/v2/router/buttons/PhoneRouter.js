@@ -445,7 +445,11 @@ module.exports =
             await PhoneMessageModal.show(
                 interaction,
                 conversationId,
-                characterId
+                characterId,
+                {
+                    source:
+                        "quick_reply"
+                }
             );
 
             return true;

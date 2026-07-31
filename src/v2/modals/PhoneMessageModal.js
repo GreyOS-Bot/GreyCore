@@ -31,7 +31,8 @@ module.exports = {
     async show(
         interaction,
         conversationId,
-        characterId
+        characterId,
+        options = {}
     ) {
 
         const dashboardData =
@@ -169,7 +170,7 @@ module.exports = {
         const modal =
             new ModalBuilder()
                 .setCustomId(
-                    `v2_phone_message_modal:${conversationId}:${characterId}`
+                    `v2_phone_message_modal:${conversationId}:${characterId}:${options.source || "panel"}`
                 )
                 .setTitle(
                     modalTitle

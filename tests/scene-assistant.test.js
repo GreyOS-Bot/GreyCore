@@ -104,7 +104,10 @@ test(
 
         const status = service.getStatus({
             guildId: "guild",
-            channel
+            channel,
+            now: new Date(
+                "2026-07-30T12:00:00.000Z"
+            )
         });
 
         assert.equal(status.kind, "tracked");

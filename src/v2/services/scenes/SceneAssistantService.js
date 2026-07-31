@@ -93,7 +93,8 @@ class SceneAssistantService {
 
     getStatus({
         guildId,
-        channel
+        channel,
+        now = new Date()
     }) {
         const configuration =
             manager.getConfiguration(guildId);
@@ -137,7 +138,8 @@ class SceneAssistantService {
         const evaluation =
             this.evaluateCycle(
                 cycle,
-                configuration
+                configuration,
+                now
             );
 
         const updatedCycle = evaluation.shouldConclude

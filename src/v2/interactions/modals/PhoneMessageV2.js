@@ -26,14 +26,23 @@ const PhoneServiceV2 =
     );
 
 const {
-    replyError
+    replyError,
+    replyPrivate
 } = require(
     "../../core/services/InteractionResponseService"
 );
 
 async function closeConversationPanel(
-    interaction
+    interaction,
+    preserveSource
 ) {
+    if (preserveSource) {
+        return replyPrivate(
+            interaction,
+            "\u2705 SMS envoy\u00e9."
+        );
+    }
+
     await interaction.update({
         content:
             "✅ SMS envoyé.",
@@ -66,7 +75,8 @@ module.exports =
         const [
             ,
             conversationIdValue,
-            characterId
+            characterId,
+            source
         ] = interaction.customId.split(":");
 
         const conversationId =
@@ -171,7 +181,8 @@ module.exports =
 });
 
     return closeConversationPanel(
-        interaction
+        interaction,
+        source === "quick_reply"
     );
 
 } catch (error) {
