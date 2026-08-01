@@ -108,7 +108,7 @@ test(
 
             assert.equal(
                 personalOwner.character.name,
-                "Iño"
+                "Story"
             );
             const personalAlias =
                 resolver.resolveProxyCharacter({
@@ -121,6 +121,7 @@ test(
                 personalAlias.character.id,
                 "personal"
             );
+
         } finally {
             isolated.cleanup();
         }
@@ -168,7 +169,8 @@ function createTables(db) {
 
         CREATE TABLE CharacterProfilesV2 (
             continuity_id TEXT PRIMARY KEY,
-            firstname TEXT
+            firstname TEXT,
+            alias TEXT
         );
     `);
 }
@@ -214,10 +216,11 @@ function seedCharacters(db) {
 
         if (id === "personal") {
             db.prepare(`
-                INSERT INTO CharacterProfilesV2 VALUES (?, ?)
+                INSERT INTO CharacterProfilesV2 VALUES (?, ?, ?)
             `).run(
                 `continuity-${id}`,
-                "Iño"
+                "Astoria",
+                "Story"
             );
         }
 

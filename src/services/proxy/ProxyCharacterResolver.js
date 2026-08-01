@@ -199,6 +199,7 @@ function findV2Installation({
             ) AS avatar,
 
             COALESCE(
+                NULLIF(profile.alias, ''),
                 NULLIF(profile.firstname, ''),
                 NULLIF(continuity.firstname, ''),
                 character.proxy_name
