@@ -126,6 +126,27 @@ test(
             true
         );
 
+        const outfitColumns =
+            new Set(
+                isolated.database
+                    .prepare(
+                        "PRAGMA table_info(ContinuityOutfitsV2)"
+                    )
+                    .all()
+                    .map(
+                        column => column.name
+                    )
+            );
+
+        assert.equal(
+            outfitColumns.has("image_data"),
+            true
+        );
+        assert.equal(
+            outfitColumns.has("image_filename"),
+            true
+        );
+
         const profileColumns =
             new Set(
                 isolated.database

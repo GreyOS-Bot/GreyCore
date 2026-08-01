@@ -5,6 +5,11 @@ const {
     ButtonStyle
 } = require("discord.js");
 
+const outfitImagePresentation =
+    require(
+        "../../services/outfits/OutfitImagePresentationService"
+    );
+
 class OutfitV2View {
     build(
         character,
@@ -14,6 +19,11 @@ class OutfitV2View {
     ) {
         const canManage =
             options.canManage === true;
+
+        const imageAttachment =
+            outfitImagePresentation.getAttachment(
+                outfit
+            );
 
         const embed =
             new EmbedBuilder()
@@ -78,15 +88,21 @@ class OutfitV2View {
                 );
             }
 
-            embed
-                .setDescription(
+            const imageUrl =
+                outfitImagePresentation.getImageUrl(
+                    outfit,
+                    imageAttachment
+                );
+
+            embed.setDescription(
                     description.length
                         ? description.join("\n")
                         : "Tenue actuelle."
-                )
-                .setImage(
-                    outfit.image_url
                 );
+
+            if (imageUrl) {
+                embed.setImage(imageUrl);
+            }
         }
 
         const navigationRow =
@@ -130,7 +146,14 @@ class OutfitV2View {
 
             components: [
                 navigationRow
-            ]
+            ],
+
+            files:
+                imageAttachment
+                    ? [imageAttachment]
+                    : [],
+
+            attachments: []
         };
     }
 }

@@ -29,6 +29,11 @@ const modalFactory =
 const viewFactory =
     require("./OutfitViewFactory");
 
+const outfitImageStorage =
+    require(
+        "../../services/outfits/OutfitImageStorageService"
+    );
+
 const {
     replyError,
     replyPrivate
@@ -137,14 +142,10 @@ async function saveAddModal(
             uploads.values()
         )[0];
 
-    if (
-        !attachment
-        || !attachment.contentType
-            ?.startsWith("image/")
-    ) {
+    if (!attachment) {
         return replyError(
             interaction,
-            "Le fichier doit être une image."
+            "Le fichier doit \u00eatre une image."
         );
     }
 
@@ -161,10 +162,21 @@ async function saveAddModal(
             );
 
     try {
+        const image =
+            await outfitImageStorage.download(
+                attachment
+            );
+
         outfitManager.createCurrent({
             continuityId,
             imageUrl:
                 attachment.url,
+            imageData:
+                image.data,
+            imageFilename:
+                image.filename,
+            imageContentType:
+                image.contentType,
             title,
             description
         });

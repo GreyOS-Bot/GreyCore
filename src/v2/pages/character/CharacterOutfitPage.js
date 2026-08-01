@@ -13,6 +13,11 @@ const characterDashboardManager =
 const outfitManager =
     require("../../managers/OutfitV2Manager");
 
+const outfitImagePresentation =
+    require(
+        "../../services/outfits/OutfitImagePresentationService"
+    );
+
 const characterManagementPolicy =
     require(
         "../../core/policies/CharacterManagementPolicy"
@@ -70,6 +75,11 @@ class CharacterOutfitPage {
                 )
                 : null;
 
+        const imageAttachment =
+            outfitImagePresentation.getAttachment(
+                outfit
+            );
+
         const descriptionParts = [
 
             UI.components
@@ -118,10 +128,16 @@ class CharacterOutfitPage {
 
             });
 
-        if (outfit?.image_url) {
+        const imageUrl =
+            outfitImagePresentation.getImageUrl(
+                outfit,
+                imageAttachment
+            );
+
+        if (imageUrl) {
 
             embed.setImage(
-                outfit.image_url
+                imageUrl
             );
 
         }
@@ -242,9 +258,8 @@ const secondaryRow =
                     UI.components.navigation.close()
                 );
 
-        return interaction.update(
-
-            UI.page.create({
+        return interaction.update({
+            ...UI.page.create({
 
                 embed,
 
@@ -258,9 +273,13 @@ const secondaryRow =
                             readOnlyNavigation
                         ]
 
-            })
-
-        );
+            }),
+            files:
+                imageAttachment
+                    ? [imageAttachment]
+                    : [],
+            attachments: []
+        });
 
     }
 

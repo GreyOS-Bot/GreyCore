@@ -1083,6 +1083,9 @@ function initializeMediaSchemaV2() {
             continuity_id TEXT NOT NULL,
 
             image_url TEXT NOT NULL,
+            image_data BLOB,
+            image_filename TEXT,
+            image_content_type TEXT,
 
             title TEXT,
             description TEXT,
@@ -1097,6 +1100,8 @@ function initializeMediaSchemaV2() {
                 ON DELETE CASCADE
         )
     `).run();
+
+    ensureOutfitImageColumns();
 
     /*
      * TRANSFERT DES ANCIENNES CONVERSATIONS
@@ -1310,6 +1315,28 @@ function initializeMediaSchemaV2() {
     console.log(
         "✅ Tables Téléphone et Outfit de Greycore Database V2 prêtes."
     );
+}
+
+function ensureOutfitImageColumns() {
+    const columns = {
+        image_data:
+            "BLOB",
+        image_filename:
+            "TEXT",
+        image_content_type:
+            "TEXT"
+    };
+
+    for (const [name, type] of Object.entries(columns)) {
+        if (hasColumn("ContinuityOutfitsV2", name)) {
+            continue;
+        }
+
+        db.prepare(`
+            ALTER TABLE ContinuityOutfitsV2
+            ADD COLUMN ${name} ${type}
+        `).run();
+    }
 }
 
 module.exports =

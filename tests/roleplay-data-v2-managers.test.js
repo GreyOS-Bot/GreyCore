@@ -321,6 +321,12 @@ test(
                         "continuity-a",
                     imageUrl:
                         " https://example.com/one.png ",
+                    imageData:
+                        Buffer.from("first-image"),
+                    imageFilename:
+                        "first-look.png",
+                    imageContentType:
+                        "image/png",
                     title:
                         "  Première tenue  ",
                     createdAt:
@@ -346,6 +352,14 @@ test(
             assert.equal(
                 first.image_url,
                 "https://example.com/one.png"
+            );
+            assert.deepEqual(
+                first.image_data,
+                Buffer.from("first-image")
+            );
+            assert.equal(
+                first.image_filename,
+                "first-look.png"
             );
             assert.equal(
                 manager
@@ -689,6 +703,9 @@ function createOutfitTables(
                 NOT NULL,
             image_url TEXT
                 NOT NULL,
+            image_data BLOB,
+            image_filename TEXT,
+            image_content_type TEXT,
             title TEXT,
             description TEXT,
             is_current INTEGER

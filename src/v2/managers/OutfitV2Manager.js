@@ -86,6 +86,18 @@ class OutfitV2Manager {
                 continuityId:
                     data.continuityId,
                 imageUrl,
+                imageData:
+                    this.normalizeImageData(
+                        data.imageData
+                    ),
+                imageFilename:
+                    this.normalizeText(
+                        data.imageFilename
+                    ),
+                imageContentType:
+                    this.normalizeText(
+                        data.imageContentType
+                    ),
                 title:
                     this.normalizeText(
                         data.title
@@ -193,6 +205,20 @@ class OutfitV2Manager {
             || ""
         ).trim()
         || null;
+    }
+
+    normalizeImageData(value) {
+        if (!value) {
+            return null;
+        }
+
+        if (!Buffer.isBuffer(value)) {
+            throw new Error(
+                "L'image de la tenue est invalide."
+            );
+        }
+
+        return value;
     }
 
     normalizeLimit(

@@ -106,16 +106,22 @@ class OutfitRepository {
                             INSERT INTO ContinuityOutfitsV2 (
                                 continuity_id,
                                 image_url,
+                                image_data,
+                                image_filename,
+                                image_content_type,
                                 title,
                                 description,
                                 is_current,
                                 created_at,
                                 updated_at
                             )
-                            VALUES (?, ?, ?, ?, 1, ?, ?)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
                         `).run(
                             data.continuityId,
                             data.imageUrl,
+                            data.imageData,
+                            data.imageFilename,
+                            data.imageContentType,
                             data.title,
                             data.description,
                             data.createdAt,

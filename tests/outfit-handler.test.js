@@ -174,6 +174,23 @@ test(
         );
 
         stubModule(
+            "src/v2/services/outfits/OutfitImageStorageService.js",
+            {
+                download:
+                    async attachment => ({
+                        data:
+                            Buffer.from("image"),
+                        filename:
+                            attachment.name
+                            || "outfit.png",
+                        contentType:
+                            attachment.contentType
+                            || "image/png"
+                    })
+            }
+        );
+
+        stubModule(
             "src/v2/managers/ContinuityV2Manager.js",
             {
                 getById:
@@ -338,6 +355,12 @@ test(
                         "continuity",
                     imageUrl:
                         "https://example.com/gala.png",
+                    imageData:
+                        Buffer.from("image"),
+                    imageFilename:
+                        "outfit.png",
+                    imageContentType:
+                        "image/png",
                     title:
                         "Tenue de gala",
                     description:
