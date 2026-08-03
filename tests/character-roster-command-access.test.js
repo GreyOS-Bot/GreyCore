@@ -95,6 +95,7 @@ test(
             listOptions.some(option =>
                 option.name === "lettre"
                 && option.autocomplete === true
+                && option.required === false
             ),
             true
         );
@@ -137,6 +138,22 @@ test(
 
         assert.doesNotMatch(
             listInteraction.replyPayload
+                .embeds[0]
+                .toJSON()
+                .description,
+            /Vega/
+        );
+
+        const allInteraction =
+            createInteraction("liste");
+
+        allInteraction.options.getString =
+            () => null;
+
+        await command.execute(allInteraction);
+
+        assert.match(
+            allInteraction.replyPayload
                 .embeds[0]
                 .toJSON()
                 .description,

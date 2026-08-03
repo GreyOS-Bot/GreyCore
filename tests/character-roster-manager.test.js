@@ -30,7 +30,7 @@ test(
                         character.firstname
                     ),
                 [
-                    "Alba",
+                    "La Louve",
                     "Vega"
                 ]
             );
@@ -59,7 +59,7 @@ test(
                     character.firstname
                 ),
                 [
-                    "Alba",
+                    "La Louve",
                     "Vega"
                 ]
             );
@@ -156,7 +156,8 @@ function createTables(db) {
 
         CREATE TABLE CharacterProfilesV2 (
             continuity_id TEXT PRIMARY KEY,
-            firstname TEXT
+            firstname TEXT,
+            alias TEXT
         );
 
         CREATE TABLE CharacterGuildInstallationsV2 (
@@ -204,10 +205,13 @@ function seedCharacters(db) {
         );
 
         db.prepare(`
-            INSERT INTO CharacterProfilesV2 VALUES (?, ?)
+            INSERT INTO CharacterProfilesV2 VALUES (?, ?, ?)
         `).run(
             `continuity-${id}`,
-            firstname
+            firstname,
+            id === "alba"
+                ? "La Louve"
+                : null
         );
 
         db.prepare(`

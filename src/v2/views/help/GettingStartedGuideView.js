@@ -56,7 +56,7 @@ const TOPICS = {
                     "Créer et valider",
                 value: [
                     "Ouvre `/mes personnages` puis **Nouveau personnage**.",
-                    "Avant de choisir un prénom, consulte `/personnages liste lettre:A` en remplaçant A par la première lettre recherchée.",
+                    "Avant de choisir un prénom, consulte `/personnages liste` : elle montre les personnages installés et leur propriétaire. Tu peux filtrer avec `lettre:A` si besoin.",
                     "Renseigne le proxy, l’identité, l’avatar et l’histoire.",
                     "La demande est ensuite envoyée dans le salon configuré avec `/config validation`.",
                     "Après validation, toute modification de fiche ou d’avatar est également soumise au staff : les informations actuelles restent visibles jusqu’à sa décision."

@@ -11,6 +11,7 @@ const ROSTER_SELECT = `
         character.is_archived,
         user.discord_user_id,
         COALESCE(
+            NULLIF(profile.alias, ''),
             NULLIF(profile.firstname, ''),
             NULLIF(continuity.firstname, ''),
             NULLIF(character.base_firstname, ''),

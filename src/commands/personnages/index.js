@@ -54,7 +54,6 @@ module.exports = {
                         .setDescription(
                             "Première lettre du prénom à afficher"
                         )
-                        .setRequired(true)
                         .setAutocomplete(true)
                 )
                 .addBooleanOption(option =>
@@ -171,7 +170,10 @@ module.exports = {
                     )
                 );
 
-            if (!ALPHABET.includes(letter)) {
+            if (
+                letter
+                && !ALPHABET.includes(letter)
+            ) {
                 return replyPrivate(
                     interaction,
                     "⚠️ Choisis une lettre de A à Z pour afficher les personnages correspondants."
@@ -300,7 +302,8 @@ function buildRosterView(
             { includeArchived }
         )
             .filter(character =>
-                normalizeLetter(
+                !letter
+                || normalizeLetter(
                     character.firstname
                 ) === letter
             );
@@ -318,7 +321,9 @@ function buildRosterView(
                 new EmbedBuilder()
                 .setColor("#5865F2")
                 .setTitle(
-                    `📚 Personnages du serveur — ${letter}`
+                    letter
+                        ? `📚 Personnages du serveur — ${letter}`
+                        : "📚 Personnages installés sur le serveur"
                 )
                 .setDescription(
                     description
@@ -326,8 +331,10 @@ function buildRosterView(
                 .setFooter({
                     text:
                         characters.length > 0
-                            ? `${characters.length} personnage(s) commençant par ${letter} • Classement alphabétique${descriptions.length > 1 ? ` • Suite ${index + 1}/${descriptions.length}` : ""}`
-                            : `Aucun personnage ne commence par ${letter}`
+                            ? `${characters.length} personnage(s) • Classement alphabétique${letter ? ` • Lettre ${letter}` : ""}${descriptions.length > 1 ? ` • Suite ${index + 1}/${descriptions.length}` : ""}`
+                            : letter
+                                ? `Aucun personnage ne commence par ${letter}`
+                                : "Aucun personnage validé n'est installé sur ce serveur"
                 })
         )
     };
@@ -336,7 +343,7 @@ function buildRosterView(
 function splitDescriptions(entries) {
     if (entries.length === 0) {
         return [
-            "Aucun personnage validé ne correspond à cette lettre."
+            "Aucun personnage validé n'est installé sur ce serveur."
         ];
     }
 
