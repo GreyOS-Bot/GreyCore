@@ -13,6 +13,30 @@ module.exports =
 
         if (
             interaction.isButton()
+            && interaction.customId.startsWith(
+                "v2_staff_character_identity:"
+            )
+        ) {
+            await require(
+                "../../interactions/staff/StaffCharacterCorrectionHandler"
+            ).openIdentity(interaction);
+            return true;
+        }
+
+        if (
+            interaction.isButton()
+            && interaction.customId.startsWith(
+                "v2_staff_character_info:"
+            )
+        ) {
+            await require(
+                "../../interactions/staff/StaffCharacterCorrectionHandler"
+            ).openInformation(interaction);
+            return true;
+        }
+
+        if (
+            interaction.isButton()
             && interaction.customId ===
                 "character_close"
         ) {

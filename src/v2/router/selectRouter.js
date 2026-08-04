@@ -1,5 +1,8 @@
 const selectRouters = [
     require(
+        "./selects/StaffCharacterCorrectionSelectRouter"
+    ),
+    require(
         "./selects/GuildModuleSelectRouter"
     ),
     require(

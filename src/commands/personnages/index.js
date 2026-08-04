@@ -23,6 +23,11 @@ const characterTypeCorrectionService =
         "../../v2/services/character/CharacterTypeCorrectionService"
     );
 
+const staffCorrectionView =
+    require(
+        "../../v2/views/character/StaffCharacterCorrectionView"
+    );
+
 const {
     requireStaffCommandAccess
 } = require(
@@ -82,87 +87,14 @@ module.exports = {
                 .setDescription(
                     "Corrige les informations d’un personnage installé."
                 )
-                .addUserOption(option =>
-                    option
-                        .setName("utilisateur")
-                        .setDescription(
-                            "Propriétaire du personnage"
-                        )
-                        .setRequired(true)
-                )
                 .addStringOption(option =>
                     option
                         .setName("personnage")
                         .setDescription(
-                            "Personnage à corriger"
+                            "Tape le nom du personnage à corriger"
                         )
                         .setAutocomplete(true)
                         .setRequired(true)
-                )
-                .addStringOption(option =>
-                    option
-                        .setName("type")
-                        .setDescription(
-                            "Nouveau type du personnage"
-                        )
-                        .addChoices(
-                            {
-                                name: "PJ",
-                                value: "personnage_joue"
-                            },
-                            {
-                                name: "PNJ",
-                                value: "pnj"
-                            },
-                            {
-                                name: "Random",
-                                value: "random"
-                            },
-                            {
-                                name: "PNJ réservé",
-                                value: "pnj_reserve"
-                            },
-                            {
-                                name: "Réservé staff",
-                                value: "reserve_staff"
-                            }
-                        )
-                )
-                .addStringOption(option =>
-                    option.setName("proxy")
-                        .setDescription("Nouveau proxy à taper")
-                        .setMaxLength(100)
-                )
-                .addStringOption(option =>
-                    option.setName("alias")
-                        .setDescription("Prénom ou alias affiché")
-                        .setMaxLength(100)
-                )
-                .addStringOption(option =>
-                    option.setName("vrai_prenom")
-                        .setDescription("Vrai prénom facultatif")
-                        .setMaxLength(100)
-                )
-                .addStringOption(option =>
-                    option.setName("nom")
-                        .setDescription("Nom de famille")
-                        .setMaxLength(100)
-                )
-                .addIntegerOption(option =>
-                    option.setName("age")
-                        .setDescription("Âge du personnage")
-                        .setMinValue(0)
-                        .setMaxValue(999)
-                )
-                .addStringOption(option =>
-                    option.setName("organisation")
-                        .setDescription("Gang ou organisation")
-                        .setMaxLength(100)
-                )
-                .addStringOption(option =>
-                    option.setName("metier")
-                        .setDescription("Métier du personnage")
-                        .setMaxLength(100)
                 )
         )
         .addSubcommand(sub =>
@@ -226,37 +158,33 @@ module.exports = {
             );
 
         if (focused.name === "personnage") {
-            const owner =
-                interaction.options.getUser(
-                    "utilisateur"
-                );
-
-            if (!owner) {
-                return interaction.respond([]);
-            }
-
             const filter = String(
                 focused.value || ""
             ).trim().toLowerCase();
 
             return interaction.respond(
-                rosterManager
-                    .getByOwnerOnGuild(
+                characterTypeCorrectionService
+                    .search(
                         interaction.guildId,
-                        owner.id
-                    )
-                    .filter(character =>
-                        !filter
-                        || String(
-                            character.firstname
-                            || character.proxy_name
-                        ).toLowerCase().includes(filter)
+                        filter
                     )
                     .slice(0, 25)
-                    .map(character => ({
-                        name: `${character.firstname || character.proxy_name} — ${characterTypes.getDisplayLabel(character.character_type)}`,
-                        value: character.id
-                    }))
+                    .map(character => {
+                        const ownerName =
+                            interaction.guild?.members
+                                ?.cache
+                                ?.get(
+                                    character.discord_user_id
+                                )
+                                ?.displayName
+                            || character.discord_user_id;
+
+                        return {
+                            name: `${character.firstname || character.proxy_name} — ${characterTypes.getDisplayLabel(character.character_type)} — ${ownerName}`
+                                .slice(0, 100),
+                            value: character.id
+                        };
+                    })
             );
         }
 
@@ -351,58 +279,22 @@ module.exports = {
         }
 
         if (subcommand === "corriger") {
-            const user =
-                interaction.options.getUser(
-                    "utilisateur"
-                );
             const characterId =
                 interaction.options.getString(
                     "personnage",
                     true
                 );
-            const characterType =
-                interaction.options.getString(
-                    "type"
-                );
-            const changes = {
-                characterType,
-                proxyName:
-                    interaction.options.getString("proxy"),
-                alias:
-                    interaction.options.getString("alias"),
-                firstname:
-                    interaction.options.getString("vrai_prenom"),
-                lastname:
-                    interaction.options.getString("nom"),
-                age:
-                    interaction.options.getInteger("age"),
-                gang:
-                    interaction.options.getString("organisation"),
-                occupation:
-                    interaction.options.getString("metier")
-            };
-            const result =
+            const context =
                 characterTypeCorrectionService
-                    .correct({
+                    .getForStaff({
                         guildId:
                             interaction.guildId,
-                        discordUserId:
-                            user.id,
-                        characterId,
-                        changes
+                        characterId
                     });
 
             return replyPrivate(
                 interaction,
-                [
-                    "✅ **Fiche corrigée**",
-                    `Personnage : **${result.firstname || result.proxy_name}**`,
-                    `Propriétaire : ${user}`,
-                    `Type actuel : **${characterTypes.getDisplayLabel(result.character_type)}**`,
-                    `Champs corrigés : **${result.changedFields.join(", ")}**`,
-                    "",
-                    "La portée du personnage sur le serveur a également été mise à jour."
-                ].join("\n")
+                staffCorrectionView.build(context)
             );
         }
 

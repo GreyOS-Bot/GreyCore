@@ -51,6 +51,17 @@ test(
         const service = require(
             "../src/v2/services/character/CharacterTypeCorrectionService"
         );
+        const searchResults = service.search(
+            "guild",
+            "rey"
+        );
+
+        assert.equal(searchResults.length, 1);
+        assert.equal(
+            searchResults[0].id,
+            "character"
+        );
+
         const result = service.correct({
             guildId: "guild",
             discordUserId: "owner",
@@ -121,6 +132,24 @@ test(
             `).get().proxy_name,
             "Reya:"
         );
+
+        const correctionView = require(
+            "../src/v2/views/character/StaffCharacterCorrectionView"
+        ).build(
+            service.getForStaff({
+                guildId: "guild",
+                characterId: "character"
+            })
+        );
+        const componentIds = correctionView.components
+            .flatMap(row => row.toJSON().components)
+            .map(component => component.custom_id);
+
+        assert.deepEqual(componentIds, [
+            "v2_staff_character_identity:character",
+            "v2_staff_character_info:character",
+            "v2_staff_character_type:character"
+        ]);
 
         db.close();
         delete process.env.GREYCORE_DATABASE_PATH;

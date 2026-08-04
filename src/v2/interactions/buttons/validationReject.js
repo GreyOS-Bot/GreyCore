@@ -87,7 +87,7 @@ module.exports = async interaction => {
                     `v2_validation_reject_modal:${installationId}`
                 )
                 .setTitle(
-                    "Refuser l’installation"
+                    "Demander une correction"
                 );
 
         const reasonInput =
@@ -96,7 +96,7 @@ module.exports = async interaction => {
                     "validation_rejection_reason"
                 )
                 .setLabel(
-                    "Motif du refus"
+                    "Correction demandée"
                 )
                 .setStyle(
                     TextInputStyle.Paragraph

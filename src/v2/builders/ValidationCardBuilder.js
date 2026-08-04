@@ -461,7 +461,7 @@ class ValidationCardBuilder {
                         `v2_validation_reject:${installationId}`
                     )
                     .setLabel(
-                        "Refuser"
+                        "Demander une correction"
                     )
                     .setEmoji("❌")
                     .setStyle(

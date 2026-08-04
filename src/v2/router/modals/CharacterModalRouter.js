@@ -13,6 +13,28 @@ module.exports =
 
         if (
             interaction.customId.startsWith(
+                "v2_staff_character_identity_submit:"
+            )
+        ) {
+            await require(
+                "../../interactions/staff/StaffCharacterCorrectionHandler"
+            ).submitIdentity(interaction);
+            return true;
+        }
+
+        if (
+            interaction.customId.startsWith(
+                "v2_staff_character_info_submit:"
+            )
+        ) {
+            await require(
+                "../../interactions/staff/StaffCharacterCorrectionHandler"
+            ).submitInformation(interaction);
+            return true;
+        }
+
+        if (
+            interaction.customId.startsWith(
                 "v2_character_create_submit:"
             )
         ) {
