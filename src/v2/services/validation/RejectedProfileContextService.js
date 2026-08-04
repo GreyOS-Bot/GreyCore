@@ -37,6 +37,8 @@ class RejectedProfileContextService {
         if (
             installation.status !==
             InstallationStatus.REJECTED
+            && installation.status !==
+                InstallationStatus.SUSPENDED
         ) {
             return {
                 error:

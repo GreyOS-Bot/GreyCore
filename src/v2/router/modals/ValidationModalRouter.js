@@ -18,6 +18,11 @@ const rejectChangeRequest =
         "../../interactions/modals/rejectChangeRequest"
     );
 
+const submitCharacterChangeRequest =
+    require(
+        "../../interactions/modals/submitCharacterChangeRequest"
+    );
+
 module.exports =
     async function validationModalRouter(
         interaction
@@ -28,6 +33,15 @@ module.exports =
 
         const customId =
             interaction.customId;
+
+        if (
+            customId.startsWith(
+                "v2_validation_request_change_submit:"
+            )
+        ) {
+            await submitCharacterChangeRequest(interaction);
+            return true;
+        }
 
         if (
             customId.startsWith(

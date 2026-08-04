@@ -155,9 +155,13 @@ class InstallationCreatedView {
         if (
             installation.status ===
             "rejected"
+            || installation.status ===
+                "suspended"
         ) {
             return [
-                "❌ Le staff a refusé cette installation.",
+                installation.status === "suspended"
+                    ? "✏️ Le staff demande une modification sur cette fiche."
+                    : "❌ Le staff a refusé cette installation.",
                 "Corrige la fiche, puis renvoie une demande de validation."
             ];
         }
@@ -244,6 +248,8 @@ class InstallationCreatedView {
         if (
             installation.status ===
             "rejected"
+            || installation.status ===
+                "suspended"
         ) {
             components.push(
                 new ButtonBuilder()

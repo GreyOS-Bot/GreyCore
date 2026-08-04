@@ -33,6 +33,11 @@ const sendValidationReminder =
         "../../interactions/buttons/sendValidationReminder"
     );
 
+const requestCharacterChange =
+    require(
+        "../../interactions/buttons/requestCharacterChange"
+    );
+
 const approveChangeRequest =
     require(
         "../../interactions/buttons/approveChangeRequest"
@@ -54,6 +59,15 @@ module.exports =
 
         const customId =
             interaction.customId;
+
+        if (
+            customId.startsWith(
+                "v2_validation_request_change:"
+            )
+        ) {
+            await requestCharacterChange(interaction);
+            return true;
+        }
 
         if (
             customId.startsWith(

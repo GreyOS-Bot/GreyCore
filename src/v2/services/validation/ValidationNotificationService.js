@@ -17,6 +17,44 @@ const logger =
 
 class ValidationNotificationService {
 
+    async notifyCorrectionRequested({
+        client,
+        playerId,
+        installationId,
+        characterName,
+        guildName,
+        reason
+    }) {
+        if (!playerId) {
+            return false;
+        }
+
+        const player = await client.users
+            .fetch(playerId)
+            .catch(() => null);
+
+        if (!player) {
+            return false;
+        }
+
+        return player.send(
+            notificationView.correctionRequested({
+                installationId,
+                characterName,
+                guildName,
+                reason
+            })
+        )
+            .then(() => true)
+            .catch(error => {
+                logger.warn(
+                    "Message privé de correction impossible.",
+                    error
+                );
+                return false;
+            });
+    }
+
     async notifyReminder({
         client,
         playerId,

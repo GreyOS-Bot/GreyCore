@@ -95,6 +95,35 @@ class ValidationDecisionNotificationView {
         };
     }
 
+    correctionRequested({
+        installationId,
+        characterName,
+        guildName,
+        reason
+    }) {
+        return {
+            embeds: [
+                {
+                    color: 0xFEE75C,
+                    title: "✏️ Modification demandée par le staff",
+                    description: [
+                        `Le staff de **${guildName || "ton serveur"}** demande une correction sur la fiche de **${characterName || "ton personnage"}**.`,
+                        "",
+                        "**Modification demandée :**",
+                        reason,
+                        "",
+                        "Le personnage et son proxy sont temporairement bloqués.",
+                        "Utilise `/mes personnages`, ouvre ce personnage puis clique sur **Corriger la fiche**. Il redeviendra jouable uniquement après une nouvelle validation du staff."
+                    ].join("\n"),
+                    footer: {
+                        text: `Greycore • Installation #${installationId}`
+                    },
+                    timestamp: new Date().toISOString()
+                }
+            ]
+        };
+    }
+
     reminder({
         installationId,
         characterName,

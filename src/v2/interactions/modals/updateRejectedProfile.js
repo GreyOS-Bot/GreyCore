@@ -65,12 +65,24 @@ module.exports = async interaction => {
             profile
         );
 
+        const wasSuspended =
+            context.installation.status ===
+            "suspended";
+
+        if (wasSuspended) {
+            v2.managers.validation
+                .reopenInstallation({
+                    installationId
+                });
+        }
+
         return replyPrivate(
             interaction,
             rejectedProfileView
                 .updated(
                     context.character,
-                    installationId
+                    installationId,
+                    wasSuspended
                 )
         );
     } catch (error) {

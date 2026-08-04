@@ -489,6 +489,18 @@ class ValidationCardBuilder {
             );
         }
 
+        if (status === "approved") {
+            buttons.push(
+                new ButtonBuilder()
+                    .setCustomId(
+                        `v2_validation_request_change:${installationId}`
+                    )
+                    .setLabel("Demander une modification")
+                    .setEmoji("✏️")
+                    .setStyle(ButtonStyle.Danger)
+            );
+        }
+
         buttons.push(
             new ButtonBuilder()
                 .setCustomId(

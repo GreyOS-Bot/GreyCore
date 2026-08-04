@@ -124,7 +124,8 @@ class RejectedProfileView {
 
     updated(
         character,
-        installationId
+        installationId,
+        wasSuspended = false
     ) {
         return {
             embeds: [
@@ -136,7 +137,9 @@ class RejectedProfileView {
                     description: [
                         `La fiche de **${character.proxy_name}** a été enregistrée.`,
                         "",
-                        "Tu peux maintenant relancer directement la demande de validation."
+                        wasSuspended
+                            ? "Le personnage reste bloqué. Relance maintenant la validation pour que le staff contrôle la correction."
+                            : "Tu peux maintenant relancer directement la demande de validation."
                     ].join("\n")
                 }
             ],
