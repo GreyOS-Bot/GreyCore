@@ -8,11 +8,11 @@ const POLICY_UPDATED_AT =
 function buildPolicy() {
     const operator = legalValue(
         "GREYCORE_LEGAL_OPERATOR",
-        "À renseigner par l’exploitant de GreyCore"
+        "Greyline Chapter"
     );
     const email = legalValue(
         "GREYCORE_PRIVACY_EMAIL",
-        "À renseigner dans la configuration"
+        "contact@greyline.fr"
     );
 
     return {

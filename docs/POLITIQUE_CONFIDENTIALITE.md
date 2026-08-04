@@ -2,13 +2,11 @@
 
 Dernière mise à jour : 4 août 2026
 
-> À compléter avant publication : identité légale de l’exploitant de GreyCore, adresse de contact et, si nécessaire, adresse postale. Ces informations doivent également être renseignées dans `GREYCORE_LEGAL_OPERATOR` et `GREYCORE_PRIVACY_EMAIL`.
-
 ## 1. Responsable du traitement
 
-Responsable : **[IDENTITÉ OU RAISON SOCIALE À COMPLÉTER]**
+Responsable : **Greyline Chapter**
 
-Contact relatif aux données personnelles : **[ADRESSE E-MAIL À COMPLÉTER]**
+Contact relatif aux données personnelles : **contact@greyline.fr**
 
 ## 2. Données traitées
 
@@ -66,4 +64,3 @@ L’accès au VPS et à la base doit être limité aux personnes autorisées. Le
 ## 9. Modification de la politique
 
 Cette politique peut évoluer avec GreyCore. La date de mise à jour doit être modifiée à chaque changement important et les utilisateurs doivent pouvoir accéder facilement à la version en vigueur.
-
