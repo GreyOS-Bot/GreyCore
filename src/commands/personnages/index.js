@@ -397,7 +397,7 @@ function formatCharacter(character) {
 
     return [
         `• **${character.firstname}**`,
-        `<@${character.discord_user_id}>`,
+        formatOwner(character.discord_user_id),
         characterTypes.getDisplayLabel(
             character.character_type
         ),
@@ -407,6 +407,16 @@ function formatCharacter(character) {
     ]
         .filter(Boolean)
         .join(" — ");
+}
+
+function formatOwner(discordUserId) {
+    const value = String(
+        discordUserId || ""
+    );
+
+    return value.startsWith("forgotten:")
+        ? "Ancien utilisateur (anonymisé)"
+        : `<@${value}>`;
 }
 
 function buildLifecycleMessage(

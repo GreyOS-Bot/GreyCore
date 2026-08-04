@@ -51,7 +51,7 @@ module.exports = {
             subcommand
                 .setName("oublier")
                 .setDescription(
-                    "Supprime définitivement tes données GreyCore."
+                    "Anonymise ton identité sans supprimer tes personnages."
                 )
                 .addStringOption(option =>
                     option
@@ -107,7 +107,7 @@ module.exports = {
         ) {
             return replyPrivate(
                 interaction,
-                "⚠️ Rien n’a été supprimé. Pour confirmer, écris exactement `OUBLIER` dans l’option `confirmation`."
+                "⚠️ Rien n’a été anonymisé. Pour confirmer, écris exactement `OUBLIER` dans l’option `confirmation`."
             );
         }
 
@@ -118,11 +118,11 @@ module.exports = {
             interaction,
             [
                 "✅ **GreyCore t’a oublié(e).**",
-                "Tes personnages et les données qui leur étaient liées ont été supprimés définitivement.",
-                "Les références nécessaires aux données d’autres joueurs ont été anonymisées.",
+                "Ton identifiant Discord a été retiré et remplacé par une référence anonyme.",
+                "Tes personnages, fiches, relations, tenues, biens, téléphones et contenus RP sont conservés, mais ils ne sont plus reliés à ton compte Discord.",
                 "Les anciennes sauvegardes tournantes expireront automatiquement selon la durée annoncée dans la politique de confidentialité.",
                 "",
-                `Personnages supprimés : **${erased.globalCharacters + erased.legacyCharacters}**.`
+                `Personnages conservés et anonymisés : **${erased.globalCharacters + erased.legacyCharacters}**.`
             ].join("\n")
         );
     }

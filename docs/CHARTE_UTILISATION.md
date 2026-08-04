@@ -26,5 +26,4 @@ GreyCore est fourni en l’état. Des maintenances, corrections, modifications o
 
 La politique de confidentialité décrit les données utilisées et les droits des utilisateurs. Elle est accessible avec `/confidentialite politique`.
 
-Un utilisateur peut demander la suppression définitive de ses données avec `/confidentialite oublier confirmation:OUBLIER`.
-
+Un utilisateur peut demander l’anonymisation de son identité Discord avec `/confidentialite oublier confirmation:OUBLIER`. Les personnages et contenus RP sont conservés, mais ne restent plus liés à son compte Discord.

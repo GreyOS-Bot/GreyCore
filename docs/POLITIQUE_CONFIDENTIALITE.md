@@ -48,14 +48,16 @@ Les journaux externes du VPS ou de PM2 doivent faire l’objet d’une durée de
 Dans les conditions prévues par le RGPD, une personne peut demander l’accès, la rectification, l’effacement, la limitation ou l’opposition au traitement de ses données, ainsi que la portabilité lorsque ce droit est applicable.
 
 - `/confidentialite mes-donnees` affiche un premier résumé privé ;
-- `/confidentialite oublier confirmation:OUBLIER` supprime définitivement les données directement liées au compte et anonymise les références qui doivent rester pour préserver les données d’autres personnes ;
+- `/confidentialite oublier confirmation:OUBLIER` remplace l’identifiant Discord par une référence anonyme. Les personnages et contenus RP sont conservés sans lien avec le compte d’origine ;
 - une demande complémentaire peut être adressée au contact indiqué à la section 1.
 
 Une demande reçoit une réponse dans les délais légaux applicables. Une réclamation peut également être adressée à la CNIL : <https://www.cnil.fr/>.
 
-## 7. Suppression et sauvegardes
+Si un texte libre ou un contenu RP contient malgré tout une information personnelle réelle, sa suppression complète peut être demandée à **contact@greyline.fr**.
 
-La commande d’oubli supprime les données de la base active. Les copies présentes dans les sauvegardes tournantes disparaissent lors de leur expiration normale. Elles ne doivent pas être restaurées hors incident de sécurité ou de continuité ; en cas de restauration, la demande d’effacement doit être réappliquée.
+## 7. Anonymisation et sauvegardes
+
+La commande d’oubli retire l’identifiant Discord de la base active et le remplace par une référence anonyme. Les personnages et contenus RP ne sont pas supprimés. Les copies de l’ancien identifiant présentes dans les sauvegardes tournantes disparaissent lors de leur expiration normale. Ces sauvegardes ne doivent pas être restaurées hors incident de sécurité ou de continuité ; en cas de restauration, la demande d’anonymisation doit être réappliquée.
 
 ## 8. Sécurité et incidents
 

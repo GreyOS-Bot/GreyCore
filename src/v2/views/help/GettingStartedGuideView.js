@@ -205,7 +205,7 @@ const TOPICS = {
                     "Demander l’oubli",
                 value: [
                     "Utilise `/confidentialite oublier confirmation:OUBLIER`.",
-                    "Cette action supprime définitivement tes personnages et leurs données liées. Les références indispensables aux données d’autres joueurs sont anonymisées.",
+                    "Cette action anonymise ton identité Discord. Tes personnages et leurs contenus RP restent conservés, mais ne sont plus liés à ton compte.",
                     "Les copies présentes dans les sauvegardes tournantes disparaissent ensuite automatiquement à leur expiration."
                 ].join("\n"),
                 inline: false

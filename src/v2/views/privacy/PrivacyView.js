@@ -64,7 +64,7 @@ function buildPolicy() {
                             "Tes droits",
                         value: [
                             "Tu peux demander l’accès, la rectification, la limitation, l’opposition ou l’effacement de tes données.",
-                            "Utilise `/confidentialite mes-donnees` pour voir un résumé et `/confidentialite oublier` pour supprimer définitivement les données liées à ton compte.",
+                            "Utilise `/confidentialite mes-donnees` pour voir un résumé et `/confidentialite oublier` pour dissocier ton identité Discord des données RP conservées.",
                             "Tu peux aussi contacter le responsable ci-dessus et déposer une réclamation auprès de la CNIL."
                         ].join("\n")
                     }
@@ -163,9 +163,9 @@ function buildSummary(summary) {
                     },
                     {
                         name:
-                            "Pour tout effacer",
+                            "Pour protéger ton identité",
                         value:
-                            "Utilise `/confidentialite oublier confirmation:OUBLIER`. Les personnages et toutes leurs données liées seront définitivement supprimés."
+                            "Utilise `/confidentialite oublier confirmation:OUBLIER`. Ton identifiant Discord sera anonymisé sans supprimer tes personnages ni leurs contenus RP."
                     }
                 )
         ]

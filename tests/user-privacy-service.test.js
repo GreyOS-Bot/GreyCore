@@ -3,8 +3,7 @@ const assert = require("node:assert/strict");
 const Database = require("better-sqlite3");
 
 const {
-    UserPrivacyRepository,
-    ANONYMOUS_USER
+    UserPrivacyRepository
 } = require(
     "../src/v2/repositories/UserPrivacyRepository"
 );
@@ -70,11 +69,14 @@ function createDatabase() {
 }
 
 test(
-    "l'oubli supprime les donnees possedees et anonymise les references conservees",
+    "l'oubli conserve les personnages et anonymise l'identite Discord",
     () => {
         const db = createDatabase();
         const service =
-            new UserPrivacyRepository(db);
+            new UserPrivacyRepository(
+                db,
+                () => "forgotten:test"
+            );
 
         db.exec(`
             INSERT INTO UsersV2 VALUES (1, 'user-1');
@@ -102,23 +104,43 @@ test(
         assert.equal(erased.globalCharacters, 1);
         assert.equal(
             db.prepare("SELECT COUNT(*) AS total FROM UsersV2").get().total,
-            0
+            1
         );
         assert.equal(
             db.prepare("SELECT COUNT(*) AS total FROM Characters").get().total,
-            0
+            1
         );
         assert.equal(
             db.prepare("SELECT COUNT(*) AS total FROM ProxyMessages").get().total,
-            0
+            1
         );
         assert.equal(
             db.prepare("SELECT COUNT(*) AS total FROM MigrationV1ToV2").get().total,
-            0
+            3
+        );
+        assert.equal(
+            db.prepare("SELECT discord_user_id FROM UsersV2").get().discord_user_id,
+            "forgotten:test"
+        );
+        assert.equal(
+            db.prepare("SELECT owner_id FROM Characters").get().owner_id,
+            "forgotten:test"
+        );
+        assert.equal(
+            db.prepare("SELECT author_id FROM ProxyMessages").get().author_id,
+            "forgotten:test"
         );
         assert.equal(
             db.prepare("SELECT created_by FROM StateTypes WHERE id = 1").get().created_by,
-            ANONYMOUS_USER
+            "forgotten:test"
+        );
+        assert.equal(
+            db.prepare("SELECT COUNT(*) AS total FROM GuildCharacterApprovalAutomationRunsV2").get().total,
+            0
+        );
+        assert.equal(
+            service.getSummary("user-1").globalCharacters,
+            0
         );
     }
 );

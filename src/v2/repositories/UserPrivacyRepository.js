@@ -1,14 +1,20 @@
 const database = require(
     "../../database/database"
 );
-
-const ANONYMOUS_USER =
-    "utilisateur-supprime";
+const {
+    randomUUID
+} = require("node:crypto");
 
 class UserPrivacyRepository {
 
-    constructor(db = database) {
+    constructor(
+        db = database,
+        anonymousIdFactory = () =>
+            `forgotten:${randomUUID()}`
+    ) {
         this.db = db;
+        this.anonymousIdFactory =
+            anonymousIdFactory;
     }
 
     getSummary(discordUserId) {
@@ -55,165 +61,70 @@ class UserPrivacyRepository {
         const summary =
             this.getSummary(discordUserId);
 
+        const anonymousId =
+            this.anonymousIdFactory();
+
         const eraseTransaction =
             this.db.transaction(() => {
-                const v2User =
-                    this.tableExists("UsersV2")
-                        ? this.db.prepare(`
-                            SELECT id
-                            FROM UsersV2
-                            WHERE discord_user_id = ?
-                        `).get(discordUserId)
-                        : null;
-
-                const v2CharacterIds = v2User
-                    ? this.values(
-                        "CharactersV2",
-                        "id",
-                        "owner_user_id = ?",
-                        v2User.id
-                    )
-                    : [];
-
-                const v2ContinuityIds =
-                    this.valuesByList(
-                        "CharacterContinuitiesV2",
-                        "id",
-                        "character_id",
-                        v2CharacterIds
-                    );
-
-                const v2InstallationIds =
-                    this.valuesByList(
-                        "CharacterGuildInstallationsV2",
-                        "id",
-                        "character_id",
-                        v2CharacterIds
-                    ).map(String);
-
-                const v1CharacterIds =
-                    this.values(
-                        "Characters",
-                        "id",
-                        "owner_id = ?",
-                        discordUserId
-                    );
-
-                this.deleteProxyMessages(
+                this.replaceReference(
+                    "UsersV2",
+                    "discord_user_id",
                     discordUserId,
-                    [
-                        ...v1CharacterIds,
-                        ...v2CharacterIds
-                    ]
+                    anonymousId
                 );
 
-                this.deleteDirectUserRows(
+                this.replaceReference(
+                    "Characters",
+                    "owner_id",
+                    discordUserId,
+                    anonymousId
+                );
+
+                this.replaceReference(
+                    "ProxyMessages",
+                    "author_id",
+                    discordUserId,
+                    anonymousId
+                );
+
+                this.deleteAutomationRuns(
                     discordUserId
                 );
-
-                this.deleteMigrationLinks(
-                    [
-                        ...v2CharacterIds,
-                        ...v2ContinuityIds,
-                        ...v2InstallationIds
-                    ]
-                );
-
-                this.deleteByValues(
-                    "Characters",
-                    "id",
-                    v1CharacterIds
-                );
-
-                if (v2User) {
-                    this.db.prepare(`
-                        DELETE FROM UsersV2
-                        WHERE id = ?
-                    `).run(v2User.id);
-                }
 
                 this.anonymizeReferences(
-                    discordUserId
+                    discordUserId,
+                    anonymousId
                 );
             });
 
         eraseTransaction();
 
-        return summary;
+        return {
+            ...summary,
+            anonymousId
+        };
     }
 
-    deleteProxyMessages(
-        discordUserId,
-        characterIds
-    ) {
-        if (!this.tableExists("ProxyMessages")) {
-            return;
-        }
-
-        this.db.prepare(`
-            DELETE FROM ProxyMessages
-            WHERE author_id = ?
-        `).run(discordUserId);
-
-        this.deleteByValues(
-            "ProxyMessages",
-            "character_id",
-            characterIds
-        );
-    }
-
-    deleteDirectUserRows(discordUserId) {
-        const rules = [
-            [
+    deleteAutomationRuns(discordUserId) {
+        if (
+            !this.columnExists(
                 "GuildCharacterApprovalAutomationRunsV2",
                 "discord_user_id"
-            ],
-            [
-                "PendingRelationships",
-                "requested_by"
-            ],
-            [
-                "PendingRelationships",
-                "target_owner_id"
-            ],
-            [
-                "PendingContinuityRelationshipsV2",
-                "requested_by"
-            ],
-            [
-                "PendingContinuityRelationshipsV2",
-                "target_owner_id"
-            ]
-        ];
-
-        for (const [table, column] of rules) {
-            if (!this.columnExists(table, column)) {
-                continue;
-            }
-
-            this.db.prepare(`
-                DELETE FROM ${table}
-                WHERE ${column} = ?
-            `).run(discordUserId);
-        }
-    }
-
-    deleteMigrationLinks(characterIds) {
-        if (
-            !this.tableExists("MigrationV1ToV2")
-            || characterIds.length === 0
+            )
         ) {
             return;
         }
 
-        this.deleteByValues(
-            "MigrationV1ToV2",
-            "new_id",
-            characterIds
-        );
+        this.db.prepare(`
+            DELETE FROM GuildCharacterApprovalAutomationRunsV2
+            WHERE discord_user_id = ?
+        `).run(discordUserId);
     }
 
-    anonymizeReferences(discordUserId) {
+    anonymizeReferences(
+        discordUserId,
+        anonymousId
+    ) {
         const nullableReferences = [
             ["Characters", "validated_by"],
             ["CharacterGuildInstallationsV2", "validated_by"],
@@ -234,7 +145,11 @@ class UserPrivacyRepository {
             ["CharacterChangeRequestsV2", "submitted_by"],
             ["ContinuityAssetsV2", "created_by"],
             ["ContinuityAssetTransfersV2", "transferred_by"],
-            ["GuildSceneAssistantScopesV2", "created_by"]
+            ["GuildSceneAssistantScopesV2", "created_by"],
+            ["PendingRelationships", "requested_by"],
+            ["PendingRelationships", "target_owner_id"],
+            ["PendingContinuityRelationshipsV2", "requested_by"],
+            ["PendingContinuityRelationshipsV2", "target_owner_id"]
         ];
 
         for (
@@ -257,9 +172,23 @@ class UserPrivacyRepository {
                 table,
                 column,
                 discordUserId,
-                ANONYMOUS_USER
+                anonymousId
             );
         }
+    }
+
+    replaceReference(
+        table,
+        column,
+        discordUserId,
+        replacement
+    ) {
+        this.updateReference(
+            table,
+            column,
+            discordUserId,
+            replacement
+        );
     }
 
     updateReference(
@@ -280,65 +209,6 @@ class UserPrivacyRepository {
             replacement,
             discordUserId
         );
-    }
-
-    values(
-        table,
-        column,
-        where,
-        ...parameters
-    ) {
-        if (!this.tableExists(table)) {
-            return [];
-        }
-
-        return this.db.prepare(`
-            SELECT ${column}
-            FROM ${table}
-            WHERE ${where}
-        `).all(...parameters)
-            .map(row => row[column]);
-    }
-
-    valuesByList(
-        table,
-        selectedColumn,
-        filterColumn,
-        values
-    ) {
-        if (
-            !this.tableExists(table)
-            || values.length === 0
-        ) {
-            return [];
-        }
-
-        const placeholders =
-            values.map(() => "?").join(", ");
-
-        return this.db.prepare(`
-            SELECT ${selectedColumn}
-            FROM ${table}
-            WHERE ${filterColumn} IN (${placeholders})
-        `).all(...values)
-            .map(row => row[selectedColumn]);
-    }
-
-    deleteByValues(table, column, values) {
-        if (
-            !this.tableExists(table)
-            || values.length === 0
-        ) {
-            return;
-        }
-
-        const placeholders =
-            values.map(() => "?").join(", ");
-
-        this.db.prepare(`
-            DELETE FROM ${table}
-            WHERE ${column} IN (${placeholders})
-        `).run(...values);
     }
 
     count(table, where, ...parameters) {
@@ -386,5 +256,3 @@ const repository =
 module.exports = repository;
 module.exports.UserPrivacyRepository =
     UserPrivacyRepository;
-module.exports.ANONYMOUS_USER =
-    ANONYMOUS_USER;
