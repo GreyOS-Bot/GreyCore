@@ -20,3 +20,19 @@ test(
         );
     }
 );
+
+test(
+    "un point peut remplacer les deux-points du proxy",
+    () => {
+        assert.deepEqual(
+            parseProxy(
+                "Reya. Premier paragraphe\n\nDeuxième paragraphe"
+            ),
+            {
+                character: "Reya",
+                content:
+                    "Premier paragraphe\n\nDeuxième paragraphe"
+            }
+        );
+    }
+);
