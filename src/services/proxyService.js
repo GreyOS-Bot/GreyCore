@@ -1,6 +1,6 @@
 function parseProxy(message) {
 
-    const match = message.match(/^([^:]+):\s*(.*)$/);
+    const match = message.match(/^([^:\r\n]+):\s*([\s\S]*)$/);
 
     if (!match) {
         return null;

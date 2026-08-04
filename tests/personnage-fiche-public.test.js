@@ -80,10 +80,9 @@ test(
         stubModule(
             "src/v2/core/services/InteractionResponseService.js",
             {
-                privatePayload: (
-                    interaction,
-                    payload
-                ) => payload,
+                deferPrivate: async interaction => {
+                    interaction.deferred = true;
+                },
                 replyPrivate: async () => {}
             }
         );
@@ -112,6 +111,12 @@ test(
             reply: async payload => {
                 calls.push([
                     "reply",
+                    payload
+                ]);
+            },
+            editReply: async payload => {
+                calls.push([
+                    "editReply",
                     payload
                 ]);
             }
@@ -146,10 +151,85 @@ test(
                     "reya"
                 ],
                 [
-                    "reply",
+                    "editReply",
                     {
                         content: "Fiche en lecture seule"
                     }
+                ]
+            ]
+        );
+    }
+);
+
+test(
+    "/personnage fiche propose les personnages jouables du serveur",
+    async () => {
+        const calls = [];
+
+        stubModule(
+            "src/database/database.js",
+            {
+                prepare: statement => ({
+                    all: (...values) => {
+                        calls.push([
+                            statement,
+                            values
+                        ]);
+
+                        return [
+                            { proxy_name: "Reya" },
+                            { proxy_name: "Rêya" }
+                        ];
+                    }
+                })
+            }
+        );
+
+        const commandPath =
+            require.resolve(
+                "../src/commands/personnage"
+            );
+
+        delete require.cache[commandPath];
+
+        const command =
+            require(
+                "../src/commands/personnage"
+            );
+
+        const interaction = {
+            guildId: "guild",
+            options: {
+                getSubcommand: () => "fiche",
+                getFocused: () => "rey"
+            },
+            respond: async choices => {
+                calls.push([
+                    "respond",
+                    choices
+                ]);
+            }
+        };
+
+        await command.autocomplete(
+            interaction
+        );
+
+        assert.match(
+            calls[0][0],
+            /installation\.status = 'approved'/
+        );
+        assert.deepEqual(
+            calls[0][1],
+            ["guild", "%rey%"]
+        );
+        assert.deepEqual(
+            calls[1],
+            [
+                "respond",
+                [
+                    { name: "Reya", value: "Reya" },
+                    { name: "Rêya", value: "Rêya" }
                 ]
             ]
         );

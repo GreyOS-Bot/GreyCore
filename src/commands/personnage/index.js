@@ -16,7 +16,7 @@ const characterCreateModal =
     );
 
 const {
-    privatePayload,
+    deferPrivate,
     replyPrivate
 } = require(
     "../../v2/core/services/InteractionResponseService"
@@ -94,6 +94,7 @@ module.exports = {
                     .setName("nom")
                     .setDescription("Nom du personnage")
                     .setRequired(true)
+                    .setAutocomplete(true)
             )
     ),
 
@@ -149,6 +150,10 @@ module.exports = {
          */
         if (subcommand === "fiche") {
 
+            await deferPrivate(
+                interaction
+            );
+
             const name =
                 interaction.options
                     .getString("nom")
@@ -182,10 +187,10 @@ module.exports = {
 
             if (!v2Character) {
 
-                return replyPrivate(
-                    interaction,
-                    "❌ Aucun personnage jouable installé sur ce serveur n’a été trouvé avec ce nom."
-                );
+                return interaction.editReply({
+                    content:
+                        "❌ Aucun personnage jouable installé sur ce serveur n’a été trouvé avec ce nom."
+                });
 
             }
 
@@ -198,11 +203,8 @@ module.exports = {
                             if (property === "update") {
 
                                 return payload =>
-                                    target.reply(
-                                        privatePayload(
-                                            target,
-                                            payload
-                                        )
+                                    target.editReply(
+                                        payload
                                     );
 
                             }
@@ -229,6 +231,45 @@ module.exports = {
 
         }
 
+    },
+
+    async autocomplete(interaction) {
+        if (
+            interaction.options.getSubcommand()
+                !== "fiche"
+        ) {
+            return interaction.respond([]);
+        }
+
+        const focused = String(
+            interaction.options.getFocused()
+            || ""
+        ).trim();
+
+        const characters = db.prepare(`
+            SELECT DISTINCT
+                character.proxy_name
+            FROM CharactersV2 character
+            JOIN CharacterGuildInstallationsV2 installation
+                ON installation.character_id = character.id
+            WHERE installation.guild_id = ?
+            AND character.is_archived = 0
+            AND installation.status = 'approved'
+            AND installation.proxy_enabled = 1
+            AND LOWER(character.proxy_name) LIKE LOWER(?)
+            ORDER BY character.proxy_name COLLATE NOCASE
+            LIMIT 25
+        `).all(
+            interaction.guildId,
+            `%${focused}%`
+        );
+
+        return interaction.respond(
+            characters.map(character => ({
+                name: character.proxy_name,
+                value: character.proxy_name
+            }))
+        );
     }
 
 };
