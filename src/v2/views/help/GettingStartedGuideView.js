@@ -183,6 +183,34 @@ const TOPICS = {
                 inline: false
             }
         ]
+    },
+    confidentialite: {
+        title:
+            "🔐 Confidentialité — Guide GreyCore",
+        description:
+            "GreyCore te permet de comprendre et de maîtriser les données liées à ton compte Discord.",
+        fields: [
+            {
+                name:
+                    "S’informer",
+                value: [
+                    "Lis la politique avec `/confidentialite politique`.",
+                    "Lis les règles d’utilisation avec `/confidentialite charte`.",
+                    "Affiche un résumé privé avec `/confidentialite mes-donnees`."
+                ].join("\n"),
+                inline: false
+            },
+            {
+                name:
+                    "Demander l’oubli",
+                value: [
+                    "Utilise `/confidentialite oublier confirmation:OUBLIER`.",
+                    "Cette action supprime définitivement tes personnages et leurs données liées. Les références indispensables aux données d’autres joueurs sont anonymisées.",
+                    "Les copies présentes dans les sauvegardes tournantes disparaissent ensuite automatiquement à leur expiration."
+                ].join("\n"),
+                inline: false
+            }
+        ]
     }
 };
 

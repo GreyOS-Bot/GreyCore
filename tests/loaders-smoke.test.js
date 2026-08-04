@@ -56,7 +56,7 @@ test(
 
         assert.equal(
             client.commands.size,
-            19
+            20
         );
 
         for (
@@ -68,7 +68,8 @@ test(
                 "supprimer-etat",
                 "relationtype",
                 "personnages",
-                "validations"
+                "validations",
+                "confidentialite"
             ]
         ) {
             assert.equal(

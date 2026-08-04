@@ -61,6 +61,12 @@ module.exports = {
                             "Biens",
                         value:
                             "biens"
+                    },
+                    {
+                        name:
+                            "Confidentialité et mes données",
+                        value:
+                            "confidentialite"
                     }
                 )
         ),
