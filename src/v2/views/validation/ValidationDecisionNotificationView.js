@@ -133,6 +133,9 @@ class ValidationDecisionNotificationView {
         const rejected =
             status === "rejected";
 
+        const pending =
+            status === "pending";
+
         return {
             embeds: [
                 {
@@ -145,7 +148,9 @@ class ValidationDecisionNotificationView {
                         "",
                         rejected
                             ? "La fiche doit être corrigée puis renvoyée en validation."
-                            : "La demande doit encore être envoyée au staff.",
+                            : pending
+                                ? "La demande est bien en attente : pense à terminer les éventuelles étapes demandées par le staff."
+                                : "La demande doit encore être envoyée au staff.",
                         "",
                         "Retourne sur le serveur, utilise `/mes personnages`, sélectionne ce personnage puis termine les étapes affichées."
                     ].join("\n"),

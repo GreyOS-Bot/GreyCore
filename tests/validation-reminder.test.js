@@ -126,3 +126,30 @@ test(
         );
     }
 );
+
+test(
+    "la carte staff conserve le rappel pendant la validation",
+    () => {
+        const builder = require(
+            "../src/v2/builders/ValidationCardBuilder"
+        );
+        const card = builder.build({
+            installation: {
+                id: 8,
+                status: "pending",
+                proxy_name: "Reya",
+                character_type: "personnage_joue",
+                firstname: "Reya",
+                story: "Histoire",
+                proxy_enabled: 0
+            },
+            guildName: "Greyline",
+            requesterDisplay: "<@owner>"
+        });
+        const ids = card.components
+            .flatMap(row => row.toJSON().components)
+            .map(component => component.custom_id);
+
+        assert.ok(ids.includes("v2_validation_remind:8"));
+    }
+);

@@ -473,6 +473,7 @@ class ValidationCardBuilder {
         if (
             status === "draft"
             || status === "rejected"
+            || status === "pending"
         ) {
             buttons.push(
                 new ButtonBuilder()

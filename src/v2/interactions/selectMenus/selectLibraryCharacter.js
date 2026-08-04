@@ -1,8 +1,8 @@
 const v2 =
     require("../../index");
 
-const characterDashboardPage =
-    require("../../pages/character/CharacterDashboardPage");
+const openCharacterDashboardPage =
+    require("../../pages/character/OpenCharacterDashboardPage");
 
 const {
     replyError
@@ -35,55 +35,8 @@ module.exports = async (
         );
     }
 
-    const continuities =
-        v2.managers.library
-            .getContinuities(
-                character.id
-            );
-
-    const characterDashboardManager =
-    require(
-        "../../services/dashboard/CharacterDashboardManager"
-    );
-
-const dashboardData =
-    characterDashboardManager.getDashboardData(
-        character.id,
-        {
-            continuityId:
-                character.continuity_id,
-
-            guildId:
-                interaction.guildId
-        }
-    );
-
-if (!dashboardData) {
-
-    return replyError(
+    return openCharacterDashboardPage.execute(
         interaction,
-        "Impossible de charger ce personnage."
+        character.id
     );
-
-}
-
-const view =
-    characterDashboardPage.build(
-
-        dashboardData.character,
-
-        dashboardData.counts,
-
-        {
-            isOwner:
-                true,
-            modules:
-                v2.managers.guildModule
-                    .getConfiguration(
-                        interaction.guildId
-                    )
-        }
-
-    );
-    return interaction.update(view);
 };

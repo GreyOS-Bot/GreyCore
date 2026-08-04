@@ -65,7 +65,8 @@ module.exports = async interaction => {
     if (
         ![
             "draft",
-            "rejected"
+            "rejected",
+            "pending"
         ].includes(installation.status)
     ) {
         return replyError(

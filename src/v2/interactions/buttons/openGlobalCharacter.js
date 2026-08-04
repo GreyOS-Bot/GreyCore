@@ -1,13 +1,8 @@
 const v2 =
     require("../../index");
 
-const characterDashboardPage =
-    require("../../pages/character/CharacterDashboardPage");
-
-const characterDashboardManager =
-    require(
-        "../../services/dashboard/CharacterDashboardManager"
-    );
+const openCharacterDashboardPage =
+    require("../../pages/character/OpenCharacterDashboardPage");
 
 const {
     replyError
@@ -40,41 +35,9 @@ module.exports = async (
         );
     }
 
-    const dashboardData =
-        characterDashboardManager
-            .getDashboardData(
-                ownedCharacter.id,
-                {
-                    continuityId:
-                        ownedCharacter.continuity_id,
-
-                    guildId:
-                        interaction.guildId
-                }
-            );
-
-    if (!dashboardData) {
-        return replyError(
-            interaction,
-            "Impossible de charger le Dashboard de ce personnage."
-        );
-    }
-
-    const view =
-        characterDashboardPage.build(
-            dashboardData.character,
-            dashboardData.counts,
-        {
-            isOwner:
-                true,
-            modules:
-                v2.managers.guildModule
-                    .getConfiguration(
-                        interaction.guildId
-                    )
-        }
-        );
-
-    return interaction.update(view);
+    return openCharacterDashboardPage.execute(
+        interaction,
+        ownedCharacter.id
+    );
 
 };
