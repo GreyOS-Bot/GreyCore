@@ -470,6 +470,25 @@ class ValidationCardBuilder {
             );
         }
 
+        if (
+            status === "draft"
+            || status === "rejected"
+        ) {
+            buttons.push(
+                new ButtonBuilder()
+                    .setCustomId(
+                        `v2_validation_remind:${installationId}`
+                    )
+                    .setLabel(
+                        "Envoyer un rappel"
+                    )
+                    .setEmoji("🔔")
+                    .setStyle(
+                        ButtonStyle.Primary
+                    )
+            );
+        }
+
         buttons.push(
             new ButtonBuilder()
                 .setCustomId(

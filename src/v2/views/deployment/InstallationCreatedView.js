@@ -260,19 +260,26 @@ class InstallationCreatedView {
             );
         }
 
-        components.push(
-            new ButtonBuilder()
-                .setCustomId(
-                    `v2_story_home:${continuity.id}`
-                )
-                .setLabel(
-                    "Continuité"
-                )
-                .setEmoji("📖")
-                .setStyle(
-                    ButtonStyle.Secondary
-                ),
+        if (
+            installation.status ===
+            "approved"
+        ) {
+            components.push(
+                new ButtonBuilder()
+                    .setCustomId(
+                        `v2_story_home:${continuity.id}`
+                    )
+                    .setLabel(
+                        "Continuité"
+                    )
+                    .setEmoji("📖")
+                    .setStyle(
+                        ButtonStyle.Secondary
+                    )
+            );
+        }
 
+        components.push(
             new ButtonBuilder()
                 .setCustomId(
                     `v2_deploy_help:${continuity.id}`
@@ -281,6 +288,17 @@ class InstallationCreatedView {
                     "Aide"
                 )
                 .setEmoji("❓")
+                .setStyle(
+                    ButtonStyle.Secondary
+                ),
+            new ButtonBuilder()
+                .setCustomId(
+                    "character_close"
+                )
+                .setLabel(
+                    "Fermer"
+                )
+                .setEmoji("❌")
                 .setStyle(
                     ButtonStyle.Secondary
                 )

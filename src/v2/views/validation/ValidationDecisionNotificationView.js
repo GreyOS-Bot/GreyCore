@@ -95,6 +95,43 @@ class ValidationDecisionNotificationView {
         };
     }
 
+    reminder({
+        installationId,
+        characterName,
+        guildName,
+        status
+    }) {
+        const rejected =
+            status === "rejected";
+
+        return {
+            embeds: [
+                {
+                    color:
+                        0xFEE75C,
+                    title:
+                        "🔔 Rappel de validation GreyCore",
+                    description: [
+                        `Le staff de **${guildName || "ton serveur"}** te rappelle que la création de **${characterName || "ton personnage"}** n’est pas encore finalisée.`,
+                        "",
+                        rejected
+                            ? "La fiche doit être corrigée puis renvoyée en validation."
+                            : "La demande doit encore être envoyée au staff.",
+                        "",
+                        "Retourne sur le serveur, utilise `/mes personnages`, sélectionne ce personnage puis termine les étapes affichées."
+                    ].join("\n"),
+                    footer: {
+                        text:
+                            `Greycore • Installation #${installationId}`
+                    },
+                    timestamp:
+                        new Date()
+                            .toISOString()
+                }
+            ]
+        };
+    }
+
 }
 
 module.exports =

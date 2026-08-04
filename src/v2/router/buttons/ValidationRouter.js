@@ -28,6 +28,11 @@ const openRejectedProfileEdit =
         "../../interactions/buttons/openRejectedProfileEdit"
     );
 
+const sendValidationReminder =
+    require(
+        "../../interactions/buttons/sendValidationReminder"
+    );
+
 const approveChangeRequest =
     require(
         "../../interactions/buttons/approveChangeRequest"
@@ -49,6 +54,18 @@ module.exports =
 
         const customId =
             interaction.customId;
+
+        if (
+            customId.startsWith(
+                "v2_validation_remind:"
+            )
+        ) {
+            await sendValidationReminder(
+                interaction
+            );
+
+            return true;
+        }
 
         if (
             customId.startsWith(

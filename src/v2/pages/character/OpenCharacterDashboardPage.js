@@ -12,6 +12,15 @@ const characterManagementPolicy =
 const guildModuleManager =
     require("../../managers/GuildModuleV2Manager");
 
+const installationManager =
+    require("../../managers/InstallationV2Manager");
+
+const installationCreatedView =
+    require("../../views/deployment/InstallationCreatedView");
+
+const characterAvatarRequiredView =
+    require("../../views/character/CharacterAvatarRequiredView");
+
 class OpenCharacterDashboardPage {
 
     async execute(
@@ -45,17 +54,67 @@ class OpenCharacterDashboardPage {
 
         }
 
+        const isOwner =
+            characterManagementPolicy
+                .isOwner(
+                    interaction,
+                    dashboardData.character
+                );
+
+        const installation =
+            dashboardData.continuity
+            && interaction.guildId
+                ? installationManager
+                    .getByContinuityAndGuild(
+                        dashboardData.continuity.id,
+                        interaction.guildId
+                    )
+                : null;
+
+        if (
+            installation
+            && installation.status !== "approved"
+        ) {
+            if (!isOwner) {
+                return interaction.update({
+                    content:
+                        "🔒 Ce personnage n’est pas encore validé sur ce serveur.",
+                    embeds: [],
+                    components: []
+                });
+            }
+
+            const hasAvatar = Boolean(
+                installation.local_avatar_url
+                || dashboardData.character.avatar_url
+            );
+
+            const validationView = hasAvatar
+                ? installationCreatedView.build(
+                    dashboardData.character,
+                    dashboardData.continuity,
+                    installation,
+                    interaction.guild,
+                    { created: false }
+                )
+                : characterAvatarRequiredView.build(
+                    dashboardData.character,
+                    dashboardData.continuity,
+                    installation,
+                    interaction.guild
+                );
+
+            return interaction.update(
+                validationView
+            );
+        }
+
         const page =
             characterDashboardPage.build(
                 dashboardData.character,
                 dashboardData.counts,
                 {
-                    isOwner:
-                        characterManagementPolicy
-                            .isOwner(
-                                interaction,
-                                dashboardData.character
-                            ),
+                    isOwner,
                     modules:
                         guildModuleManager.getConfiguration(
                             interaction.guildId

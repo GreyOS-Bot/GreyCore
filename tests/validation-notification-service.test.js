@@ -56,6 +56,36 @@ test(
 );
 
 test(
+    "le rappel de creation est envoye en message prive",
+    async () => {
+        const payloads = [];
+        const service =
+            createNotificationService({});
+
+        assert.equal(
+            await service.notifyReminder({
+                client: createClient({
+                    playerSend: async payload => {
+                        payloads.push(payload);
+                    }
+                }),
+                playerId: "owner",
+                installationId: 7,
+                characterName: "Reya",
+                guildName: "Greyline",
+                status: "draft"
+            }),
+            true
+        );
+
+        assert.equal(
+            payloads[0].kind,
+            "reminder"
+        );
+    }
+);
+
+test(
     "un refus utilise le salon de suivi lorsque les messages privés sont fermés",
     async () => {
         const channelPayloads = [];
@@ -149,6 +179,11 @@ function createNotificationService({
                         "rejected",
                     embeds: [],
                     components: []
+                }),
+            reminder:
+                () => ({
+                    kind:
+                        "reminder"
                 })
         }
     );

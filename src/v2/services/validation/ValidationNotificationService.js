@@ -17,6 +17,46 @@ const logger =
 
 class ValidationNotificationService {
 
+    async notifyReminder({
+        client,
+        playerId,
+        installationId,
+        characterName,
+        guildName,
+        status
+    }) {
+        if (!playerId) {
+            return false;
+        }
+
+        const player =
+            await client.users
+                .fetch(playerId)
+                .catch(() => null);
+
+        if (!player) {
+            return false;
+        }
+
+        return player.send(
+            notificationView.reminder({
+                installationId,
+                characterName,
+                guildName,
+                status
+            })
+        )
+            .then(() => true)
+            .catch(error => {
+                logger.warn(
+                    "Message privé de rappel impossible.",
+                    error
+                );
+
+                return false;
+            });
+    }
+
     async notifyApproval({
         client,
         playerId,
