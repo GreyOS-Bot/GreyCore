@@ -55,7 +55,15 @@ test(
             guildId: "guild",
             discordUserId: "owner",
             characterId: "character",
-            characterType: "personnage_joue"
+            changes: {
+                characterType: "personnage_joue",
+                proxyName: "Reya:",
+                alias: "Story",
+                firstname: "Astoria",
+                lastname: "Grey",
+                age: 24,
+                occupation: "Journaliste"
+            }
         });
 
         assert.equal(
@@ -63,6 +71,18 @@ test(
             "personnage_joue"
         );
         assert.equal(result.visibility, "private");
+        assert.deepEqual(
+            result.changedFields,
+            [
+                "type",
+                "proxy",
+                "alias affiché",
+                "vrai prénom",
+                "nom",
+                "âge",
+                "métier"
+            ]
+        );
         assert.equal(
             db.prepare(`
                 SELECT character_type
@@ -78,6 +98,28 @@ test(
                 WHERE id = 1
             `).get().visibility,
             "private"
+        );
+        assert.deepEqual(
+            db.prepare(`
+                SELECT alias, firstname, lastname, age, occupation
+                FROM CharacterProfilesV2
+                WHERE continuity_id = 'continuity'
+            `).get(),
+            {
+                alias: "Story",
+                firstname: "Astoria",
+                lastname: "Grey",
+                age: 24,
+                occupation: "Journaliste"
+            }
+        );
+        assert.equal(
+            db.prepare(`
+                SELECT proxy_name
+                FROM CharactersV2
+                WHERE id = 'character'
+            `).get().proxy_name,
+            "Reya:"
         );
 
         db.close();

@@ -80,7 +80,7 @@ module.exports = {
             sub
                 .setName("corriger")
                 .setDescription(
-                    "Corrige le type d’un personnage installé."
+                    "Corrige les informations d’un personnage installé."
                 )
                 .addUserOption(option =>
                     option
@@ -105,7 +105,6 @@ module.exports = {
                         .setDescription(
                             "Nouveau type du personnage"
                         )
-                        .setRequired(true)
                         .addChoices(
                             {
                                 name: "PJ",
@@ -128,6 +127,42 @@ module.exports = {
                                 value: "reserve_staff"
                             }
                         )
+                )
+                .addStringOption(option =>
+                    option.setName("proxy")
+                        .setDescription("Nouveau proxy à taper")
+                        .setMaxLength(100)
+                )
+                .addStringOption(option =>
+                    option.setName("alias")
+                        .setDescription("Prénom ou alias affiché")
+                        .setMaxLength(100)
+                )
+                .addStringOption(option =>
+                    option.setName("vrai_prenom")
+                        .setDescription("Vrai prénom facultatif")
+                        .setMaxLength(100)
+                )
+                .addStringOption(option =>
+                    option.setName("nom")
+                        .setDescription("Nom de famille")
+                        .setMaxLength(100)
+                )
+                .addIntegerOption(option =>
+                    option.setName("age")
+                        .setDescription("Âge du personnage")
+                        .setMinValue(0)
+                        .setMaxValue(999)
+                )
+                .addStringOption(option =>
+                    option.setName("organisation")
+                        .setDescription("Gang ou organisation")
+                        .setMaxLength(100)
+                )
+                .addStringOption(option =>
+                    option.setName("metier")
+                        .setDescription("Métier du personnage")
+                        .setMaxLength(100)
                 )
         )
         .addSubcommand(sub =>
@@ -327,9 +362,25 @@ module.exports = {
                 );
             const characterType =
                 interaction.options.getString(
-                    "type",
-                    true
+                    "type"
                 );
+            const changes = {
+                characterType,
+                proxyName:
+                    interaction.options.getString("proxy"),
+                alias:
+                    interaction.options.getString("alias"),
+                firstname:
+                    interaction.options.getString("vrai_prenom"),
+                lastname:
+                    interaction.options.getString("nom"),
+                age:
+                    interaction.options.getInteger("age"),
+                gang:
+                    interaction.options.getString("organisation"),
+                occupation:
+                    interaction.options.getString("metier")
+            };
             const result =
                 characterTypeCorrectionService
                     .correct({
@@ -338,7 +389,7 @@ module.exports = {
                         discordUserId:
                             user.id,
                         characterId,
-                        characterType
+                        changes
                     });
 
             return replyPrivate(
@@ -347,7 +398,8 @@ module.exports = {
                     "✅ **Fiche corrigée**",
                     `Personnage : **${result.firstname || result.proxy_name}**`,
                     `Propriétaire : ${user}`,
-                    `Nouveau type : **${characterTypes.getDisplayLabel(result.character_type)}**`,
+                    `Type actuel : **${characterTypes.getDisplayLabel(result.character_type)}**`,
+                    `Champs corrigés : **${result.changedFields.join(", ")}**`,
                     "",
                     "La portée du personnage sur le serveur a également été mise à jour."
                 ].join("\n")

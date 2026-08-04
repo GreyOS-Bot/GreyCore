@@ -1,20 +1,20 @@
 const db = require("../../database/database");
 
 class CharacterTypeCorrectionRepository {
-    correct({
+    getContext({
         guildId,
         discordUserId,
-        characterId,
-        characterType,
-        visibility,
-        updatedAt
+        characterId
     }) {
-        const character = db.prepare(`
+        return db.prepare(`
             SELECT
                 character.id,
                 character.proxy_name,
                 character.character_type,
+                character.base_firstname,
+                character.base_lastname,
                 user.discord_user_id,
+                installation.continuity_id,
                 COALESCE(
                     NULLIF(profile.alias, ''),
                     NULLIF(profile.firstname, ''),
@@ -40,11 +40,14 @@ class CharacterTypeCorrectionRepository {
             characterId,
             discordUserId
         );
+    }
 
-        if (!character) {
-            return null;
-        }
-
+    correctType({
+        characterId,
+        characterType,
+        visibility,
+        updatedAt
+    }) {
         db.transaction(() => {
             db.prepare(`
                 UPDATE CharactersV2
@@ -66,12 +69,6 @@ class CharacterTypeCorrectionRepository {
                 characterId
             );
         })();
-
-        return {
-            ...character,
-            character_type: characterType,
-            visibility
-        };
     }
 }
 
