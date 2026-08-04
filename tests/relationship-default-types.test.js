@@ -74,6 +74,8 @@ test(
                 of [
                     "parent",
                     "uncle_aunt",
+                    "sibling_in_law",
+                    "stepparent",
                     "unacknowledged_couple"
                 ]
             ) {

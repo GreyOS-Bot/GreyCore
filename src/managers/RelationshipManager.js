@@ -313,6 +313,18 @@ installDefaultRelationshipTypes(guildId) {
             isSymmetric: 1
         },
         {
+            key: "sibling_in_law",
+            labelAToB: "Beau-frère/Belle-sœur de",
+            labelBToA: "Beau-frère/Belle-sœur de",
+            isSymmetric: 1
+        },
+        {
+            key: "stepparent",
+            labelAToB: "Beau-père/Belle-mère de",
+            labelBToA: "Beau-fils/Belle-fille de",
+            isSymmetric: 0
+        },
+        {
             key: "cousin",
             labelAToB: "Cousin·e de",
             labelBToA: "Cousin·e de",

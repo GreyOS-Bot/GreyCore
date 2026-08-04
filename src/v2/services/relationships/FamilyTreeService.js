@@ -107,6 +107,8 @@ function getCategory(
 
         case "cousin":
         case "uncle_aunt":
+        case "sibling_in_law":
+        case "stepparent":
             return "extended";
 
         default:
