@@ -1,5 +1,8 @@
 const modalRouters = [
     require(
+        "./modals/AnnouncementModalRouter"
+    ),
+    require(
         "./modals/CharacterModalRouter"
     ),
     require(

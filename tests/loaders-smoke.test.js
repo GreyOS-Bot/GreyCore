@@ -56,7 +56,7 @@ test(
 
         assert.equal(
             client.commands.size,
-            21
+            22
         );
 
         for (
