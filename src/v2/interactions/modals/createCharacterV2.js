@@ -37,7 +37,9 @@ const staffTrackingService =
 
 const {
     replyError,
-    replyPrivate
+    replyPrivate,
+    editOrReplyError,
+    deferPrivate
 } = require(
     "../../core/services/InteractionResponseService"
 );
@@ -60,7 +62,7 @@ async function startCharacterCreation(
             characterTypeCatalog
                 .usesSimpleCreation(type)
         ) {
-            return createCharacter(
+            return await createCharacter(
                 interaction,
                 {
                     type,
@@ -130,7 +132,7 @@ async function startCharacterCreation(
             error
         );
 
-        return replyError(
+        return editOrReplyError(
             interaction,
             error.message
             || "Impossible de cr\u00e9er le personnage."
@@ -151,7 +153,7 @@ async function completeCharacterCreation(
                 type
             );
 
-        return createCharacter(
+        return await createCharacter(
             interaction,
             {
                 ...pending.data,
@@ -189,7 +191,7 @@ async function completeCharacterCreation(
             error
         );
 
-        return replyError(
+        return editOrReplyError(
             interaction,
             error.message
             || "Impossible de cr\u00e9er le personnage."
@@ -229,6 +231,10 @@ async function createCharacter(
     interaction,
     data
 ) {
+    await acknowledgeCreation(
+        interaction
+    );
+
     const result =
         characterCreationService.create({
             discordUserId:
@@ -277,7 +283,22 @@ async function createCharacter(
             interaction.guild
         );
 
-    if (interaction.message) {
+    if (
+        (
+            interaction.deferred
+            || interaction.replied
+        )
+        && typeof interaction.editReply ===
+            "function"
+    ) {
+        return interaction.editReply(view);
+    }
+
+    if (
+        interaction.message
+        && typeof interaction.update ===
+            "function"
+    ) {
         return interaction.update(view);
     }
 
@@ -285,6 +306,33 @@ async function createCharacter(
         interaction,
         view
     );
+}
+
+async function acknowledgeCreation(
+    interaction
+) {
+    if (
+        interaction.deferred
+        || interaction.replied
+    ) {
+        return;
+    }
+
+    if (
+        interaction.message
+        && typeof interaction.deferUpdate ===
+            "function"
+    ) {
+        await interaction.deferUpdate();
+        return;
+    }
+
+    if (
+        typeof interaction.deferReply ===
+        "function"
+    ) {
+        await deferPrivate(interaction);
+    }
 }
 
 function ensureGuild(interaction) {

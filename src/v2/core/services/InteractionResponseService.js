@@ -87,6 +87,26 @@ async function replyPrivate(
     );
 }
 
+function deferPrivate(interaction) {
+    if (
+        interaction.deferred
+        || interaction.replied
+        || typeof interaction.deferReply !==
+            "function"
+    ) {
+        return Promise.resolve();
+    }
+
+    const payload = {};
+
+    if (canUseEphemeral(interaction)) {
+        payload.flags =
+            MessageFlags.Ephemeral;
+    }
+
+    return interaction.deferReply(payload);
+}
+
 function replyError(
     interaction,
     message,
@@ -214,6 +234,7 @@ function updateError(
 module.exports = {
     canUseEphemeral,
     privatePayload,
+    deferPrivate,
     replyPrivate,
     replyError,
     errorPayload,
