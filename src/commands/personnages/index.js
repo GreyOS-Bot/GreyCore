@@ -18,6 +18,11 @@ const characterTypes =
         "../../v2/core/character/CharacterTypeCatalog"
     );
 
+const characterTypeCorrectionService =
+    require(
+        "../../v2/services/character/CharacterTypeCorrectionService"
+    );
+
 const {
     requireStaffCommandAccess
 } = require(
@@ -69,6 +74,60 @@ module.exports = {
                 .setName("deployer-tous")
                 .setDescription(
                     "Installe et valide tous les personnages absents du serveur."
+                )
+        )
+        .addSubcommand(sub =>
+            sub
+                .setName("corriger")
+                .setDescription(
+                    "Corrige le type d’un personnage installé."
+                )
+                .addUserOption(option =>
+                    option
+                        .setName("utilisateur")
+                        .setDescription(
+                            "Propriétaire du personnage"
+                        )
+                        .setRequired(true)
+                )
+                .addStringOption(option =>
+                    option
+                        .setName("personnage")
+                        .setDescription(
+                            "Personnage à corriger"
+                        )
+                        .setAutocomplete(true)
+                        .setRequired(true)
+                )
+                .addStringOption(option =>
+                    option
+                        .setName("type")
+                        .setDescription(
+                            "Nouveau type du personnage"
+                        )
+                        .setRequired(true)
+                        .addChoices(
+                            {
+                                name: "PJ",
+                                value: "personnage_joue"
+                            },
+                            {
+                                name: "PNJ",
+                                value: "pnj"
+                            },
+                            {
+                                name: "Random",
+                                value: "random"
+                            },
+                            {
+                                name: "PNJ réservé",
+                                value: "pnj_reserve"
+                            },
+                            {
+                                name: "Réservé staff",
+                                value: "reserve_staff"
+                            }
+                        )
                 )
         )
         .addSubcommand(sub =>
@@ -130,6 +189,41 @@ module.exports = {
             interaction.options.getFocused(
                 true
             );
+
+        if (focused.name === "personnage") {
+            const owner =
+                interaction.options.getUser(
+                    "utilisateur"
+                );
+
+            if (!owner) {
+                return interaction.respond([]);
+            }
+
+            const filter = String(
+                focused.value || ""
+            ).trim().toLowerCase();
+
+            return interaction.respond(
+                rosterManager
+                    .getByOwnerOnGuild(
+                        interaction.guildId,
+                        owner.id
+                    )
+                    .filter(character =>
+                        !filter
+                        || String(
+                            character.firstname
+                            || character.proxy_name
+                        ).toLowerCase().includes(filter)
+                    )
+                    .slice(0, 25)
+                    .map(character => ({
+                        name: `${character.firstname || character.proxy_name} — ${characterTypes.getDisplayLabel(character.character_type)}`,
+                        value: character.id
+                    }))
+            );
+        }
 
         if (focused.name !== "lettre") {
             return interaction.respond([]);
@@ -218,6 +312,45 @@ module.exports = {
                 buildBulkDeploymentMessage(
                     result.total
                 )
+            );
+        }
+
+        if (subcommand === "corriger") {
+            const user =
+                interaction.options.getUser(
+                    "utilisateur"
+                );
+            const characterId =
+                interaction.options.getString(
+                    "personnage",
+                    true
+                );
+            const characterType =
+                interaction.options.getString(
+                    "type",
+                    true
+                );
+            const result =
+                characterTypeCorrectionService
+                    .correct({
+                        guildId:
+                            interaction.guildId,
+                        discordUserId:
+                            user.id,
+                        characterId,
+                        characterType
+                    });
+
+            return replyPrivate(
+                interaction,
+                [
+                    "✅ **Fiche corrigée**",
+                    `Personnage : **${result.firstname || result.proxy_name}**`,
+                    `Propriétaire : ${user}`,
+                    `Nouveau type : **${characterTypes.getDisplayLabel(result.character_type)}**`,
+                    "",
+                    "La portée du personnage sur le serveur a également été mise à jour."
+                ].join("\n")
             );
         }
 
