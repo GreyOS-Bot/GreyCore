@@ -62,7 +62,13 @@ module.exports =
             pendingAction.channelId
                 !== message.channel.id
         ) {
-            return true;
+            /*
+             * Une attente d'image ne doit jamais bloquer les autres
+             * fonctionnalités du joueur ailleurs sur le serveur.
+             * Le message poursuit donc son parcours normal (proxy,
+             * assistant de scène, etc.) hors du salon concerné.
+             */
+            return false;
         }
 
         await uploadHandler(
