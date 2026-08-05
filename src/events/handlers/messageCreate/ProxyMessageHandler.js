@@ -42,6 +42,11 @@ const {
     "../../../v2/core/services/ProxyThreadContext"
 );
 
+const originalMessageDeletionService =
+    require(
+        "../../../v2/core/services/OriginalMessageDeletionService"
+    );
+
 module.exports =
     async function proxyMessageHandler(
         message
@@ -144,6 +149,30 @@ module.exports =
                 )
             );
 
+        markInternalDelete(
+            message.id
+        );
+
+        try {
+            await originalMessageDeletionService
+                .delete(message);
+        } catch (error) {
+            await webhook.deleteMessage(
+                webhookMessage.id,
+                withThreadId(
+                    message.channel,
+                    {}
+                )
+            ).catch(() => null);
+
+            throw new Error(
+                "Le proxy n’a pas été publié car le message original n’a pas pu être supprimé.",
+                {
+                    cause: error
+                }
+            );
+        }
+
         proxyMessageManager.save({
             discordMessageId:
                 message.id,
@@ -160,21 +189,6 @@ module.exports =
             characterId:
                 character.id
         });
-
-        markInternalDelete(
-            message.id
-        );
-
-        try {
-            await message.delete();
-        } catch (error) {
-            if (error.code !== 10008) {
-                console.error(
-                    "❌ Impossible de supprimer le message original :",
-                    error
-                );
-            }
-        }
 
         console.log(
             `✅ Proxy envoyé : ${character.name} → ${webhookMessage.id}`
