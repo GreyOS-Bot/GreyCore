@@ -162,6 +162,119 @@ class ValidationRepository {
         );
     }
 
+    searchIncompleteForGuild(
+        guildId,
+        filter,
+        limit = 25
+    ) {
+        const search =
+            `%${String(filter || "").trim()}%`;
+
+        return db.prepare(`
+            SELECT
+                installation.id,
+                installation.status,
+                installation.validation_channel_id,
+                installation.validation_message_id,
+                character.proxy_name,
+                continuity.firstname,
+                continuity.lastname,
+                owner.discord_user_id AS owner_id
+            FROM CharacterGuildInstallationsV2 AS installation
+            JOIN CharactersV2 AS character
+                ON character.id = installation.character_id
+            JOIN CharacterContinuitiesV2 AS continuity
+                ON continuity.id = installation.continuity_id
+            JOIN UsersV2 AS owner
+                ON owner.id = character.owner_user_id
+            WHERE installation.guild_id = ?
+            AND installation.status IN (
+                'draft',
+                'pending',
+                'rejected',
+                'suspended'
+            )
+            AND (
+                character.proxy_name LIKE ?
+                OR continuity.firstname LIKE ?
+                OR continuity.lastname LIKE ?
+                OR owner.discord_user_id LIKE ?
+            )
+            ORDER BY
+                character.proxy_name COLLATE NOCASE,
+                installation.updated_at DESC
+            LIMIT ?
+        `).all(
+            guildId,
+            search,
+            search,
+            search,
+            search,
+            limit
+        );
+    }
+
+    cancelIncomplete(
+        installationId,
+        {
+            cancelledBy,
+            reason
+        }
+    ) {
+        const installation =
+            this.requireInstallation(
+                installationId
+            );
+
+        const cancellableStatuses =
+            new Set([
+                "draft",
+                "pending",
+                "rejected",
+                "suspended"
+            ]);
+
+        if (!cancellableStatuses.has(installation.status)) {
+            throw new Error(
+                "Seule une installation non aboutie peut être annulée."
+            );
+        }
+
+        const now = new Date().toISOString();
+
+        db.transaction(() => {
+            db.prepare(`
+                UPDATE CharacterGuildInstallationsV2
+                SET
+                    status = 'archived',
+                    proxy_enabled = 0,
+                    validation_channel_id = NULL,
+                    validation_message_id = NULL,
+                    last_status_change_at = ?,
+                    updated_at = ?
+                WHERE id = ?
+            `).run(
+                now,
+                now,
+                installationId
+            );
+
+            this.recordHistory({
+                installationId,
+                eventType: "installation_cancelled",
+                previousStatus: installation.status,
+                currentStatus: "archived",
+                actorId: cancelledBy,
+                reason,
+                occurredAt: now
+            });
+        })();
+
+        return this.getInstallationById(
+            installationId
+        );
+    }
+
     getHistory(
         installationId,
         limit

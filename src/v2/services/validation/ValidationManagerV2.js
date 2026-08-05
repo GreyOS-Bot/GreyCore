@@ -119,6 +119,62 @@ class ValidationManagerV2 {
             );
     }
 
+    searchIncompleteForGuild(
+        guildId,
+        filter = ""
+    ) {
+        return validationRepository
+            .searchIncompleteForGuild(
+                guildId,
+                filter,
+                25
+            );
+    }
+
+    cancelIncompleteInstallation({
+        installationId,
+        guildId,
+        cancelledBy,
+        reason
+    }) {
+        this.assertActorId(
+            cancelledBy,
+            "Le membre du staff annulant l’installation est obligatoire."
+        );
+        this.assertReason(
+            reason,
+            "Le motif de l’annulation est obligatoire."
+        );
+
+        const context = this.buildContext(
+            installationId
+        );
+
+        if (context.installation.guild_id !== guildId) {
+            throw new Error(
+                "Cette installation appartient à un autre serveur."
+            );
+        }
+
+        const installation =
+            validationRepository
+                .cancelIncomplete(
+                    installationId,
+                    {
+                        cancelledBy,
+                        reason: String(reason).trim()
+                    }
+                );
+
+        return {
+            action: "cancelled",
+            previousStatus:
+                context.installation.status,
+            installation,
+            context
+        };
+    }
+
     getHistory(
         installationId,
         limit = 20
