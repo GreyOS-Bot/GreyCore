@@ -233,6 +233,15 @@ test(
                             base_lastname:
                                 "Azur"
                         }
+                    ],
+                    [
+                        "character-p",
+                        {
+                            id: "character-p",
+                            proxy_name: "Parent",
+                            base_firstname: "Parent",
+                            character_type: "pnj"
+                        }
                     ]
                 ]);
 
@@ -266,6 +275,15 @@ test(
                                 "Émile",
                             lastname:
                                 "Azur"
+                        }
+                    ],
+                    [
+                        "continuity-p",
+                        {
+                            id: "continuity-p",
+                            character_id: "character-p",
+                            name: "GreyOS",
+                            firstname: "Parent"
                         }
                     ]
                 ]);
@@ -347,6 +365,23 @@ test(
                         " "
                     ),
                 []
+            );
+            assert.deepEqual(
+                manager
+                    .searchPlayableCharactersForGuild(
+                        "guild-a",
+                        "parent"
+                    ),
+                []
+            );
+            assert.deepEqual(
+                manager
+                    .searchInstalledCharactersForGuild(
+                        "guild-a",
+                        "parent"
+                    )
+                    .map(entry => entry.characterId),
+                ["character-p"]
             );
         } finally {
             isolated.cleanup();
@@ -545,6 +580,11 @@ function createDashboardTables(
                 'character-old',
                 'Archivé',
                 1
+            ),
+            (
+                'character-p',
+                'Parent',
+                0
             );
 
         INSERT INTO CharacterContinuitiesV2 (
@@ -563,6 +603,10 @@ function createDashboardTables(
             (
                 'continuity-old',
                 'character-old'
+            ),
+            (
+                'continuity-p',
+                'character-p'
             );
 
         INSERT INTO CharacterGuildInstallationsV2 (
@@ -610,6 +654,15 @@ function createDashboardTables(
                 'draft',
                 0,
                 '2026-01-04'
+            ),
+            (
+                5,
+                'character-p',
+                'continuity-p',
+                'guild-a',
+                'approved',
+                0,
+                '2026-01-05'
             );
     `);
 }

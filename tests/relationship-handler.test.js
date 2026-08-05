@@ -223,13 +223,19 @@ test(
                             "character"
                             ? mainDashboard
                             : otherDashboard,
+                getInstalledDashboardData:
+                    characterId =>
+                        characterId ===
+                            "character"
+                            ? mainDashboard
+                            : otherDashboard,
                 getDashboardData:
                     characterId =>
                         characterId ===
                             "character"
                             ? mainDashboard
                             : otherDashboard,
-                searchPlayableCharactersForGuild:
+                searchInstalledCharactersForGuild:
                     () => [
                         {
                             characterId:

@@ -143,6 +143,7 @@ test(
                     "query",
                     [
                         "guild",
+                        "Reya",
                         "Reya"
                     ]
                 ],
@@ -177,8 +178,16 @@ test(
                         ]);
 
                         return [
-                            { proxy_name: "Reya" },
-                            { proxy_name: "Rêya" }
+                            {
+                                id: "reya-a",
+                                proxy_name: "Reya",
+                                discord_user_id: "owner-a"
+                            },
+                            {
+                                id: "reya-b",
+                                proxy_name: "Reya",
+                                discord_user_id: "owner-b"
+                            }
                         ];
                     }
                 })
@@ -199,6 +208,20 @@ test(
 
         const interaction = {
             guildId: "guild",
+            guild: {
+                members: {
+                    cache: new Map([
+                        [
+                            "owner-a",
+                            { displayName: "Alice" }
+                        ],
+                        [
+                            "owner-b",
+                            { displayName: "Béatrice" }
+                        ]
+                    ])
+                }
+            },
             options: {
                 getSubcommand: () => "fiche",
                 getFocused: () => "rey"
@@ -228,8 +251,14 @@ test(
             [
                 "respond",
                 [
-                    { name: "Reya", value: "Reya" },
-                    { name: "Rêya", value: "Rêya" }
+                    {
+                        name: "Reya — Alice",
+                        value: "reya-a"
+                    },
+                    {
+                        name: "Reya — Béatrice",
+                        value: "reya-b"
+                    }
                 ]
             ]
         );

@@ -36,16 +36,14 @@ function createSearchResults({
                                 100
                             ),
                         description:
-                            entry.continuity.name
-                                ? `Continuité : ${
-                                    String(
-                                        entry.continuity.name
-                                    ).slice(
-                                        0,
-                                        80
-                                    )
-                                }`
-                                : "Continuité installée",
+                            [
+                                `Joueur : ${entry.ownerDisplayName}`,
+                                entry.continuity.name
+                                    ? `Continuité : ${entry.continuity.name}`
+                                    : "Continuité installée"
+                            ]
+                                .join(" • ")
+                                .slice(0, 100),
                         value:
                             String(
                                 entry.characterId

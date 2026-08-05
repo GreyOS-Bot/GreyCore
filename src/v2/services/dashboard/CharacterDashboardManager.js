@@ -365,6 +365,59 @@ class CharacterDashboardManager {
     }
 
     /**
+     * Retourne le dashboard d'un personnage installé et validé,
+     * même lorsque son proxy est désactivé. Ce parcours sert aux
+     * données de fiche (relations, arbre familial), pas au jeu RP.
+     */
+    getInstalledDashboardData(
+        characterId,
+        options = {}
+    ) {
+        const guildId = options.guildId || null;
+
+        if (!guildId) {
+            return null;
+        }
+
+        const character =
+            characterManager.getById(characterId);
+
+        if (
+            !character
+            || Number(character.is_archived) === 1
+        ) {
+            return null;
+        }
+
+        const installation = installationManager
+            .getByCharacter(characterId)
+            .find(candidate =>
+                String(candidate.guild_id) ===
+                    String(guildId)
+                && candidate.status === "approved"
+                && (
+                    !options.continuityId
+                    || candidate.continuity_id ===
+                        options.continuityId
+                )
+            );
+
+        if (!installation) {
+            return null;
+        }
+
+        return this.getDashboardData(
+            characterId,
+            {
+                ...options,
+                guildId,
+                continuityId:
+                    installation.continuity_id
+            }
+        );
+    }
+
+    /**
      * Retrouve une fiche jouable à partir du nom affiché
      * par un proxy externe sur le même serveur. Le proxy
      * technique, les proxies secondaires et l'identité
@@ -497,10 +550,24 @@ class CharacterDashboardManager {
     searchPlayableCharactersForGuild(
         guildId,
         query,
+        options = {}
+    ) {
+        return this.searchCharactersForGuild(
+            guildId,
+            query,
+            options,
+            true
+        );
+    }
+
+    searchCharactersForGuild(
+        guildId,
+        query,
         {
             excludeCharacterId = null,
             limit = 25
-        } = {}
+        } = {},
+        requireProxyEnabled = true
     ) {
 
         const normalizedQuery =
@@ -530,7 +597,8 @@ class CharacterDashboardManager {
             repository
                 .getSearchableCharacterReferences(
                     guildId,
-                    excludeCharacterId
+                    excludeCharacterId,
+                    requireProxyEnabled
                 );
 
         const seenCharacterIds =
@@ -631,6 +699,19 @@ class CharacterDashboardManager {
                 safeLimit
             );
 
+    }
+
+    searchInstalledCharactersForGuild(
+        guildId,
+        query,
+        options = {}
+    ) {
+        return this.searchCharactersForGuild(
+            guildId,
+            query,
+            options,
+            false
+        );
     }
 
     /**

@@ -32,6 +32,16 @@ test(
                         },
                         {
                             firstname:
+                                "Alba",
+                            discord_user_id:
+                                "owner-b",
+                            character_type:
+                                "personnage_joue",
+                            is_archived:
+                                false
+                        },
+                        {
+                            firstname:
                                 "Vega",
                             discord_user_id:
                                 "owner-v",
@@ -134,6 +144,20 @@ test(
                 .toJSON()
                 .description,
             /Alba/
+        );
+        assert.match(
+            listInteraction.replyPayload
+                .embeds[0]
+                .toJSON()
+                .description,
+            /<@owner-a>/
+        );
+        assert.match(
+            listInteraction.replyPayload
+                .embeds[0]
+                .toJSON()
+                .description,
+            /<@owner-b>/
         );
 
         assert.doesNotMatch(

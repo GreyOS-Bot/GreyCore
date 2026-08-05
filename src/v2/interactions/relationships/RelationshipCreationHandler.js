@@ -62,7 +62,7 @@ class RelationshipCreationHandler {
     ) {
         const dashboardData =
             characterDashboardManager
-                .getPlayableDashboardData(
+                .getInstalledDashboardData(
                     characterId,
                     {
                         guildId:
@@ -114,7 +114,7 @@ class RelationshipCreationHandler {
     ) {
         const dashboardData =
             characterDashboardManager
-                .getPlayableDashboardData(
+                .getInstalledDashboardData(
                     characterId,
                     {
                         guildId:
@@ -144,7 +144,7 @@ class RelationshipCreationHandler {
 
         const availableCharacters =
             characterDashboardManager
-                .searchPlayableCharactersForGuild(
+                .searchInstalledCharactersForGuild(
                     interaction.guildId,
                     query,
                     {
@@ -153,7 +153,21 @@ class RelationshipCreationHandler {
                         limit:
                             25
                     }
-                );
+                )
+                .map(entry => ({
+                    ...entry,
+                    ownerDisplayName:
+                        interaction.guild?.members
+                            ?.cache
+                            ?.get(
+                                entry.character
+                                    .discord_user_id
+                            )
+                            ?.displayName
+                        || entry.character
+                            .discord_user_id
+                        || "Utilisateur inconnu"
+                }));
 
         if (
             availableCharacters.length ===
@@ -212,7 +226,7 @@ class RelationshipCreationHandler {
     ) {
         const dashboardA =
             characterDashboardManager
-                .getPlayableDashboardData(
+                .getInstalledDashboardData(
                     characterId,
                     {
                         guildId:
@@ -222,7 +236,7 @@ class RelationshipCreationHandler {
 
         const dashboardB =
             characterDashboardManager
-                .getPlayableDashboardData(
+                .getInstalledDashboardData(
                     otherCharacterId,
                     {
                         guildId:
@@ -298,7 +312,7 @@ class RelationshipCreationHandler {
     ) {
         const dashboardData =
             characterDashboardManager
-                .getPlayableDashboardData(
+                .getInstalledDashboardData(
                     characterId,
                     {
                         guildId:
@@ -383,7 +397,7 @@ class RelationshipCreationHandler {
 
         const dashboardA =
             characterDashboardManager
-                .getPlayableDashboardData(
+                .getInstalledDashboardData(
                     continuityA.character_id,
                     {
                         guildId:
@@ -395,7 +409,7 @@ class RelationshipCreationHandler {
 
         const dashboardB =
             characterDashboardManager
-                .getPlayableDashboardData(
+                .getInstalledDashboardData(
                     continuityB.character_id,
                     {
                         guildId:

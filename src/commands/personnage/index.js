@@ -171,8 +171,11 @@ module.exports = {
                             character.id
 
                     WHERE installation.guild_id = ?
-                    AND LOWER(character.proxy_name) =
-                        LOWER(?)
+                    AND (
+                        character.id = ?
+                        OR LOWER(character.proxy_name) =
+                            LOWER(?)
+                    )
                     AND character.is_archived = 0
                     AND installation.status = 'approved'
                     AND installation.proxy_enabled = 1
@@ -182,6 +185,7 @@ module.exports = {
                     LIMIT 1
                 `).get(
                     interaction.guildId,
+                    name,
                     name
                 );
 
@@ -248,8 +252,12 @@ module.exports = {
 
         const characters = db.prepare(`
             SELECT DISTINCT
-                character.proxy_name
+                character.id,
+                character.proxy_name,
+                user.discord_user_id
             FROM CharactersV2 character
+            JOIN UsersV2 user
+                ON user.id = character.owner_user_id
             JOIN CharacterGuildInstallationsV2 installation
                 ON installation.character_id = character.id
             WHERE installation.guild_id = ?
@@ -265,10 +273,23 @@ module.exports = {
         );
 
         return interaction.respond(
-            characters.map(character => ({
-                name: character.proxy_name,
-                value: character.proxy_name
-            }))
+            characters.map(character => {
+                const ownerName =
+                    interaction.guild?.members
+                        ?.cache
+                        ?.get(
+                            character.discord_user_id
+                        )
+                        ?.displayName
+                    || character.discord_user_id;
+
+                return {
+                    name:
+                        `${character.proxy_name} — ${ownerName}`
+                            .slice(0, 100),
+                    value: character.id
+                };
+            })
         );
     }
 

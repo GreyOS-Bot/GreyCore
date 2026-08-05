@@ -38,7 +38,8 @@ class DashboardRepository {
 
     getSearchableCharacterReferences(
         guildId,
-        excludeCharacterId
+        excludeCharacterId,
+        requireProxyEnabled = true
     ) {
         return db.prepare(`
             SELECT
@@ -59,7 +60,10 @@ class DashboardRepository {
 
             WHERE installation.guild_id = ?
             AND installation.status = 'approved'
-            AND installation.proxy_enabled = 1
+            AND (
+                ? = 0
+                OR installation.proxy_enabled = 1
+            )
             AND character.is_archived = 0
             AND (
                 ? IS NULL
@@ -72,6 +76,9 @@ class DashboardRepository {
                     COLLATE NOCASE ASC
         `).all(
             guildId,
+            requireProxyEnabled
+                ? 1
+                : 0,
             excludeCharacterId,
             excludeCharacterId
         );
