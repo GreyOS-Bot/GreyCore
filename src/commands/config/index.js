@@ -275,6 +275,42 @@ module.exports = {
 
         .addSubcommand(sub =>
             sub
+                .setName("limite-pj")
+                .setDescription(
+                    "Configure la limite de création des PJ."
+                )
+                .addBooleanOption(option =>
+                    option
+                        .setName("active")
+                        .setDescription(
+                            "Active ou désactive la limite sur ce serveur."
+                        )
+                        .setRequired(true)
+                )
+                .addIntegerOption(option =>
+                    option
+                        .setName("maximum")
+                        .setDescription(
+                            "Nombre maximal de PJ pendant la période (2 par défaut)."
+                        )
+                        .setMinValue(1)
+                        .setMaxValue(100)
+                        .setRequired(false)
+                )
+                .addIntegerOption(option =>
+                    option
+                        .setName("periode_jours")
+                        .setDescription(
+                            "Durée de la période en jours (7 par défaut)."
+                        )
+                        .setMinValue(1)
+                        .setMaxValue(365)
+                        .setRequired(false)
+                )
+        )
+
+        .addSubcommand(sub =>
+            sub
                 .setName("modules")
                 .setDescription(
                     "Active ou désactive les modules du serveur."
@@ -304,6 +340,53 @@ module.exports = {
 
         if (subcommand === "modules") {
             return moduleSettingsHandler.open(interaction);
+        }
+
+        if (subcommand === "limite-pj") {
+            const enabled =
+                interaction.options
+                    .getBoolean("active");
+
+            const current =
+                v2.managers.guildSettings
+                    .getPlayedCharacterCreationLimit(
+                        interaction.guild.id
+                    );
+
+            try {
+                const configuration =
+                    v2.managers.guildSettings
+                        .configurePlayedCharacterCreationLimit(
+                            interaction.guild.id,
+                            {
+                                enabled,
+                                limitCount:
+                                    interaction.options
+                                        .getInteger("maximum")
+                                    || current.limitCount,
+                                windowDays:
+                                    interaction.options
+                                        .getInteger("periode_jours")
+                                    || current.windowDays
+                            }
+                        );
+
+                return interaction.reply({
+                    content: enabled
+                        ? [
+                            "✅ Limite de création des PJ activée.",
+                            `Chaque membre peut créer **${configuration.pj_creation_limit_count} PJ** sur **${configuration.pj_creation_limit_window_days} jours glissants**.`,
+                            "Les PNJ, Random et personnages réservés ne sont pas concernés."
+                        ].join("\n")
+                        : "✅ Limite de création des PJ désactivée sur ce serveur.",
+                    ephemeral: true
+                });
+            } catch (error) {
+                return replyError(
+                    interaction,
+                    error
+                );
+            }
         }
 
         if (subcommand === "scenes") {

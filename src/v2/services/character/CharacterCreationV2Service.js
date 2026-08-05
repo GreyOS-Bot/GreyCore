@@ -43,12 +43,27 @@ const characterTypeCatalog =
         "../../core/character/CharacterTypeCatalog"
     );
 
+const playedCharacterCreationLimitService =
+    require(
+        "./PlayedCharacterCreationLimitService"
+    );
+
 class CharacterCreationV2Service {
 
     create(data) {
 
         const normalized =
             this.normalize(data);
+
+        playedCharacterCreationLimitService
+            .assertCanCreate({
+                guildId:
+                    normalized.guildId,
+                discordUserId:
+                    normalized.discordUserId,
+                characterType:
+                    normalized.type
+            });
 
         return unitOfWork.run(
             normalizedData =>

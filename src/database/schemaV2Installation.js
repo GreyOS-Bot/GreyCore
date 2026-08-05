@@ -178,6 +178,9 @@ function initializeInstallationSchemaV2() {
 
             validation_channel_id TEXT,
             error_log_channel_id TEXT,
+            pj_creation_limit_enabled INTEGER NOT NULL DEFAULT 0,
+            pj_creation_limit_count INTEGER NOT NULL DEFAULT 2,
+            pj_creation_limit_window_days INTEGER NOT NULL DEFAULT 7,
 
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
@@ -231,6 +234,31 @@ function initializeInstallationSchemaV2() {
         console.log(
             "✅ Colonne error_log_channel_id ajoutée aux paramètres V2."
         );
+    }
+
+    for (
+        const [column, definition]
+        of [
+            [
+                "pj_creation_limit_enabled",
+                "INTEGER NOT NULL DEFAULT 0"
+            ],
+            [
+                "pj_creation_limit_count",
+                "INTEGER NOT NULL DEFAULT 2"
+            ],
+            [
+                "pj_creation_limit_window_days",
+                "INTEGER NOT NULL DEFAULT 7"
+            ]
+        ]
+    ) {
+        if (!columnExists("GuildSettingsV2", column)) {
+            db.prepare(`
+                ALTER TABLE GuildSettingsV2
+                ADD COLUMN ${column} ${definition}
+            `).run();
+        }
     }
 
     db.prepare(`

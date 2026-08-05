@@ -77,6 +77,35 @@ class CharacterRepository {
         );
     }
 
+    getPlayedCreationDatesForGuildSince(
+        discordUserId,
+        guildId,
+        since
+    ) {
+        return db.prepare(`
+            SELECT character.created_at
+            FROM CharactersV2 AS character
+            JOIN UsersV2 AS user
+                ON user.id = character.owner_user_id
+            JOIN CharacterGuildInstallationsV2 AS installation
+                ON installation.character_id = character.id
+            WHERE user.discord_user_id = ?
+            AND character.character_type = 'personnage_joue'
+            AND character.created_at >= ?
+            AND installation.guild_id = ?
+            AND installation.id = (
+                SELECT MIN(firstInstallation.id)
+                FROM CharacterGuildInstallationsV2 AS firstInstallation
+                WHERE firstInstallation.character_id = character.id
+            )
+            ORDER BY character.created_at ASC
+        `).all(
+            discordUserId,
+            since,
+            guildId
+        );
+    }
+
     insert(
         data
     ) {

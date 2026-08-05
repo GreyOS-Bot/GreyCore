@@ -151,6 +151,46 @@ class GuildSettingsRepository {
         );
     }
 
+    setPlayedCharacterCreationLimit(
+        guildId,
+        {
+            enabled,
+            limitCount,
+            windowDays
+        },
+        updatedAt
+    ) {
+        db.prepare(`
+            INSERT INTO GuildSettingsV2 (
+                guild_id,
+                pj_creation_limit_enabled,
+                pj_creation_limit_count,
+                pj_creation_limit_window_days,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(guild_id)
+            DO UPDATE SET
+                pj_creation_limit_enabled =
+                    excluded.pj_creation_limit_enabled,
+                pj_creation_limit_count =
+                    excluded.pj_creation_limit_count,
+                pj_creation_limit_window_days =
+                    excluded.pj_creation_limit_window_days,
+                updated_at = excluded.updated_at
+        `).run(
+            guildId,
+            enabled ? 1 : 0,
+            limitCount,
+            windowDays,
+            updatedAt,
+            updatedAt
+        );
+
+        return this.get(guildId);
+    }
+
     insertIfMissing(
         guildId,
         timestamp
