@@ -6,7 +6,7 @@ const {
 } = require("../../pages");
 
 const {
-    replyError
+    editOrReplyError
 } = require(
     "../../core/services/InteractionResponseService"
 );
@@ -78,7 +78,7 @@ module.exports =
                 `(normalisée : ${normalizedRoute})`
             );
 
-            await replyError(
+            await editOrReplyError(
                 interaction,
                 "Cette page n’est pas encore disponible."
             );
@@ -87,12 +87,29 @@ module.exports =
         }
 
         try {
+            await interaction.deferUpdate();
+        } catch (error) {
+            await reportNavigationError(
+                interaction,
+                normalizedRoute,
+                error
+            );
+
+            return true;
+        }
+
+        const pageInteraction =
+            createDeferredPageInteraction(
+                interaction
+            );
+
+        try {
             if (
                 typeof handler ===
                 "function"
             ) {
                 await handler(
-                    interaction,
+                    pageInteraction,
                     parameter
                 );
 
@@ -104,7 +121,7 @@ module.exports =
                 "function"
             ) {
                 await handler.execute(
-                    interaction,
+                    pageInteraction,
                     parameter
                 );
 
@@ -115,25 +132,67 @@ module.exports =
                 `La route ${normalizedRoute} ne possède aucune méthode execute().`
             );
         } catch (error) {
-            await staffErrorLogService.report({
-                guildId:
-                    interaction.guildId,
-                scope:
-                    `Navigation V2 · ${normalizedRoute}`,
-                error,
-                interaction
-            });
-
-            logger.error(
-                `❌ Erreur route V2 ${normalizedRoute} :`,
+            await reportNavigationError(
+                interaction,
+                normalizedRoute,
                 error
             );
 
-            await replyError(
+            await editOrReplyError(
                 interaction,
                 "Une erreur est survenue pendant l’ouverture de cette page."
+            ).catch(replyFailure =>
+                logger.warn(
+                    "Impossible d’afficher l’erreur de navigation :",
+                    replyFailure
+                )
             );
 
             return true;
         }
     };
+
+function createDeferredPageInteraction(
+    interaction
+) {
+    return new Proxy(
+        interaction,
+        {
+            get(target, property) {
+                if (property === "update") {
+                    return payload =>
+                        target.editReply(payload);
+                }
+
+                const value = Reflect.get(
+                    target,
+                    property,
+                    target
+                );
+
+                return typeof value === "function"
+                    ? value.bind(target)
+                    : value;
+            }
+        }
+    );
+}
+
+async function reportNavigationError(
+    interaction,
+    normalizedRoute,
+    error
+) {
+    await staffErrorLogService.report({
+        guildId: interaction.guildId,
+        scope:
+            `Navigation V2 · ${normalizedRoute}`,
+        error,
+        interaction
+    });
+
+    logger.error(
+        `❌ Erreur route V2 ${normalizedRoute} :`,
+        error
+    );
+}
