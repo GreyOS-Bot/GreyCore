@@ -25,6 +25,11 @@ const submissionView =
         "../../views/validation/ValidationSubmissionView"
     );
 
+const fastInteractionAcknowledgementService =
+    require(
+        "../../core/services/FastInteractionAcknowledgementService"
+    );
+
 module.exports = async interaction => {
     try {
         const installationId =
@@ -161,6 +166,16 @@ module.exports = async interaction => {
             );
         }
 
+        if (
+            interaction.message
+            && interaction.isButton()
+        ) {
+            await fastInteractionAcknowledgementService
+                .deferComponentUpdate(
+                    interaction
+                );
+        }
+
         const validationChannel =
             await guild.channels
                 .fetch(
@@ -205,7 +220,7 @@ module.exports = async interaction => {
             interaction.message &&
             interaction.isButton()
         ) {
-            return interaction.update(
+            return interaction.editReply(
                 response
             );
         }
