@@ -296,15 +296,12 @@ test(
         stubModule(
             "src/v2/core/services/InteractionResponseService.js",
             {
-                replyPrivate:
-                    async (
-                        interaction,
-                        content
-                    ) => interaction.reply({
-                        content,
-                        flags: 64
-                    }),
-                replyError:
+                deferPrivate:
+                    async interaction => {
+                        calls.push(["defer"]);
+                        interaction.deferred = true;
+                    },
+                editOrReplyError:
                     async () => {
                         throw new Error(
                             "Une erreur ne devait pas être envoyée."
@@ -332,10 +329,10 @@ test(
                 getTextInputValue:
                     () => "Bonjour !"
             },
-            update:
+            editReply:
                 async payload => {
                     calls.push([
-                        "update",
+                        "editReply",
                         payload
                     ]);
                 },
@@ -356,22 +353,16 @@ test(
         assert.deepEqual(
             calls,
             [
+                ["defer"],
                 [
                     "sendSms",
                     12,
                     "Bonjour !"
                 ],
+                ["delete"],
                 [
-                    "update",
-                    {
-                        content:
-                            "✅ SMS envoyé.",
-                        embeds: [],
-                        components: []
-                    }
-                ],
-                [
-                    "delete"
+                    "editReply",
+                    { content: "✅ SMS envoyé." }
                 ]
             ]
         );
@@ -390,11 +381,12 @@ test(
                 getTextInputValue:
                     () => "Je te rÃ©ponds !"
             },
-            update:
-                async () => {
-                    throw new Error(
-                        "Le SMS d'origine ne doit pas Ãªtre modifiÃ©."
-                    );
+            editReply:
+                async payload => {
+                    calls.push([
+                        "editReply",
+                        payload
+                    ]);
                 },
             message: {
                 delete:
@@ -404,13 +396,6 @@ test(
                         );
                     }
             },
-            reply:
-                async payload => {
-                    calls.push([
-                        "reply",
-                        payload
-                    ]);
-                }
         };
 
         await handler(
@@ -418,19 +403,19 @@ test(
         );
 
         assert.deepEqual(
-            calls.slice(3),
+            calls.slice(4),
             [
+                ["defer"],
                 [
                     "sendSms",
                     12,
                     "Je te rÃ©ponds !"
                 ],
                 [
-                    "reply",
+                    "editReply",
                     {
                         content:
-                            "\u2705 SMS envoy\u00e9.",
-                        flags: 64
+                            "\u2705 SMS envoy\u00e9."
                     }
                 ]
             ]

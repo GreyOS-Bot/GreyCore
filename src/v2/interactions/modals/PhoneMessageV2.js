@@ -26,8 +26,8 @@ const PhoneServiceV2 =
     );
 
 const {
-    replyError,
-    replyPrivate
+    deferPrivate,
+    editOrReplyError
 } = require(
     "../../core/services/InteractionResponseService"
 );
@@ -37,34 +37,28 @@ async function closeConversationPanel(
     preserveSource
 ) {
     if (preserveSource) {
-        return replyPrivate(
-            interaction,
-            "\u2705 SMS envoy\u00e9."
-        );
+        return interaction.editReply({
+            content: "✅ SMS envoyé."
+        });
     }
-
-    await interaction.update({
-        content:
-            "✅ SMS envoyé.",
-        embeds: [],
-        components: []
-    });
 
     if (
-        typeof interaction.message?.delete !==
-        "function"
+        typeof interaction.message?.delete ===
+            "function"
     ) {
-        return;
+        try {
+            await interaction.message.delete();
+        } catch (error) {
+            logger.warn(
+                "Impossible de fermer l'interface SMS après l'envoi :",
+                error
+            );
+        }
     }
 
-    try {
-        await interaction.message.delete();
-    } catch (error) {
-        logger.warn(
-            "Impossible de fermer l'interface SMS après l'envoi :",
-            error
-        );
-    }
+    return interaction.editReply({
+        content: "✅ SMS envoyé."
+    });
 }
 
 module.exports =
@@ -89,8 +83,10 @@ module.exports =
                 .getTextInputValue("content")
                 .trim();
 
+        await deferPrivate(interaction);
+
         if (!content) {
-            return replyError(
+            return editOrReplyError(
                 interaction,
                 "Le message ne peut pas être vide."
             );
@@ -102,7 +98,7 @@ module.exports =
             );
 
         if (!character) {
-            return replyError(
+            return editOrReplyError(
                 interaction,
                 "Personnage introuvable."
             );
@@ -116,7 +112,7 @@ module.exports =
                 interaction.user.id
             )
         ) {
-            return replyError(
+            return editOrReplyError(
                 interaction,
                 "Ce personnage ne vous appartient pas."
             );
@@ -137,7 +133,7 @@ module.exports =
             ||
             !dashboardData.continuity
         ) {
-            return replyError(
+            return editOrReplyError(
                 interaction,
                 "Continuité introuvable."
             );
@@ -152,7 +148,7 @@ module.exports =
                 );
 
         if (!phone) {
-            return replyError(
+            return editOrReplyError(
                 interaction,
                 "Téléphone introuvable."
             );
@@ -192,7 +188,7 @@ module.exports =
         error
     );
 
-    return replyError(
+    return editOrReplyError(
         interaction,
         error.message
     );
