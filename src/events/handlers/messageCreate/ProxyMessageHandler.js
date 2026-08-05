@@ -47,6 +47,11 @@ const originalMessageDeletionService =
         "../../../v2/core/services/OriginalMessageDeletionService"
     );
 
+const discordAttachmentUrlService =
+    require(
+        "../../../v2/core/services/DiscordAttachmentUrlService"
+    );
+
 module.exports =
     async function proxyMessageHandler(
         message
@@ -128,6 +133,13 @@ module.exports =
                 message
             );
 
+        const avatarUrl =
+            await discordAttachmentUrlService
+                .resolve(
+                    message.client,
+                    character.avatar
+                );
+
         const webhookMessage =
             await webhook.send(
                 withThreadId(
@@ -140,7 +152,7 @@ module.exports =
                         username:
                             character.name,
                         avatarURL:
-                            character.avatar
+                            avatarUrl
                             ||
                             null,
                         files,
