@@ -25,6 +25,11 @@ const staffErrorLogService =
         "../../services/StaffErrorLogService"
     );
 
+const fastInteractionAcknowledgementService =
+    require(
+        "../../core/services/FastInteractionAcknowledgementService"
+    );
+
 module.exports =
     async function pageNavigationRouter(
         interaction
@@ -87,7 +92,10 @@ module.exports =
         }
 
         try {
-            await interaction.deferUpdate();
+            await fastInteractionAcknowledgementService
+                .deferComponentUpdate(
+                    interaction
+                );
         } catch (error) {
             await reportNavigationError(
                 interaction,
