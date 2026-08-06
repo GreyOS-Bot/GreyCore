@@ -177,8 +177,16 @@ class ValidationRepository {
                 installation.validation_channel_id,
                 installation.validation_message_id,
                 character.proxy_name,
-                continuity.firstname,
-                continuity.lastname,
+                COALESCE(
+                    NULLIF(profile.alias, ''),
+                    NULLIF(profile.firstname, ''),
+                    continuity.firstname,
+                    character.proxy_name
+                ) AS firstname,
+                COALESCE(
+                    NULLIF(profile.lastname, ''),
+                    continuity.lastname
+                ) AS lastname,
                 owner.discord_user_id AS owner_id
             FROM CharacterGuildInstallationsV2 AS installation
             JOIN CharactersV2 AS character
@@ -187,6 +195,8 @@ class ValidationRepository {
                 ON continuity.id = installation.continuity_id
             JOIN UsersV2 AS owner
                 ON owner.id = character.owner_user_id
+            LEFT JOIN CharacterProfilesV2 AS profile
+                ON profile.continuity_id = continuity.id
             WHERE installation.guild_id = ?
             AND installation.status IN (
                 'draft',
@@ -198,6 +208,15 @@ class ValidationRepository {
                 character.proxy_name LIKE ?
                 OR continuity.firstname LIKE ?
                 OR continuity.lastname LIKE ?
+                OR profile.alias LIKE ?
+                OR profile.firstname LIKE ?
+                OR profile.lastname LIKE ?
+                OR EXISTS (
+                    SELECT 1
+                    FROM CharacterAliasesV2 AS alias
+                    WHERE alias.character_id = character.id
+                    AND alias.alias LIKE ?
+                )
                 OR owner.discord_user_id LIKE ?
             )
             ORDER BY
@@ -206,6 +225,10 @@ class ValidationRepository {
             LIMIT ?
         `).all(
             guildId,
+            search,
+            search,
+            search,
+            search,
             search,
             search,
             search,

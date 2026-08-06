@@ -91,3 +91,90 @@ test(
         );
     }
 );
+
+test(
+    "la recherche d’annulation transmet aussi l’alias saisi",
+    async () => {
+        const searches = [];
+
+        stubModule(
+            "src/v2/services/validation/ValidationManagerV2.js",
+            {
+                searchIncompleteForGuild: (
+                    guildId,
+                    filter
+                ) => {
+                    searches.push({
+                        guildId,
+                        filter
+                    });
+
+                    return [
+                        {
+                            id: 539,
+                            firstname: "Story",
+                            proxy_name: "Astoria",
+                            lastname: null,
+                            owner_id: "owner",
+                            status: "pending"
+                        }
+                    ];
+                }
+            }
+        );
+
+        const commandPath = require.resolve(
+            "../src/commands/validations"
+        );
+        delete require.cache[commandPath];
+        const command = require(
+            "../src/commands/validations"
+        );
+        let choices;
+
+        await command.autocomplete({
+            guildId: "guild",
+            guild: {
+                members: {
+                    cache: new Map([
+                        [
+                            "owner",
+                            {
+                                displayName: "Morgane"
+                            }
+                        ]
+                    ])
+                }
+            },
+            options: {
+                getFocused: () => ({
+                    name: "personnage",
+                    value: "Story"
+                })
+            },
+            respond: async value => {
+                choices = value;
+            }
+        });
+
+        assert.deepEqual(
+            searches,
+            [
+                {
+                    guildId: "guild",
+                    filter: "Story"
+                }
+            ]
+        );
+        assert.deepEqual(
+            choices,
+            [
+                {
+                    name:
+                        "Story — Morgane — pending",
+                    value: "539"
+                }
+            ]
+        );
+    }
+);
