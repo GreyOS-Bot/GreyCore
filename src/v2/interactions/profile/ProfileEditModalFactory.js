@@ -195,13 +195,13 @@ function createAliasModal(
         .setCustomId(
             `v2_profile_alias_submit:${characterId}`
         )
-        .setTitle("Modifier l'alias")
+        .setTitle("Modifier l'alias affiché")
         .addComponents(
             textRow({
                 id:
                     "alias",
                 label:
-                    "Alias ou surnom",
+                    "Prénom ou alias affiché",
                 placeholder:
                     "Exemple : Story",
                 maxLength:

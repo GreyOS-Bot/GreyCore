@@ -48,6 +48,7 @@ const changeRequestSubmissionService =
     );
 
 const {
+    deferPrivate,
     replyPrivate
 } = require(
     "../../core/services/InteractionResponseService"
@@ -315,6 +316,10 @@ async function submitForReviewIfNeeded(
         return false;
     }
 
+    await deferPrivate(
+        interaction
+    );
+
     const result =
         await changeRequestSubmissionService
             .submit({
@@ -332,14 +337,26 @@ async function submitForReviewIfNeeded(
                     interaction.guild
             });
 
-    await replyPrivate(
-        interaction,
-        [
+    const content = [
             "🟡 Ta modification a été envoyée au staff pour validation.",
             "Les informations actuellement visibles restent inchangées jusqu’à sa décision.",
             `Salon de suivi : <#${result.validationChannel.id}>`
-        ].join("\n")
-    );
+        ].join("\n");
+
+    if (
+        interaction.deferred
+        && typeof interaction.editReply ===
+            "function"
+    ) {
+        await interaction.editReply({
+            content
+        });
+    } else {
+        await replyPrivate(
+            interaction,
+            content
+        );
+    }
 
     return true;
 }

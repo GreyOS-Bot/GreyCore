@@ -443,7 +443,7 @@ class CharacterProfilePage {
                     `v2_profile_alias_edit:${characterId}`,
 
                 label:
-                    "Alias",
+                    "Modifier l'alias",
 
                 emoji:
                     "\u{1F3F7}\uFE0F"

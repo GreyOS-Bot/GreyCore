@@ -34,6 +34,15 @@ class StaffErrorLogService {
             return false;
         }
 
+        if (
+            this.settingsManager
+                .isMaintenanceEnabled?.(
+                    guildId
+                )
+        ) {
+            return false;
+        }
+
         const channelId =
             this.settingsManager
                 .getErrorLogChannelId(

@@ -13,11 +13,26 @@ const sceneAssistantService =
         "../../../v2/services/scenes/SceneAssistantService"
     );
 
+const guildSettingsManager =
+    require(
+        "../../../v2/managers/GuildSettingsV2Manager"
+    );
+
 module.exports =
     async function messageCreateRouter(
         message
     ) {
         if (message.author.bot) {
+            return false;
+        }
+
+        if (
+            message.guildId
+            && guildSettingsManager
+                .isMaintenanceEnabled(
+                    message.guildId
+                )
+        ) {
             return false;
         }
 

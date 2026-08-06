@@ -173,6 +173,49 @@ class GuildSettingsV2Manager {
         };
     }
 
+    setMaintenance(
+        guildId,
+        {
+            enabled,
+            message = null
+        }
+    ) {
+        const normalizedMessage =
+            String(message || "").trim()
+            || null;
+
+        return repository.setMaintenance(
+            guildId,
+            {
+                enabled:
+                    enabled === true,
+                message:
+                    normalizedMessage
+            },
+            new Date().toISOString()
+        );
+    }
+
+    getMaintenance(guildId) {
+        const settings = this.get(guildId);
+
+        return {
+            enabled:
+                Number(
+                    settings?.maintenance_enabled
+                    || 0
+                ) === 1,
+            message:
+                settings?.maintenance_message
+                || "GreyCore est temporairement en maintenance. Réessaie un peu plus tard."
+        };
+    }
+
+    isMaintenanceEnabled(guildId) {
+        return this.getMaintenance(guildId)
+            .enabled;
+    }
+
 }
 
 module.exports =

@@ -191,6 +191,36 @@ class GuildSettingsRepository {
         return this.get(guildId);
     }
 
+    setMaintenance(
+        guildId,
+        {
+            enabled,
+            message
+        },
+        updatedAt
+    ) {
+        this.insertIfMissing(
+            guildId,
+            updatedAt
+        );
+
+        db.prepare(`
+            UPDATE GuildSettingsV2
+            SET
+                maintenance_enabled = ?,
+                maintenance_message = ?,
+                updated_at = ?
+            WHERE guild_id = ?
+        `).run(
+            enabled ? 1 : 0,
+            message || null,
+            updatedAt,
+            guildId
+        );
+
+        return this.get(guildId);
+    }
+
     insertIfMissing(
         guildId,
         timestamp

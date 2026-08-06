@@ -181,6 +181,8 @@ function initializeInstallationSchemaV2() {
             pj_creation_limit_enabled INTEGER NOT NULL DEFAULT 0,
             pj_creation_limit_count INTEGER NOT NULL DEFAULT 2,
             pj_creation_limit_window_days INTEGER NOT NULL DEFAULT 7,
+            maintenance_enabled INTEGER NOT NULL DEFAULT 0,
+            maintenance_message TEXT,
 
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
@@ -250,6 +252,14 @@ function initializeInstallationSchemaV2() {
             [
                 "pj_creation_limit_window_days",
                 "INTEGER NOT NULL DEFAULT 7"
+            ],
+            [
+                "maintenance_enabled",
+                "INTEGER NOT NULL DEFAULT 0"
+            ],
+            [
+                "maintenance_message",
+                "TEXT"
             ]
         ]
     ) {

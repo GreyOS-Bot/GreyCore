@@ -6,10 +6,24 @@ const interactionRouters = [
     require("./buttonRouter")
 ];
 
+const maintenanceModeService =
+    require(
+        "../services/MaintenanceModeService"
+    );
+
 module.exports =
     async function interactionRouter(
         interaction
     ) {
+        if (
+            await maintenanceModeService
+                .blockInteraction(
+                    interaction
+                )
+        ) {
+            return true;
+        }
+
         for (
             const routeInteraction
             of interactionRouters
