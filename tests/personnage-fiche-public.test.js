@@ -170,14 +170,23 @@ test(
         stubModule(
             "src/database/database.js",
             {
-                prepare: statement => ({
-                    all: (...values) => {
-                        calls.push([
-                            statement,
-                            values
-                        ]);
+                prepare: () => ({})
+            }
+        );
+        stubModule(
+            "src/v2/repositories/CharacterPublicSearchRepository.js",
+            {
+                searchInstalledByDisplayName: (
+                    guildId,
+                    focused
+                ) => {
+                    calls.push([
+                        "search",
+                        guildId,
+                        focused
+                    ]);
 
-                        return [
+                    return [
                             {
                                 id: "reya-a",
                                 proxy_name: "Frey:",
@@ -191,8 +200,7 @@ test(
                                 discord_user_id: "owner-b"
                             }
                         ];
-                    }
-                })
+                }
             }
         );
 
@@ -240,25 +248,13 @@ test(
             interaction
         );
 
-        assert.match(
-            calls[0][0],
-            /installation\.status = 'approved'/
-        );
-        assert.match(
-            calls[0][0],
-            /profile\.alias/
-        );
-        assert.match(
-            calls[0][0],
-            /profile\.continuity_id\s*=\s*installation\.continuity_id/
-        );
-        assert.doesNotMatch(
-            calls[0][0],
-            /profile\.character_id/
-        );
         assert.deepEqual(
-            calls[0][1],
-            ["guild", "%frey%"]
+            calls[0],
+            [
+                "search",
+                "guild",
+                "frey"
+            ]
         );
         assert.deepEqual(
             calls[1],
