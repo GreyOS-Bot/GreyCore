@@ -288,9 +288,21 @@ test(
                     ]
                 ]);
 
+            const profiles = new Map([
+                [
+                    "continuity-e",
+                    {
+                        alias: "Emy",
+                        firstname: "Émile",
+                        lastname: "Azur"
+                    }
+                ]
+            ]);
+
             stubDashboardManagers(
                 characters,
-                continuities
+                continuities,
+                profiles
             );
 
             clearModule(
@@ -339,6 +351,22 @@ test(
                 [
                     "character-e"
                 ]
+            );
+            const aliasResult = manager
+                .searchInstalledCharactersForGuild(
+                    "guild-a",
+                    "emy"
+                );
+            assert.deepEqual(
+                aliasResult.map(
+                    entry => entry.characterId
+                ),
+                ["character-e"]
+            );
+            assert.equal(
+                aliasResult[0]
+                    .character.display_name,
+                "Emy"
             );
             assert.deepEqual(
                 manager
@@ -669,7 +697,8 @@ function createDashboardTables(
 
 function stubDashboardManagers(
     characters,
-    continuities
+    continuities,
+    profiles = new Map()
 ) {
     stubModule(
         "src/v2/managers/CharacterV2Manager.js",
@@ -699,7 +728,14 @@ function stubDashboardManagers(
     );
     stubModule(
         "src/v2/managers/ProfileV2Manager.js",
-        {}
+        {
+            get:
+                continuityId =>
+                    profiles.get(
+                        continuityId
+                    )
+                    || null
+        }
     );
     stubModule(
         "src/v2/managers/RelationshipV2Manager.js",

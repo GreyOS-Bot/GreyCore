@@ -19,10 +19,18 @@ class RelationshipRequestRepository {
                     AS requester_character_id,
                 targetContinuity.character_id
                     AS target_character_id,
-                requesterCharacter.proxy_name
-                    AS requester_character_name,
-                targetCharacter.proxy_name
-                    AS target_character_name,
+                COALESCE(
+                    NULLIF(requesterProfile.alias, ''),
+                    NULLIF(requesterProfile.firstname, ''),
+                    NULLIF(requesterContinuity.firstname, ''),
+                    requesterCharacter.proxy_name
+                ) AS requester_character_name,
+                COALESCE(
+                    NULLIF(targetProfile.alias, ''),
+                    NULLIF(targetProfile.firstname, ''),
+                    NULLIF(targetContinuity.firstname, ''),
+                    targetCharacter.proxy_name
+                ) AS target_character_name,
                 requesterOwner.discord_user_id
                     AS requester_owner_id,
                 targetOwner.discord_user_id
@@ -57,6 +65,14 @@ class RelationshipRequestRepository {
                 AS targetOwner
                 ON targetOwner.id =
                     targetCharacter.owner_user_id
+            LEFT JOIN CharacterProfilesV2
+                AS requesterProfile
+                ON requesterProfile.continuity_id =
+                    requesterContinuity.id
+            LEFT JOIN CharacterProfilesV2
+                AS targetProfile
+                ON targetProfile.continuity_id =
+                    targetContinuity.id
             WHERE request.id = ?
         `).get(
             requestId

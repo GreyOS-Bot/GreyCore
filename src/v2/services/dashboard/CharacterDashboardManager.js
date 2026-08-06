@@ -632,8 +632,23 @@ class CharacterDashboardManager {
                     return null;
                 }
 
+                const profile =
+                    profileManager.get(
+                        continuity.id
+                    );
+
+                const displayName =
+                    profile?.alias
+                    || profile?.firstname
+                    || continuity.firstname
+                    || character.base_firstname
+                    || character.proxy_name;
+
                 const searchableText =
                     [
+                        profile?.alias,
+                        profile?.firstname,
+                        profile?.lastname,
                         character.proxy_name,
                         character.base_firstname,
                         character.base_lastname,
@@ -665,7 +680,11 @@ class CharacterDashboardManager {
                 );
 
                 return {
-                    character,
+                    character: {
+                        ...character,
+                        display_name:
+                            displayName
+                    },
                     continuity,
                     characterId:
                         character.id,
@@ -679,12 +698,12 @@ class CharacterDashboardManager {
                 (entryA, entryB) =>
                     String(
                         entryA.character
-                            .proxy_name
+                            .display_name
                         || ""
                     ).localeCompare(
                         String(
-                            entryB.character
-                                .proxy_name
+                        entryB.character
+                            .display_name
                             || ""
                         ),
                         "fr",

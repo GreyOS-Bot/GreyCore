@@ -58,7 +58,8 @@ function getCharacterDisplayName(
     character
 ) {
     return (
-        character?.proxy_name
+        character?.display_name
+        || character?.proxy_name
         || character?.name
         || [
             character?.base_firstname,

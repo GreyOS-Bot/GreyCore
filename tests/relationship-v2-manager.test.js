@@ -51,6 +51,10 @@ test(
                 "pending"
             );
             assert.equal(
+                request.target_character_name,
+                "Icaro"
+            );
+            assert.equal(
                 request.note,
                 "Rencontrés au travail"
             );
