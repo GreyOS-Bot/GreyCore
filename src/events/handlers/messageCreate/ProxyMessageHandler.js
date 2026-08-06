@@ -202,6 +202,11 @@ module.exports =
                 character.id
         });
 
+        if (v2Installation?.character_id) {
+            message.greycoreSceneCharacterId =
+                v2Installation.character_id;
+        }
+
         console.log(
             `✅ Proxy envoyé : ${character.name} → ${webhookMessage.id}`
         );

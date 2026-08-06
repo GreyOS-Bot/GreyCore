@@ -39,6 +39,26 @@ test(
 
         const channel = createThreadInCategory();
 
+        const withoutScene = await service.processMessage(
+            createMessage(channel)
+        );
+
+        assert.equal(withoutScene.kind, "no_active_scene");
+        assert.equal(withoutScene.shouldPrompt, true);
+
+        const repeatedPrompt = await service.processMessage(
+            createMessage(channel)
+        );
+
+        assert.equal(repeatedPrompt.shouldPrompt, false);
+
+        manager.createScene({
+            guildId: "guild",
+            channelId: channel.id,
+            title: "Scène de test",
+            startedAt: "2026-07-30T12:00:00.000Z"
+        });
+
         assert.equal(
             await service.processMessage({
                 guildId: "guild",

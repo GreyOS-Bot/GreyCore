@@ -64,6 +64,12 @@ module.exports = {
                     },
                     {
                         name:
+                            "Cycles de scènes",
+                        value:
+                            "scenes"
+                    },
+                    {
+                        name:
                             "Confidentialité et mes données",
                         value:
                             "confidentialite"

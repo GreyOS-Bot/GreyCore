@@ -62,6 +62,15 @@ module.exports =
                     ]
                 });
             }
+
+            if (
+                result?.kind === "no_active_scene"
+                && result.shouldPrompt
+            ) {
+                await message.channel.send(
+                    sceneAssistantService.buildStartPrompt()
+                );
+            }
         } catch (error) {
             console.error(
                 "[SceneAssistant] Impossible de suivre le cycle :",

@@ -225,7 +225,7 @@ function buildStatusPayload(status) {
     }
 
     if (status.kind === "not_started") {
-        return "\u2139\uFE0F Aucun cycle n'a encore commenc\u00e9 ici. Le suivi d\u00e9marrera au premier message RP.";
+        return sceneAssistantService.buildStartPrompt();
     }
 
     const {
@@ -252,7 +252,7 @@ function buildStatusPayload(status) {
 
     const isConclude = cycle.status === "conclude";
 
-    return {
+    const payload = {
         embeds: [
             new EmbedBuilder()
                 .setColor(
@@ -265,6 +265,9 @@ function buildStatusPayload(status) {
                         ? "\u{1F7E8} Cycle de sc\u00e8ne : \u00c0 conclure"
                         : "\u{1F7E9} Cycle de sc\u00e8ne : En cours"
                 )
+                .setAuthor({
+                    name: cycle.title || "Scène RP"
+                })
                 .setDescription(
                     isConclude
                         ? "Cette sc\u00e8ne d\u00e9passe les recommandations du serveur. Vous pouvez continuer sans restriction ; conclure la sc\u00e8ne ou en ouvrir une nouvelle peut simplement aider la chronologie RP."
@@ -277,4 +280,12 @@ function buildStatusPayload(status) {
                 .setTimestamp()
         ]
     };
+
+    payload.components = [
+        sceneAssistantService.buildSceneActions(
+            status.scene || cycle
+        )
+    ];
+
+    return payload;
 }

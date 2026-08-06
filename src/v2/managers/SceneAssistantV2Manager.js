@@ -40,6 +40,23 @@ class SceneAssistantV2Manager {
         return repository.getActiveSceneByChannel(guildId, channelId);
     }
 
+    getActiveScenes(guildId) {
+        return repository.getActiveScenes(guildId);
+    }
+
+    shouldPrompt(guildId, channelId, now = new Date()) {
+        const cooldownSince = new Date(
+            now.getTime() - 24 * 60 * 60 * 1000
+        ).toISOString();
+
+        return repository.claimPrompt(
+            guildId,
+            channelId,
+            now.toISOString(),
+            cooldownSince
+        );
+    }
+
     moveScene(data) {
         return repository.moveScene({
             ...data,
@@ -51,12 +68,29 @@ class SceneAssistantV2Manager {
         return repository.recordSceneMessage(sceneId, occurredAt);
     }
 
+    markSceneConclude(sceneId, notifiedAt = new Date().toISOString()) {
+        return repository.markSceneConclude(sceneId, notifiedAt);
+    }
+
+    restartScene(sceneId, startedAt = new Date().toISOString()) {
+        return repository.restartScene(sceneId, startedAt);
+    }
+
     addParticipant(sceneId, characterId, joinedAt = new Date().toISOString()) {
         return repository.addParticipant(sceneId, characterId, joinedAt);
     }
 
     getActiveSceneForCharacter(guildId, characterId) {
         return repository.getActiveSceneForCharacter(guildId, characterId);
+    }
+
+    claimTimelineWarning(sceneAId, sceneBId, characterId) {
+        return repository.claimTimelineWarning(
+            sceneAId,
+            sceneBId,
+            characterId,
+            new Date().toISOString()
+        );
     }
 
     getConfiguration(guildId) {

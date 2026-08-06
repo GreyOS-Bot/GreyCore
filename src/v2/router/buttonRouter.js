@@ -1,4 +1,5 @@
 const buttonRouters = [
+    require("./buttons/SceneRouter"),
     require(
         "./buttons/PageNavigationRouter"
     ),

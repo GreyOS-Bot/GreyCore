@@ -135,6 +135,29 @@ function initializeSceneAssistantSchemaV2() {
         CREATE INDEX IF NOT EXISTS idx_scenes_v2_guild_status
         ON ScenesV2(guild_id, status)
     `).run();
+
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS SceneAssistantChannelPromptsV2 (
+            guild_id TEXT NOT NULL,
+            channel_id TEXT NOT NULL,
+            last_prompt_at TEXT NOT NULL,
+            PRIMARY KEY(guild_id, channel_id),
+            FOREIGN KEY(guild_id) REFERENCES Guilds(id) ON DELETE CASCADE
+        )
+    `).run();
+
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS SceneTimelineWarningsV2 (
+            scene_a_id TEXT NOT NULL,
+            scene_b_id TEXT NOT NULL,
+            character_id TEXT NOT NULL,
+            warned_at TEXT NOT NULL,
+            PRIMARY KEY(scene_a_id, scene_b_id, character_id),
+            FOREIGN KEY(scene_a_id) REFERENCES ScenesV2(id) ON DELETE CASCADE,
+            FOREIGN KEY(scene_b_id) REFERENCES ScenesV2(id) ON DELETE CASCADE,
+            FOREIGN KEY(character_id) REFERENCES CharactersV2(id) ON DELETE CASCADE
+        )
+    `).run();
 }
 
 module.exports = initializeSceneAssistantSchemaV2;

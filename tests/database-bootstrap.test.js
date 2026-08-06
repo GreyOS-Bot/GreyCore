@@ -75,7 +75,9 @@ test(
             "SceneAssistantCyclesV2",
             "ScenesV2",
             "SceneChannelsV2",
-            "SceneParticipantsV2"
+            "SceneParticipantsV2",
+            "SceneAssistantChannelPromptsV2",
+            "SceneTimelineWarningsV2"
         ];
 
         const tableNames =

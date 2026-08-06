@@ -184,6 +184,35 @@ const TOPICS = {
             }
         ]
     },
+    scenes: {
+        title: "🎬 Cycles de scènes — Guide GreyCore",
+        description: "Une scène est indépendante de son salon et son utilisation reste entièrement facultative.",
+        fields: [
+            {
+                name: "Commencer ou reprendre",
+                value: [
+                    "Dans une zone RP suivie sans scène active, GreyCore propose **Commencer une scène** ou **Reprendre une scène**.",
+                    "Ignorer cette proposition n’empêche jamais de RP.",
+                    "Utilise `/scene statut` pour retrouver les actions et les compteurs de la scène active."
+                ].join("\n"),
+                inline: false
+            },
+            {
+                name: "Déplacer une scène",
+                value: [
+                    "Clique sur **Déplacer la scène**, choisis le nouveau salon puis indique facultativement le lien du message de transition.",
+                    "Sans lien, GreyCore reprend automatiquement le dernier échange exploitable.",
+                    "Les jours, messages et participants restent attachés à la même scène."
+                ].join("\n"),
+                inline: false
+            },
+            {
+                name: "Cohérence de timeline",
+                value: "Si un personnage joue dans deux scènes actives, GreyCore avertit le joueur et le staff sans bloquer le RP.",
+                inline: false
+            }
+        ]
+    },
     confidentialite: {
         title:
             "🔐 Confidentialité — Guide GreyCore",

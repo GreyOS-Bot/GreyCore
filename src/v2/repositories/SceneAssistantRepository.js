@@ -30,7 +30,15 @@ class SceneAssistantRepository {
 
     getScene(sceneId) {
         return db.prepare(`
-            SELECT * FROM ScenesV2 WHERE id = ?
+            SELECT scene.*,
+                (
+                    SELECT GROUP_CONCAT(link.channel_id)
+                    FROM SceneChannelsV2 link
+                    WHERE link.scene_id = scene.id
+                    AND link.unlinked_at IS NULL
+                ) AS channel_ids
+            FROM ScenesV2 scene
+            WHERE scene.id = ?
         `).get(sceneId) || null;
     }
 
@@ -46,6 +54,34 @@ class SceneAssistantRepository {
             ORDER BY link.id DESC
             LIMIT 1
         `).get(guildId, channelId) || null;
+    }
+
+    getActiveScenes(guildId) {
+        return db.prepare(`
+            SELECT scene.*,
+                GROUP_CONCAT(link.channel_id) AS channel_ids
+            FROM ScenesV2 scene
+            LEFT JOIN SceneChannelsV2 link
+                ON link.scene_id = scene.id
+                AND link.unlinked_at IS NULL
+            WHERE scene.guild_id = ?
+            AND scene.status IN ('active', 'conclude')
+            GROUP BY scene.id
+            ORDER BY scene.updated_at DESC
+        `).all(guildId);
+    }
+
+    claimPrompt(guildId, channelId, promptedAt, cooldownSince) {
+        const result = db.prepare(`
+            INSERT INTO SceneAssistantChannelPromptsV2 (
+                guild_id, channel_id, last_prompt_at
+            ) VALUES (?, ?, ?)
+            ON CONFLICT(guild_id, channel_id)
+            DO UPDATE SET last_prompt_at = excluded.last_prompt_at
+            WHERE last_prompt_at <= ?
+        `).run(guildId, channelId, promptedAt, cooldownSince);
+
+        return result.changes === 1;
     }
 
     linkChannel({
@@ -123,6 +159,30 @@ class SceneAssistantRepository {
         return this.getScene(sceneId);
     }
 
+    markSceneConclude(sceneId, notifiedAt) {
+        db.prepare(`
+            UPDATE ScenesV2
+            SET status = 'conclude',
+                threshold_notified_at = COALESCE(threshold_notified_at, ?),
+                updated_at = ?
+            WHERE id = ?
+        `).run(notifiedAt, notifiedAt, sceneId);
+
+        return this.getScene(sceneId);
+    }
+
+    restartScene(sceneId, startedAt) {
+        db.prepare(`
+            UPDATE ScenesV2
+            SET started_at = ?, last_rp_message_at = NULL,
+                rp_message_count = 0, status = 'active',
+                threshold_notified_at = NULL, updated_at = ?
+            WHERE id = ?
+        `).run(startedAt, startedAt, sceneId);
+
+        return this.getScene(sceneId);
+    }
+
     addParticipant(sceneId, characterId, joinedAt) {
         db.prepare(`
             INSERT INTO SceneParticipantsV2 (
@@ -145,6 +205,16 @@ class SceneAssistantRepository {
             ORDER BY scene.updated_at DESC
             LIMIT 1
         `).get(guildId, characterId) || null;
+    }
+
+    claimTimelineWarning(sceneAId, sceneBId, characterId, warnedAt) {
+        const [first, second] = [sceneAId, sceneBId].sort();
+        return db.prepare(`
+            INSERT INTO SceneTimelineWarningsV2 (
+                scene_a_id, scene_b_id, character_id, warned_at
+            ) VALUES (?, ?, ?, ?)
+            ON CONFLICT(scene_a_id, scene_b_id, character_id) DO NOTHING
+        `).run(first, second, characterId, warnedAt).changes === 1;
     }
 
     getConfiguration(guildId) {

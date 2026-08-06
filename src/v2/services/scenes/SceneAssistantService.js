@@ -1,11 +1,15 @@
 const {
-    EmbedBuilder
+    EmbedBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle
 } = require("discord.js");
 
 const manager =
     require(
         "../../managers/SceneAssistantV2Manager"
     );
+const guildSettingsManager = require("../../managers/GuildSettingsV2Manager");
 
 const DAY_IN_MILLISECONDS =
     24 * 60 * 60 * 1_000;
@@ -53,11 +57,31 @@ class SceneAssistantService {
             return null;
         }
 
-        const cycle = manager.recordMessage({
+        const scene = manager.getActiveSceneByChannel(
             guildId,
-            channelId,
-            occurredAt: this.getMessageTimestamp(message)
-        });
+            channelId
+        );
+
+        if (!scene) {
+            return {
+                kind: "no_active_scene",
+                shouldPrompt: manager.shouldPrompt(
+                    guildId,
+                    channelId,
+                    new Date(this.getMessageTimestamp(message))
+                )
+            };
+        }
+
+        const cycle = manager.recordSceneMessage(
+            scene.id,
+            this.getMessageTimestamp(message)
+        );
+
+        await this.trackParticipant(
+            message,
+            cycle
+        );
 
         const evaluation =
             this.evaluateCycle(
@@ -82,11 +106,9 @@ class SceneAssistantService {
         const justReachedThreshold =
             cycle.status !== "conclude";
 
-        const updatedCycle =
-            manager.markConclude({
-                guildId,
-                channelId
-            });
+        const updatedCycle = manager.markSceneConclude(
+            scene.id
+        );
 
         return {
             configuration,
@@ -128,7 +150,7 @@ class SceneAssistantService {
             };
         }
 
-        const cycle = manager.getCycle(
+        const cycle = manager.getActiveSceneByChannel(
             guildId,
             channelId
         );
@@ -149,14 +171,12 @@ class SceneAssistantService {
 
         const updatedCycle = evaluation.shouldConclude
             && cycle.status !== "conclude"
-            ? manager.markConclude({
-                guildId,
-                channelId
-            })
+            ? manager.markSceneConclude(cycle.id)
             : cycle;
 
         return {
             kind: "tracked",
+            scene: updatedCycle,
             configuration,
             cycle: updatedCycle,
             evaluation
@@ -197,9 +217,19 @@ class SceneAssistantService {
             );
         }
 
-        return manager.startNewCycle({
+        const current = manager.getActiveSceneByChannel(
             guildId,
-            channelId: channel.id
+            channel.id
+        );
+
+        if (current) {
+            return manager.restartScene(current.id);
+        }
+
+        return manager.createScene({
+            guildId,
+            channelId: channel.id,
+            title: `Scène de #${channel.name || channel.id}`
         });
     }
 
@@ -335,6 +365,84 @@ class SceneAssistantService {
                 text: "Assistant de gestion des sc\u00e8nes GreyCore \u2022 recommandation uniquement"
             })
             .setTimestamp();
+    }
+
+    buildStartPrompt() {
+        return {
+            content: "🎬 **Aucune scène active dans ce salon.**\nTu peux utiliser l’assistant, ou simplement continuer à RP sans lui.",
+            components: [
+                new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId("v2_scene_start")
+                        .setLabel("Commencer une scène")
+                        .setEmoji("▶️")
+                        .setStyle(ButtonStyle.Success),
+                    new ButtonBuilder()
+                        .setCustomId("v2_scene_resume")
+                        .setLabel("Reprendre une scène")
+                        .setEmoji("🔗")
+                        .setStyle(ButtonStyle.Primary)
+                )
+            ]
+        };
+    }
+
+    buildSceneActions(scene) {
+        return new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`v2_scene_move:${scene.id}`)
+                .setLabel("Déplacer la scène")
+                .setEmoji("➡️")
+                .setStyle(ButtonStyle.Primary)
+        );
+    }
+
+    async trackParticipant(message, scene) {
+        const characterId = message.greycoreSceneCharacterId;
+        if (!characterId) return null;
+
+        const previous = manager.getActiveSceneForCharacter(
+            scene.guild_id,
+            characterId
+        );
+
+        manager.addParticipant(
+            scene.id,
+            characterId,
+            this.getMessageTimestamp(message)
+        );
+
+        if (!previous || previous.id === scene.id) return null;
+        if (!manager.claimTimelineWarning(previous.id, scene.id, characterId)) return null;
+
+        await message.channel.send(
+            `⚠️ <@${message.author.id}>, ce personnage participe déjà à la scène **${previous.title}**. Cette nouvelle scène peut créer une incohérence de timeline, mais aucun blocage n’est appliqué.`
+        );
+
+        const logChannelId = guildSettingsManager.getErrorLogChannelId(
+            scene.guild_id
+        );
+        const logChannel = logChannelId
+            ? await message.client.channels.fetch(logChannelId).catch(() => null)
+            : null;
+
+        if (logChannel?.send) {
+            await logChannel.send({
+                embeds: [new EmbedBuilder()
+                    .setColor(0xFEE75C)
+                    .setTitle("⚠️ Alerte de cohérence RP")
+                    .setDescription("Un personnage semble participer à deux scènes actives. Aucun blocage n’a été appliqué.")
+                    .addFields(
+                        { name: "Joueur", value: `<@${message.author.id}>`, inline: true },
+                        { name: "Personnage", value: characterId, inline: true },
+                        { name: "Scène précédente", value: `**${previous.title}**`, inline: false },
+                        { name: "Nouvelle scène", value: `**${scene.title}** dans <#${message.channelId}>`, inline: false }
+                    )
+                    .setTimestamp()]
+            });
+        }
+
+        return previous;
     }
 
 }

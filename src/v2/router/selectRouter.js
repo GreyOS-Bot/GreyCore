@@ -1,4 +1,5 @@
 const selectRouters = [
+    require("./selects/SceneSelectRouter"),
     require(
         "./selects/StaffCharacterCorrectionSelectRouter"
     ),
@@ -36,8 +37,9 @@ module.exports =
         interaction
     ) {
         if (
-            !interaction
-                .isStringSelectMenu()
+            !interaction.isAnySelectMenu?.()
+            && !interaction.isStringSelectMenu?.()
+            && !interaction.isChannelSelectMenu?.()
         ) {
             return false;
         }
