@@ -199,8 +199,12 @@ class InstallationDetailView {
         }
 
         if (
-            installation.status ===
-            "rejected"
+            [
+                "rejected",
+                "suspended"
+            ].includes(
+                installation.status
+            )
         ) {
             actionButtons.push(
                 new ButtonBuilder()
