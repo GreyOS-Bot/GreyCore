@@ -248,6 +248,14 @@ test(
             calls[0][0],
             /profile\.alias/
         );
+        assert.match(
+            calls[0][0],
+            /profile\.continuity_id\s*=\s*installation\.continuity_id/
+        );
+        assert.doesNotMatch(
+            calls[0][0],
+            /profile\.character_id/
+        );
         assert.deepEqual(
             calls[0][1],
             ["guild", "%frey%"]

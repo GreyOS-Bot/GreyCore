@@ -30,6 +30,11 @@ const approvedCharacterAutomationService =
         "../../services/automation/ApprovedCharacterAutomationService"
     );
 
+const fastInteractionAcknowledgementService =
+    require(
+        "../../core/services/FastInteractionAcknowledgementService"
+    );
+
 module.exports = async interaction => {
     try {
         const installationId =
@@ -85,7 +90,10 @@ module.exports = async interaction => {
             );
         }
 
-        await interaction.deferUpdate();
+        await fastInteractionAcknowledgementService
+            .deferComponentUpdate(
+                interaction
+            );
 
         v2.managers.validation
             .approveInstallation({

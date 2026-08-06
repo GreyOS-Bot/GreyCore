@@ -268,7 +268,8 @@ module.exports = {
             JOIN UsersV2 user
                 ON user.id = character.owner_user_id
             LEFT JOIN CharacterProfilesV2 profile
-                ON profile.character_id = character.id
+                ON profile.continuity_id =
+                    installation.continuity_id
             JOIN CharacterGuildInstallationsV2 installation
                 ON installation.character_id = character.id
             WHERE installation.guild_id = ?
