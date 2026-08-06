@@ -99,6 +99,22 @@ module.exports = {
 
         .addSubcommand(sub =>
             sub
+                .setName("ajouter-categorie-actuelle")
+                .setDescription(
+                    "Ajoute la catégorie du salon actuel sans utiliser le sélecteur Discord."
+                )
+        )
+
+        .addSubcommand(sub =>
+            sub
+                .setName("diagnostic")
+                .setDescription(
+                    "Vérifie la configuration des scènes dans le salon actuel."
+                )
+        )
+
+        .addSubcommand(sub =>
+            sub
                 .setName("nouveau-cycle")
                 .setDescription(
                     "Relance un cycle dans le salon RP actuel, sans le fermer."
@@ -125,6 +141,48 @@ module.exports = {
                         channel: interaction.channel
                     })
                 )
+            );
+        }
+
+        if (subcommand === "diagnostic") {
+            const configuration =
+                sceneAssistantManager.getConfiguration(
+                    interaction.guildId
+                );
+            const scopes =
+                sceneAssistantManager.getScopes(
+                    interaction.guildId
+                );
+            const channelIds =
+                sceneAssistantService.getChannelAndParentIds(
+                    interaction.channel,
+                    interaction.channelId
+                );
+            const matchedScope = scopes.find(
+                scope => channelIds.includes(
+                    String(scope.channel_id)
+                )
+            );
+            const activeScene =
+                sceneAssistantManager.getActiveSceneByChannel(
+                    interaction.guildId,
+                    interaction.channelId
+                );
+
+            return replyPrivate(
+                interaction,
+                [
+                    "🧪 **Diagnostic des cycles de scènes**",
+                    "",
+                    `Module : ${Number(configuration?.is_enabled) === 1 ? "✅ Activé" : "❌ Désactivé"}`,
+                    `Zones configurées : **${scopes.length}**`,
+                    `Salon actuel reconnu : ${matchedScope ? `✅ Oui, via <#${matchedScope.channel_id}>` : "❌ Non"}`,
+                    `Scène active ici : ${activeScene ? `✅ **${activeScene.title}**` : "ℹ️ Aucune"}`,
+                    "",
+                    scopes.length
+                        ? `Zones : ${scopes.map(scope => `<#${scope.channel_id}>`).join(", ")}`
+                        : "Utilise `/scene ajouter-zone` ou `/scene ajouter-categorie-actuelle`."
+                ].join("\n")
             );
         }
 
@@ -158,6 +216,55 @@ module.exports = {
                     "Le suivi commencera seulement lorsque l'Assistant de gestion des sc\u00e8nes sera activ\u00e9 via `/config scenes`.",
                     `Zones configur\u00e9es : **${scopes.length}**.`
                 ].join("\n")
+            );
+        }
+
+        if (
+            subcommand ===
+                "ajouter-categorie-actuelle"
+        ) {
+            const categoryId =
+                interaction.channel?.parentId;
+
+            if (!categoryId) {
+                return replyError(
+                    interaction,
+                    "Ce salon n’est placé dans aucune catégorie."
+                );
+            }
+
+            const category =
+                interaction.guild.channels.cache.get(
+                    categoryId
+                )
+                || await interaction.guild.channels
+                    .fetch(categoryId)
+                    .catch(() => null);
+
+            if (
+                !category
+                || category.type !==
+                    ChannelType.GuildCategory
+            ) {
+                return replyError(
+                    interaction,
+                    "La catégorie parente est introuvable."
+                );
+            }
+
+            const scopes =
+                sceneAssistantManager.addScope({
+                    guildId:
+                        interaction.guildId,
+                    channelId:
+                        category.id,
+                    createdBy:
+                        interaction.user.id
+                });
+
+            return replyPrivate(
+                interaction,
+                `✅ La catégorie **${category.name}** est maintenant suivie. Zones configurées : **${scopes.length}**.`
             );
         }
 
