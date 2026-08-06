@@ -180,11 +180,18 @@ module.exports = {
                         ON installation.character_id =
                             character.id
 
+                    LEFT JOIN CharacterProfilesV2 profile
+                        ON profile.continuity_id =
+                            installation.continuity_id
+
                     WHERE installation.guild_id = ?
                     AND (
                         character.id = ?
                         OR LOWER(character.proxy_name) =
                             LOWER(?)
+                        OR LOWER(
+                            TRIM(profile.alias)
+                        ) = LOWER(?)
                     )
                     AND character.is_archived = 0
                     AND installation.status = 'approved'
@@ -195,6 +202,7 @@ module.exports = {
                     LIMIT 1
                 `).get(
                     interaction.guildId,
+                    name,
                     name,
                     name
                 );

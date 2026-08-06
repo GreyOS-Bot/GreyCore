@@ -132,6 +132,14 @@ test(
             query,
             /installation.proxy_enabled = 1/
         );
+        assert.match(
+            query,
+            /CharacterProfilesV2 profile/
+        );
+        assert.match(
+            query,
+            /TRIM\(profile\.alias\)/
+        );
         assert.doesNotMatch(
             query,
             /user.discord_user_id/
@@ -143,6 +151,7 @@ test(
                     "query",
                     [
                         "guild",
+                        "Reya",
                         "Reya",
                         "Reya"
                     ]
