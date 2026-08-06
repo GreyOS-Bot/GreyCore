@@ -28,6 +28,11 @@ const staffCorrectionView =
         "../../v2/views/character/StaffCharacterCorrectionView"
     );
 
+const discordUserDisplayService =
+    require(
+        "../../v2/core/services/DiscordUserDisplayService"
+    );
+
 const {
     requireStaffCommandAccess
 } = require(
@@ -149,6 +154,30 @@ module.exports = {
                         )
                         .setRequired(true)
                 )
+        )
+        .addSubcommand(sub =>
+            sub
+                .setName("supprimer-personnage")
+                .setDescription(
+                    "Supprime définitivement un seul personnage."
+                )
+                .addStringOption(option =>
+                    option
+                        .setName("personnage")
+                        .setDescription(
+                            "Tape le nom du personnage à supprimer"
+                        )
+                        .setAutocomplete(true)
+                        .setRequired(true)
+                )
+                .addBooleanOption(option =>
+                    option
+                        .setName("confirmer")
+                        .setDescription(
+                            "Confirme la suppression définitive"
+                        )
+                        .setRequired(true)
+                )
         ),
 
     async autocomplete(interaction) {
@@ -162,21 +191,33 @@ module.exports = {
                 focused.value || ""
             ).trim().toLowerCase();
 
-            return interaction.respond(
+            const characters =
                 characterTypeCorrectionService
                     .search(
                         interaction.guildId,
                         filter
                     )
+                    .slice(0, 25);
+            const ownerDisplays =
+                await discordUserDisplayService
+                    .resolveMany(
+                        interaction,
+                        characters.map(
+                            character =>
+                                character.discord_user_id
+                        )
+                    );
+
+            return interaction.respond(
+                characters
                     .slice(0, 25)
                     .map(character => {
                         const ownerName =
-                            interaction.guild?.members
-                                ?.cache
-                                ?.get(
+                            ownerDisplays.get(
+                                String(
                                     character.discord_user_id
                                 )
-                                ?.displayName
+                            )
                             || character.discord_user_id;
 
                         return {
@@ -295,6 +336,48 @@ module.exports = {
             return replyPrivate(
                 interaction,
                 staffCorrectionView.build(context)
+            );
+        }
+
+        if (subcommand === "supprimer-personnage") {
+            if (
+                interaction.options.getBoolean(
+                    "confirmer"
+                ) !== true
+            ) {
+                return replyPrivate(
+                    interaction,
+                    "⚠️ La suppression définitive nécessite l’option `confirmer` réglée sur `Vrai`."
+                );
+            }
+
+            const characterId =
+                interaction.options.getString(
+                    "personnage",
+                    true
+                );
+            const context =
+                characterTypeCorrectionService
+                    .getForStaff({
+                        guildId:
+                            interaction.guildId,
+                        characterId
+                    });
+            const result =
+                rosterManager.deleteCharacter(
+                    context.id
+                );
+            const displayName =
+                context.firstname
+                || context.proxy_name;
+
+            return replyPrivate(
+                interaction,
+                [
+                    `🗑️ **${displayName} a été supprimé définitivement.**`,
+                    `Propriétaire : <@${context.discord_user_id}>`,
+                    `${result.continuityCount} continuité(s) et ${result.installationCount} installation(s) associée(s) ont également été supprimées.`
+                ].join("\n")
             );
         }
 

@@ -26,6 +26,11 @@ const {
     SlashCommandBuilder
 } = require("discord.js");
 
+const discordUserDisplayService =
+    require(
+        "../../v2/core/services/DiscordUserDisplayService"
+    );
+
 module.exports = {
     data: new SlashCommandBuilder()
     .setName("personnage")
@@ -272,15 +277,24 @@ module.exports = {
             `%${focused}%`
         );
 
+        const ownerDisplays =
+            await discordUserDisplayService
+                .resolveMany(
+                    interaction,
+                    characters.map(
+                        character =>
+                            character.discord_user_id
+                    )
+                );
+
         return interaction.respond(
             characters.map(character => {
                 const ownerName =
-                    interaction.guild?.members
-                        ?.cache
-                        ?.get(
+                    ownerDisplays.get(
+                        String(
                             character.discord_user_id
                         )
-                        ?.displayName
+                    )
                     || character.discord_user_id;
 
                 return {

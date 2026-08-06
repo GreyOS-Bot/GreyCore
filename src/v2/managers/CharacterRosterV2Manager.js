@@ -99,6 +99,14 @@ class CharacterRosterV2Manager {
         };
     }
 
+    deleteCharacter(
+        characterId
+    ) {
+        return characterManager.delete(
+            characterId
+        );
+    }
+
 }
 
 module.exports =
