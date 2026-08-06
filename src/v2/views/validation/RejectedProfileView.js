@@ -56,13 +56,15 @@ class RejectedProfileView {
             }),
             this.textField({
                 id:
-                    "gang",
+                    "alias",
                 label:
-                    "Gang ou organisation (facultatif)",
+                    "Prénom ou alias affiché",
+                required:
+                    true,
                 maximumLength:
-                    100,
+                    80,
                 value:
-                    profile?.gang
+                    profile?.alias
             }),
             this.textField({
                 id:
@@ -96,6 +98,7 @@ class RejectedProfileView {
         label,
         maximumLength,
         value,
+        required = false,
         style =
             TextInputStyle.Short
     }) {
@@ -104,7 +107,7 @@ class RejectedProfileView {
                 .setCustomId(id)
                 .setLabel(label)
                 .setStyle(style)
-                .setRequired(false)
+                .setRequired(required)
                 .setMaxLength(
                     maximumLength
                 );

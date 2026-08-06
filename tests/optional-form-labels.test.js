@@ -79,13 +79,34 @@ test(
             )
         );
 
-        assertOptionalLabels(
+        const rejectedModal =
             rejectedProfileView.modal({
                 installation: { id: "installation" },
                 character: { proxy_name: "Alba" },
-                profile: {}
-            })
+                profile: {
+                    alias: "Alba"
+                }
+            });
+        const rejectedInputs =
+            rejectedModal.toJSON().components
+                .map(row => row.components[0]);
+
+        assert.equal(
+            rejectedInputs.find(
+                input => input.custom_id === "alias"
+            ).required,
+            true
         );
+        for (
+            const input of rejectedInputs.filter(
+                input => !input.required
+            )
+        ) {
+            assert.match(
+                input.label,
+                /\(facultatif\)$/
+            );
+        }
 
         const creationInputs =
             characterCreateModal

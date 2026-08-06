@@ -147,9 +147,9 @@ function readProfile(
             )
             || null,
         age,
-        gang:
+        alias:
             getValue(
-                "gang"
+                "alias"
             )
             || null,
         story:
