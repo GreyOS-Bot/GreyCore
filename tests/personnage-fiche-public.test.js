@@ -180,12 +180,14 @@ test(
                         return [
                             {
                                 id: "reya-a",
-                                proxy_name: "Reya",
+                                proxy_name: "Frey:",
+                                display_name: "Freyja",
                                 discord_user_id: "owner-a"
                             },
                             {
                                 id: "reya-b",
-                                proxy_name: "Reya",
+                                proxy_name: "Rey:",
+                                display_name: "Reyna",
                                 discord_user_id: "owner-b"
                             }
                         ];
@@ -224,7 +226,7 @@ test(
             },
             options: {
                 getSubcommand: () => "fiche",
-                getFocused: () => "rey"
+                getFocused: () => "frey"
             },
             respond: async choices => {
                 calls.push([
@@ -242,9 +244,13 @@ test(
             calls[0][0],
             /installation\.status = 'approved'/
         );
+        assert.match(
+            calls[0][0],
+            /profile\.alias/
+        );
         assert.deepEqual(
             calls[0][1],
-            ["guild", "%rey%"]
+            ["guild", "%frey%"]
         );
         assert.deepEqual(
             calls[1],
@@ -252,11 +258,11 @@ test(
                 "respond",
                 [
                     {
-                        name: "Reya — Alice",
+                        name: "Freyja — Alice",
                         value: "reya-a"
                     },
                     {
-                        name: "Reya — Béatrice",
+                        name: "Reyna — Béatrice",
                         value: "reya-b"
                     }
                 ]

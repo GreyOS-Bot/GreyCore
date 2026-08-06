@@ -259,18 +259,29 @@ module.exports = {
             SELECT DISTINCT
                 character.id,
                 character.proxy_name,
+                COALESCE(
+                    NULLIF(TRIM(profile.alias), ''),
+                    character.proxy_name
+                ) AS display_name,
                 user.discord_user_id
             FROM CharactersV2 character
             JOIN UsersV2 user
                 ON user.id = character.owner_user_id
+            LEFT JOIN CharacterProfilesV2 profile
+                ON profile.character_id = character.id
             JOIN CharacterGuildInstallationsV2 installation
                 ON installation.character_id = character.id
             WHERE installation.guild_id = ?
             AND character.is_archived = 0
             AND installation.status = 'approved'
             AND installation.proxy_enabled = 1
-            AND LOWER(character.proxy_name) LIKE LOWER(?)
-            ORDER BY character.proxy_name COLLATE NOCASE
+            AND LOWER(
+                COALESCE(
+                    NULLIF(TRIM(profile.alias), ''),
+                    character.proxy_name
+                )
+            ) LIKE LOWER(?)
+            ORDER BY display_name COLLATE NOCASE
             LIMIT 25
         `).all(
             interaction.guildId,
@@ -299,7 +310,7 @@ module.exports = {
 
                 return {
                     name:
-                        `${character.proxy_name} — ${ownerName}`
+                        `${character.display_name} — ${ownerName}`
                             .slice(0, 100),
                     value: character.id
                 };
