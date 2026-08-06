@@ -2,8 +2,62 @@ const repository =
     require(
         "../repositories/SceneAssistantRepository"
     );
+const { randomUUID } = require("node:crypto");
 
 class SceneAssistantV2Manager {
+
+    createScene({
+        guildId,
+        title,
+        channelId,
+        createdBy = null,
+        startedAt = new Date().toISOString()
+    }) {
+        const scene = repository.createScene({
+            id: `scenev2_${randomUUID()}`,
+            guildId,
+            title: String(title || "Scène RP").trim().slice(0, 100),
+            createdBy,
+            startedAt
+        });
+
+        repository.linkChannel({
+            sceneId: scene.id,
+            guildId,
+            channelId,
+            createdBy,
+            linkedAt: startedAt
+        });
+
+        return repository.getScene(scene.id);
+    }
+
+    getScene(sceneId) {
+        return repository.getScene(sceneId);
+    }
+
+    getActiveSceneByChannel(guildId, channelId) {
+        return repository.getActiveSceneByChannel(guildId, channelId);
+    }
+
+    moveScene(data) {
+        return repository.moveScene({
+            ...data,
+            movedAt: data.movedAt || new Date().toISOString()
+        });
+    }
+
+    recordSceneMessage(sceneId, occurredAt = new Date().toISOString()) {
+        return repository.recordSceneMessage(sceneId, occurredAt);
+    }
+
+    addParticipant(sceneId, characterId, joinedAt = new Date().toISOString()) {
+        return repository.addParticipant(sceneId, characterId, joinedAt);
+    }
+
+    getActiveSceneForCharacter(guildId, characterId) {
+        return repository.getActiveSceneForCharacter(guildId, characterId);
+    }
 
     getConfiguration(guildId) {
         return repository.getConfiguration(guildId);

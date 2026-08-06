@@ -72,7 +72,10 @@ test(
             "GuildCharacterApprovalAutomationRunsV2",
             "GuildSceneAssistantSettingsV2",
             "GuildSceneAssistantScopesV2",
-            "SceneAssistantCyclesV2"
+            "SceneAssistantCyclesV2",
+            "ScenesV2",
+            "SceneChannelsV2",
+            "SceneParticipantsV2"
         ];
 
         const tableNames =

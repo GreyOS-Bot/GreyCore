@@ -3,6 +3,150 @@ const db =
 
 class SceneAssistantRepository {
 
+    createScene({
+        id,
+        guildId,
+        title,
+        createdBy,
+        startedAt
+    }) {
+        db.prepare(`
+            INSERT INTO ScenesV2 (
+                id, guild_id, title, status, started_at,
+                rp_message_count, created_by, created_at, updated_at
+            ) VALUES (?, ?, ?, 'active', ?, 0, ?, ?, ?)
+        `).run(
+            id,
+            guildId,
+            title,
+            startedAt,
+            createdBy,
+            startedAt,
+            startedAt
+        );
+
+        return this.getScene(id);
+    }
+
+    getScene(sceneId) {
+        return db.prepare(`
+            SELECT * FROM ScenesV2 WHERE id = ?
+        `).get(sceneId) || null;
+    }
+
+    getActiveSceneByChannel(guildId, channelId) {
+        return db.prepare(`
+            SELECT scene.*
+            FROM SceneChannelsV2 link
+            JOIN ScenesV2 scene ON scene.id = link.scene_id
+            WHERE link.guild_id = ?
+            AND link.channel_id = ?
+            AND link.unlinked_at IS NULL
+            AND scene.status IN ('active', 'conclude')
+            ORDER BY link.id DESC
+            LIMIT 1
+        `).get(guildId, channelId) || null;
+    }
+
+    linkChannel({
+        sceneId,
+        guildId,
+        channelId,
+        sourceChannelId = null,
+        transitionMessageId = null,
+        createdBy = null,
+        linkedAt
+    }) {
+        db.prepare(`
+            UPDATE SceneChannelsV2
+            SET unlinked_at = ?
+            WHERE guild_id = ? AND channel_id = ? AND unlinked_at IS NULL
+        `).run(linkedAt, guildId, channelId);
+
+        db.prepare(`
+            INSERT INTO SceneChannelsV2 (
+                scene_id, guild_id, channel_id, linked_at,
+                source_channel_id, transition_message_id, created_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            sceneId,
+            guildId,
+            channelId,
+            linkedAt,
+            sourceChannelId,
+            transitionMessageId,
+            createdBy
+        );
+
+        return this.getActiveSceneByChannel(guildId, channelId);
+    }
+
+    moveScene({
+        sceneId,
+        guildId,
+        sourceChannelId,
+        destinationChannelId,
+        transitionMessageId,
+        createdBy,
+        movedAt
+    }) {
+        const transaction = db.transaction(() => {
+            db.prepare(`
+                UPDATE SceneChannelsV2
+                SET unlinked_at = ?
+                WHERE scene_id = ? AND channel_id = ? AND unlinked_at IS NULL
+            `).run(movedAt, sceneId, sourceChannelId);
+
+            return this.linkChannel({
+                sceneId,
+                guildId,
+                channelId: destinationChannelId,
+                sourceChannelId,
+                transitionMessageId,
+                createdBy,
+                linkedAt: movedAt
+            });
+        });
+
+        return transaction();
+    }
+
+    recordSceneMessage(sceneId, occurredAt) {
+        db.prepare(`
+            UPDATE ScenesV2
+            SET last_rp_message_at = ?,
+                rp_message_count = rp_message_count + 1,
+                updated_at = ?
+            WHERE id = ?
+        `).run(occurredAt, occurredAt, sceneId);
+
+        return this.getScene(sceneId);
+    }
+
+    addParticipant(sceneId, characterId, joinedAt) {
+        db.prepare(`
+            INSERT INTO SceneParticipantsV2 (
+                scene_id, character_id, joined_at, left_at
+            ) VALUES (?, ?, ?, NULL)
+            ON CONFLICT(scene_id, character_id)
+            DO UPDATE SET left_at = NULL
+        `).run(sceneId, characterId, joinedAt);
+    }
+
+    getActiveSceneForCharacter(guildId, characterId) {
+        return db.prepare(`
+            SELECT scene.*
+            FROM SceneParticipantsV2 participant
+            JOIN ScenesV2 scene ON scene.id = participant.scene_id
+            WHERE scene.guild_id = ?
+            AND participant.character_id = ?
+            AND participant.left_at IS NULL
+            AND scene.status IN ('active', 'conclude')
+            ORDER BY scene.updated_at DESC
+            LIMIT 1
+        `).get(guildId, characterId) || null;
+    }
+
     getConfiguration(guildId) {
         return db.prepare(`
             SELECT *

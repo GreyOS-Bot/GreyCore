@@ -62,7 +62,12 @@ class SceneAssistantService {
         const evaluation =
             this.evaluateCycle(
                 cycle,
-                configuration
+                configuration,
+                new Date(
+                    this.getMessageTimestamp(
+                        message
+                    )
+                )
             );
 
         if (!evaluation.shouldConclude) {
