@@ -1,4 +1,8 @@
 class DiscordUserDisplayService {
+    constructor() {
+        this.displays = new Map();
+    }
+
     async resolveMany(
         interaction,
         discordUserIds
@@ -12,8 +16,9 @@ class DiscordUserDisplayService {
         ];
         const displays = new Map();
 
-        await Promise.all(
-            ids.map(async discordUserId => {
+        const missing = [];
+
+        ids.forEach(discordUserId => {
                 const cachedMember =
                     interaction.guild?.members
                         ?.cache
@@ -27,34 +32,90 @@ class DiscordUserDisplayService {
                     return;
                 }
 
-                const fetchedMember =
-                    await interaction.guild?.members
-                        ?.fetch?.(discordUserId)
-                        .catch(() => null);
+                const cachedUser =
+                    interaction.client?.users
+                        ?.cache
+                        ?.get(discordUserId);
+                const knownDisplay =
+                    cachedUser?.globalName
+                    || cachedUser?.username
+                    || this.displays.get(
+                        discordUserId
+                    );
 
-                if (fetchedMember?.displayName) {
+                if (knownDisplay) {
                     displays.set(
                         discordUserId,
-                        fetchedMember.displayName
+                        knownDisplay
                     );
                     return;
                 }
 
-                const user =
-                    await interaction.client?.users
-                        ?.fetch?.(discordUserId)
-                        .catch(() => null);
-
                 displays.set(
                     discordUserId,
-                    user?.globalName
-                    || user?.username
-                    || discordUserId
+                    discordUserId
                 );
-            })
+                missing.push(discordUserId);
+            });
+
+        this.warmLater(
+            interaction,
+            missing
         );
 
         return displays;
+    }
+
+    warmLater(
+        interaction,
+        discordUserIds
+    ) {
+        if (discordUserIds.length === 0) {
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            Promise.all(
+                discordUserIds.map(
+                    discordUserId =>
+                        this.fetchDisplay(
+                            interaction,
+                            discordUserId
+                        )
+                )
+            ).catch(() => null);
+        }, 0);
+
+        timer.unref?.();
+    }
+
+    async fetchDisplay(
+        interaction,
+        discordUserId
+    ) {
+        const members = interaction.guild?.members;
+        const member = typeof members?.fetch === "function"
+            ? await members.fetch(discordUserId)
+                .catch(() => null)
+            : null;
+        const users = interaction.client?.users;
+        const user = member
+            ? null
+            : typeof users?.fetch === "function"
+                ? await users.fetch(discordUserId)
+                    .catch(() => null)
+                : null;
+        const display =
+            member?.displayName
+            || user?.globalName
+            || user?.username;
+
+        if (display) {
+            this.displays.set(
+                discordUserId,
+                display
+            );
+        }
     }
 }
 

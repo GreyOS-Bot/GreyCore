@@ -6,7 +6,7 @@ const service = require(
 );
 
 test(
-    "les recherches affichent aussi les membres Discord absents du cache",
+    "les recherches utilisent les caches sans attendre une requête Discord",
     async () => {
         const fetched = [];
         const displays = await service.resolveMany(
@@ -29,6 +29,18 @@ test(
                             };
                         }
                     }
+                },
+                client: {
+                    users: {
+                        cache: new Map([
+                            [
+                                "missing",
+                                {
+                                    globalName: "Nelyne"
+                                }
+                            ]
+                        ])
+                    }
                 }
             },
             [
@@ -47,7 +59,7 @@ test(
         );
         assert.deepEqual(
             fetched,
-            ["missing"]
+            []
         );
     }
 );

@@ -10,6 +10,11 @@ const staffErrorLogService =
         "../services/StaffErrorLogService"
     );
 
+const fastAutocompleteResponseService =
+    require(
+        "../core/services/FastAutocompleteResponseService"
+    );
+
 module.exports =
     async function autocompleteRouter(
         interaction
@@ -38,7 +43,9 @@ module.exports =
 
         try {
             await command.autocomplete(
-                interaction
+                createFastInteraction(
+                    interaction
+                )
             );
         } catch (error) {
             await staffErrorLogService.report({
@@ -70,9 +77,42 @@ async function respondWithNoChoices(
         return;
     }
 
-    await interaction
-        .respond([])
+    await fastAutocompleteResponseService
+        .respond(
+            interaction,
+            []
+        )
         .catch(
             () => null
         );
+}
+
+function createFastInteraction(
+    interaction
+) {
+    return new Proxy(
+        interaction,
+        {
+            get(target, property) {
+                if (property === "respond") {
+                    return choices =>
+                        fastAutocompleteResponseService
+                            .respond(
+                                target,
+                                choices
+                            );
+                }
+
+                const value = Reflect.get(
+                    target,
+                    property,
+                    target
+                );
+
+                return typeof value === "function"
+                    ? value.bind(target)
+                    : value;
+            }
+        }
+    );
 }
