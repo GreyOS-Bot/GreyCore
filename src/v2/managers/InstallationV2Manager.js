@@ -37,6 +37,17 @@ class InstallationV2Manager {
             );
     }
 
+    getAnyByContinuityAndGuild(
+        continuityId,
+        guildId
+    ) {
+        return repository
+            .getAnyByContinuityAndGuild(
+                continuityId,
+                guildId
+            );
+    }
+
     getByContinuity(
         continuityId
     ) {
@@ -87,15 +98,23 @@ class InstallationV2Manager {
         data
     ) {
         const existing =
-            this.getByContinuityAndGuild(
+            this.getAnyByContinuityAndGuild(
                 data.continuityId,
                 data.guildId
             );
 
-        if (existing) {
+        if (
+            existing
+            && existing.status !==
+                InstallationStatus.ARCHIVED
+        ) {
             throw new Error(
                 "Cette histoire est déjà installée sur ce serveur."
             );
+        }
+
+        if (existing) {
+            repository.delete(existing.id);
         }
 
         const now =
@@ -149,13 +168,21 @@ class InstallationV2Manager {
         visibility = "private"
     }) {
         const existing =
-            this.getByContinuityAndGuild(
+            this.getAnyByContinuityAndGuild(
                 continuityId,
                 guildId
             );
 
-        if (existing) {
+        if (
+            existing
+            && existing.status !==
+                InstallationStatus.ARCHIVED
+        ) {
             return existing;
+        }
+
+        if (existing) {
+            repository.delete(existing.id);
         }
 
         const continuity =

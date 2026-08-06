@@ -200,6 +200,53 @@ test(
     }
 );
 
+test(
+    "une installation annulée peut être recréée comme un nouveau brouillon",
+    () => {
+        const isolated = createIsolatedDatabase();
+
+        try {
+            createInstallationTables(
+                isolated.database
+            );
+            const manager = loadManager();
+            const cancelled = manager.createDraft({
+                continuityId: "continuity",
+                guildId: "guild-a"
+            });
+
+            manager.setStatus(
+                cancelled.id,
+                "archived"
+            );
+
+            assert.equal(
+                manager.getByContinuityAndGuild(
+                    "continuity",
+                    "guild-a"
+                ),
+                undefined
+            );
+
+            const reinstalled = manager.createDraft({
+                continuityId: "continuity",
+                guildId: "guild-a"
+            });
+
+            assert.notEqual(
+                reinstalled.id,
+                cancelled.id
+            );
+            assert.equal(
+                reinstalled.status,
+                "draft"
+            );
+        } finally {
+            isolated.cleanup();
+        }
+    }
+);
+
 function createInstallationTables(
     database
 ) {

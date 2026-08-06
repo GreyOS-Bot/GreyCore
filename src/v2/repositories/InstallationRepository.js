@@ -26,6 +26,22 @@ class InstallationRepository {
             FROM CharacterGuildInstallationsV2
             WHERE continuity_id = ?
             AND guild_id = ?
+            AND status != 'archived'
+        `).get(
+            continuityId,
+            guildId
+        );
+    }
+
+    getAnyByContinuityAndGuild(
+        continuityId,
+        guildId
+    ) {
+        return db.prepare(`
+            SELECT *
+            FROM CharacterGuildInstallationsV2
+            WHERE continuity_id = ?
+            AND guild_id = ?
         `).get(
             continuityId,
             guildId
