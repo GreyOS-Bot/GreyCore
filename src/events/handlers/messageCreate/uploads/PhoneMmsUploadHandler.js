@@ -32,6 +32,11 @@ const {
     getImageAttachment
 } = require("./ImageAttachment");
 
+const originalMessageDeletionService =
+    require(
+        "../../../../v2/core/services/OriginalMessageDeletionService"
+    );
+
 module.exports =
     async function phoneMmsUploadHandler(
         message,
@@ -108,7 +113,8 @@ module.exports =
         }
 
         try {
-            await phoneService.sendMms({
+            const result =
+                await phoneService.sendMms({
                 client:
                     message.client,
                 guildId:
@@ -131,12 +137,28 @@ module.exports =
                     attachment.name
             });
 
+            try {
+                await originalMessageDeletionService
+                    .delete(message);
+            } catch (error) {
+                await result.webhookMessage
+                    ?.delete()
+                    .catch(() => null);
+
+                phoneManager.deleteMessage(
+                    result.message.id
+                );
+
+                throw new Error(
+                    "Le MMS n’a pas été conservé car le message original n’a pas pu être supprimé.",
+                    {
+                        cause: error
+                    }
+                );
+            }
+
             pendingActionManager.delete(
                 message.author.id
-            );
-
-            await message.reply(
-                "✅ MMS envoyé."
             );
         } catch (error) {
             await message.reply(
