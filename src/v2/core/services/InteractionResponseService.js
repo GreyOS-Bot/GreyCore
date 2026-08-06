@@ -2,6 +2,11 @@ const {
     MessageFlags
 } = require("discord.js");
 
+const fastInteractionAcknowledgementService =
+    require(
+        "./FastInteractionAcknowledgementService"
+    );
+
 function canUseEphemeral(
     interaction
 ) {
@@ -97,14 +102,16 @@ function deferPrivate(interaction) {
         return Promise.resolve();
     }
 
-    const payload = {};
-
-    if (canUseEphemeral(interaction)) {
-        payload.flags =
-            MessageFlags.Ephemeral;
-    }
-
-    return interaction.deferReply(payload);
+    return fastInteractionAcknowledgementService
+        .deferReply(
+            interaction,
+            {
+                ephemeral:
+                    canUseEphemeral(
+                        interaction
+                    )
+            }
+        );
 }
 
 function replyError(
