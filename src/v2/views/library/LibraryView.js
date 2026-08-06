@@ -65,7 +65,7 @@ class LibraryView {
                             "",
                             ...pageCharacters.map(
                                 character => [
-                                    `👤 **${character.proxy_name}**`,
+                                    `👤 **${character.display_name || character.proxy_name}**`,
                                     `🌍 ${character.continuity_count} continuité(s)`,
                                     `🖥️ ${character.installation_count} installation(s)`,
                                     ""
@@ -95,8 +95,10 @@ class LibraryView {
                         pageCharacters.map(
                             character => ({
                                 label:
-                                    character.proxy_name
-                                        .slice(0, 100),
+                                    String(
+                                        character.display_name
+                                        || character.proxy_name
+                                    ).slice(0, 100),
 
                                 value:
                                     character.id,

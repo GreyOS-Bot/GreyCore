@@ -23,6 +23,11 @@ class LibraryRepository {
                 character.id,
                 character.owner_user_id,
                 character.proxy_name,
+                COALESCE(
+                    NULLIF(TRIM(profile.alias), ''),
+                    NULLIF(TRIM(character.base_firstname), ''),
+                    character.proxy_name
+                ) AS display_name,
                 character.avatar_url,
                 character.base_firstname,
                 character.base_lastname,
@@ -42,13 +47,17 @@ class LibraryRepository {
                     character.id
                 AND installation.status != 'archived'
 
+            LEFT JOIN CharacterProfilesV2 profile
+                ON profile.continuity_id =
+                    continuity.id
+
             WHERE character.owner_user_id = ?
             AND character.is_archived = 0
 
             GROUP BY character.id
 
             ORDER BY
-                character.proxy_name
+                display_name
                 COLLATE NOCASE ASC
         `).all(
             userId
@@ -63,6 +72,11 @@ class LibraryRepository {
                 character.id,
                 character.owner_user_id,
                 character.proxy_name,
+                COALESCE(
+                    NULLIF(TRIM(profile.alias), ''),
+                    NULLIF(TRIM(character.base_firstname), ''),
+                    character.proxy_name
+                ) AS display_name,
                 character.avatar_url,
                 character.base_firstname,
                 character.base_lastname,
@@ -81,13 +95,17 @@ class LibraryRepository {
                 ON installation.character_id =
                     character.id
 
+            LEFT JOIN CharacterProfilesV2 profile
+                ON profile.continuity_id =
+                    continuity.id
+
             WHERE character.owner_user_id = ?
             AND character.is_archived = 1
 
             GROUP BY character.id
 
             ORDER BY
-                character.proxy_name
+                display_name
                 COLLATE NOCASE ASC
         `).all(
             userId
@@ -168,6 +186,11 @@ class LibraryRepository {
                 character.id,
                 character.owner_user_id,
                 character.proxy_name,
+                COALESCE(
+                    NULLIF(TRIM(profile.alias), ''),
+                    NULLIF(TRIM(character.base_firstname), ''),
+                    character.proxy_name
+                ) AS display_name,
                 character.avatar_url,
                 character.base_firstname,
                 character.base_lastname,
@@ -184,6 +207,10 @@ class LibraryRepository {
                 ON installation.character_id =
                     character.id
                 AND installation.status != 'archived'
+
+            LEFT JOIN CharacterProfilesV2 profile
+                ON profile.continuity_id =
+                    continuity.id
 
             WHERE character.owner_user_id = ?
             AND character.is_archived = 0
@@ -204,15 +231,23 @@ class LibraryRepository {
                         ''
                     )
                 ) LIKE LOWER(?)
+
+                OR LOWER(
+                    COALESCE(
+                        profile.alias,
+                        ''
+                    )
+                ) LIKE LOWER(?)
             )
 
             GROUP BY character.id
 
             ORDER BY
-                character.proxy_name
+                display_name
                 COLLATE NOCASE ASC
         `).all(
             userId,
+            searchValue,
             searchValue,
             searchValue,
             searchValue

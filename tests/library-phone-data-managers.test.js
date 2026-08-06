@@ -36,11 +36,11 @@ test(
             assert.deepEqual(
                 characters.map(
                     character =>
-                        character.proxy_name
+                        character.display_name
                 ),
                 [
-                    "Alba",
-                    "Zulu"
+                    "Alba affichée",
+                    "Zoé"
                 ]
             );
             assert.equal(
@@ -329,6 +329,12 @@ function createLibraryTables(
                 NOT NULL
         );
 
+        CREATE TABLE CharacterProfilesV2 (
+            continuity_id TEXT
+                PRIMARY KEY,
+            alias TEXT
+        );
+
         INSERT INTO UsersV2 (
             id,
             discord_user_id
@@ -413,6 +419,16 @@ function createLibraryTables(
                 'character-old',
                 0,
                 '2026-01-04'
+            );
+
+        INSERT INTO CharacterProfilesV2 (
+            continuity_id,
+            alias
+        )
+        VALUES
+            (
+                'continuity-a1',
+                'Alba affichée'
             );
 
         INSERT INTO CharacterGuildInstallationsV2 (

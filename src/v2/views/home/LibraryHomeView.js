@@ -72,7 +72,8 @@ class LibraryHomeView {
                                         character => ({
                                             label:
                                                 String(
-                                                    character.proxy_name
+                                                    character.display_name
+                                                    || character.proxy_name
                                                 ).slice(0, 100),
                                             value:
                                                 String(character.id),
