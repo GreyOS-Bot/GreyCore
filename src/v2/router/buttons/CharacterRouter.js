@@ -5,6 +5,11 @@ const {
     "../../core/services/InteractionResponseService"
 );
 
+const fastInteractionAcknowledgementService =
+    require(
+        "../../core/services/FastInteractionAcknowledgementService"
+    );
+
 module.exports =
     async function (
         interaction,
@@ -208,6 +213,11 @@ module.exports =
 
             }
 
+            await fastInteractionAcknowledgementService
+                .deferComponentUpdate(
+                    interaction
+                );
+
             pendingActionManager.create({
                 userId:
                     interaction.user.id,
@@ -307,6 +317,11 @@ module.exports =
                 return true;
 
             }
+
+            await fastInteractionAcknowledgementService
+                .deferComponentUpdate(
+                    interaction
+                );
 
             pendingActionManager.create({
                 userId:
