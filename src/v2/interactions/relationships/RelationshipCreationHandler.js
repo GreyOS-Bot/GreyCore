@@ -21,6 +21,7 @@ const relationshipsPage =
 const {
     canManageCharacter,
     getContinuityId,
+    resolveRelationshipGuildId,
     validDate
 } = require("./RelationshipUtils");
 
@@ -60,13 +61,26 @@ class RelationshipCreationHandler {
         interaction,
         characterId
     ) {
+        const guildId =
+            resolveRelationshipGuildId(
+                interaction,
+                characterId
+            );
+
+        if (!guildId) {
+            return replyError(
+                interaction,
+                "Ouvre cette fiche depuis le serveur où le personnage est installé pour ajouter une relation."
+            );
+        }
+
         const dashboardData =
             characterDashboardManager
                 .getInstalledDashboardData(
                     characterId,
                     {
                         guildId:
-                            interaction.guildId
+                            guildId
                     }
                 );
 
@@ -112,13 +126,26 @@ class RelationshipCreationHandler {
         interaction,
         characterId
     ) {
+        const guildId =
+            resolveRelationshipGuildId(
+                interaction,
+                characterId
+            );
+
+        if (!guildId) {
+            return replyError(
+                interaction,
+                "Ouvre cette fiche depuis le serveur concerné pour rechercher une relation."
+            );
+        }
+
         const dashboardData =
             characterDashboardManager
                 .getInstalledDashboardData(
                     characterId,
                     {
                         guildId:
-                            interaction.guildId
+                            guildId
                     }
                 );
 
@@ -145,7 +172,7 @@ class RelationshipCreationHandler {
         const availableCharacters =
             characterDashboardManager
                 .searchInstalledCharactersForGuild(
-                    interaction.guildId,
+                    guildId,
                     query,
                     {
                         excludeCharacterId:
@@ -194,9 +221,22 @@ class RelationshipCreationHandler {
         characterId,
         otherCharacterId
     ) {
+        const guildId =
+            resolveRelationshipGuildId(
+                interaction,
+                characterId
+            );
+
+        if (!guildId) {
+            return replyError(
+                interaction,
+                "Serveur de la relation introuvable. Ouvre la fiche depuis le serveur concerné."
+            );
+        }
+
         const relationshipTypes =
             relationshipManager.getTypes(
-                interaction.guildId
+                guildId
             );
 
         if (
@@ -224,13 +264,26 @@ class RelationshipCreationHandler {
         otherCharacterId,
         relationshipTypeId
     ) {
+        const guildId =
+            resolveRelationshipGuildId(
+                interaction,
+                characterId
+            );
+
+        if (!guildId) {
+            return replyError(
+                interaction,
+                "Serveur de la relation introuvable. Ouvre la fiche depuis le serveur concerné."
+            );
+        }
+
         const dashboardA =
             characterDashboardManager
                 .getInstalledDashboardData(
                     characterId,
                     {
                         guildId:
-                            interaction.guildId
+                            guildId
                     }
                 );
 
@@ -240,7 +293,7 @@ class RelationshipCreationHandler {
                     otherCharacterId,
                     {
                         guildId:
-                            interaction.guildId
+                            guildId
                     }
                 );
 
@@ -291,7 +344,7 @@ class RelationshipCreationHandler {
                 userId:
                     interaction.user.id,
                 guildId:
-                    interaction.guildId,
+                    guildId,
                 continuityAId,
                 continuityBId,
                 relationshipTypeId
@@ -310,13 +363,26 @@ class RelationshipCreationHandler {
         otherCharacterId,
         page
     ) {
+        const guildId =
+            resolveRelationshipGuildId(
+                interaction,
+                characterId
+            );
+
+        if (!guildId) {
+            return replyError(
+                interaction,
+                "Serveur de la relation introuvable. Ouvre la fiche depuis le serveur concerné."
+            );
+        }
+
         const dashboardData =
             characterDashboardManager
                 .getInstalledDashboardData(
                     characterId,
                     {
                         guildId:
-                            interaction.guildId
+                            guildId
                     }
                 );
 
@@ -339,7 +405,7 @@ class RelationshipCreationHandler {
                 otherCharacterId,
                 relationshipTypes:
                     relationshipManager.getTypes(
-                        interaction.guildId
+                        guildId
                     ),
                 page
             })
@@ -365,7 +431,8 @@ class RelationshipCreationHandler {
             interaction,
             context.continuityAId,
             context.continuityBId,
-            context.relationshipTypeId
+            context.relationshipTypeId,
+            context.guildId
         );
     }
 
@@ -373,8 +440,13 @@ class RelationshipCreationHandler {
         interaction,
         continuityAId,
         continuityBId,
-        relationshipTypeId
+        relationshipTypeId,
+        relationshipGuildId = null
     ) {
+        const guildId =
+            relationshipGuildId
+            || interaction.guildId;
+
         const continuityA =
             continuityManager.getById(
                 continuityAId
@@ -401,7 +473,7 @@ class RelationshipCreationHandler {
                     continuityA.character_id,
                     {
                         guildId:
-                            interaction.guildId,
+                            guildId,
                         continuityId:
                             continuityA.id
                     }
@@ -413,7 +485,7 @@ class RelationshipCreationHandler {
                     continuityB.character_id,
                     {
                         guildId:
-                            interaction.guildId,
+                            guildId,
                         continuityId:
                             continuityB.id
                     }
@@ -476,7 +548,7 @@ class RelationshipCreationHandler {
             try {
                 relationshipManager.create({
                     guildId:
-                        interaction.guildId,
+                        guildId,
                     characterAId:
                         continuityA.character_id,
                     continuityAId:
@@ -518,7 +590,7 @@ class RelationshipCreationHandler {
                 relationshipManager
                     .createRequest({
                         guildId:
-                            interaction.guildId,
+                            guildId,
                         requesterContinuityId:
                             continuityA.id,
                         targetContinuityId:

@@ -3,6 +3,11 @@ const characterManagementPolicy =
         "../../core/policies/CharacterManagementPolicy"
     );
 
+const installationManager =
+    require(
+        "../../managers/InstallationV2Manager"
+    );
+
 function canManageCharacter(
     interaction,
     character
@@ -22,6 +27,39 @@ function getContinuityId(
         || dashboardData?.continuity?.id
         || null
     );
+}
+
+function resolveRelationshipGuildId(
+    interaction,
+    characterId
+) {
+    if (interaction?.guildId) {
+        return interaction.guildId;
+    }
+
+    const guildIds = [
+        ...new Set(
+            installationManager
+                .getByCharacter(
+                    characterId
+                )
+                .filter(
+                    installation =>
+                        installation.status ===
+                            "approved"
+                )
+                .map(
+                    installation =>
+                        String(
+                            installation.guild_id
+                        )
+                )
+        )
+    ];
+
+    return guildIds.length === 1
+        ? guildIds[0]
+        : null;
 }
 
 function validDate(
@@ -95,6 +133,7 @@ function relationshipBelongsToContinuity(
 module.exports = {
     canManageCharacter,
     getContinuityId,
+    resolveRelationshipGuildId,
     validDate,
     getCharacterDisplayName,
     relationshipBelongsToContinuity

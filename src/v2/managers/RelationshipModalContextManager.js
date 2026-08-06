@@ -49,8 +49,11 @@ class RelationshipModalContextManager {
         if (
             String(context.userId) !==
             String(userId)
-            || String(context.guildId) !==
-            String(guildId)
+            || (
+                guildId
+                && String(context.guildId) !==
+                    String(guildId)
+            )
         ) {
             throw new Error(
                 "Cette demande de relation ne t'appartient pas."
