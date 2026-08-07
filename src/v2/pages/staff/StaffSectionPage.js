@@ -23,7 +23,20 @@ const CONTENT = {
 class StaffSectionPage {
     async execute(interaction, sectionKey) {
         if (sectionKey === "permissions") {
+            if (!policy.canManagePermissions(interaction)) {
+                return deny(interaction);
+            }
             return require("./StaffPermissionsPage").execute(interaction);
+        }
+
+        const permissionKey = sectionKey === "setup" ? "settings" : sectionKey;
+        const section = catalog.get(permissionKey);
+        if (!section || !policy.canAccess(interaction, permissionKey)) {
+            return deny(interaction);
+        }
+
+        if (sectionKey === "setup") {
+            return require("./StaffSetupPage").execute(interaction);
         }
 
         if (sectionKey === "characters") {
@@ -57,15 +70,6 @@ class StaffSectionPage {
             return require("./StaffSettingsPage").execute(interaction);
         }
 
-        const section = catalog.get(sectionKey);
-        if (!section || !policy.canAccess(interaction, sectionKey)) {
-            return interaction.update({
-                content: "❌ Tu n'as pas accès à cette partie de l'administration.",
-                embeds: [],
-                components: []
-            });
-        }
-
         const readOnly = !policy.canAccess(
             interaction,
             sectionKey,
@@ -87,6 +91,14 @@ class StaffSectionPage {
             components: [navigationRow()]
         });
     }
+}
+
+function deny(interaction) {
+    return interaction.update({
+        content: "❌ Tu n'as pas accès à cette partie de l'administration.",
+        embeds: [],
+        components: []
+    });
 }
 
 function navigationRow() {

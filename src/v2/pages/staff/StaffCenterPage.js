@@ -23,6 +23,14 @@ class StaffCenterPage {
             });
         }
 
+        if (policy.canAccess(interaction, "settings")) {
+            visible.unshift({
+                key: "setup",
+                label: "Démarrage",
+                emoji: "🧭"
+            });
+        }
+
         const buttons = visible.map(section =>
             new ButtonBuilder()
                 .setCustomId(`page:staff:section:${section.key}`)
