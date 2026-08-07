@@ -2,7 +2,8 @@ const {
     EmbedBuilder,
     ActionRowBuilder,
     ButtonBuilder,
-    ButtonStyle
+    ButtonStyle,
+    StringSelectMenuBuilder
 } = require("discord.js");
 const manager = require("../../managers/SceneAssistantV2Manager");
 
@@ -72,7 +73,24 @@ class StaffScenesPage {
                         .setCustomId("v2_staff_scenes_add_current_category")
                         .setLabel("Ajouter cette catégorie")
                         .setEmoji("📂")
+                        .setStyle(ButtonStyle.Secondary),
+                    new ButtonBuilder()
+                        .setCustomId("v2_staff_scenes_manage")
+                        .setLabel("Gérer le suivi")
+                        .setEmoji("🛠️")
                         .setStyle(ButtonStyle.Secondary)
+                ),
+                new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId("v2_staff_scenes_diagnostic")
+                        .setLabel("Diagnostic ici")
+                        .setEmoji("🧪")
+                        .setStyle(ButtonStyle.Secondary),
+                    new ButtonBuilder()
+                        .setCustomId("v2_staff_scenes_new_cycle")
+                        .setLabel("Nouveau cycle ici")
+                        .setEmoji("🔄")
+                        .setStyle(ButtonStyle.Primary)
                 ),
                 navigationRow()
             ]
@@ -81,6 +99,78 @@ class StaffScenesPage {
 
     execute(interaction) {
         return interaction.update(this.build(interaction));
+    }
+
+    buildManagement(interaction) {
+        const scopes = manager.getScopes(interaction.guildId);
+        const expressions = manager.getTriggerExpressions(interaction.guildId);
+        const components = [];
+        if (scopes.length) {
+            components.push(new ActionRowBuilder().addComponents(
+                new StringSelectMenuBuilder()
+                    .setCustomId("v2_staff_scenes_remove_zone")
+                    .setPlaceholder("Retirer une zone RP")
+                    .addOptions(scopes.slice(0, 25).map(scope => ({
+                        label: interaction.guild?.channels?.cache?.get(scope.channel_id)?.name?.slice(0, 100)
+                            || `Zone ${scope.channel_id}`.slice(0, 100),
+                        value: String(scope.channel_id),
+                        emoji: "🗺️"
+                    })))
+            ));
+        }
+        if (expressions.length) {
+            components.push(new ActionRowBuilder().addComponents(
+                new StringSelectMenuBuilder()
+                    .setCustomId("v2_staff_scenes_remove_expression")
+                    .setPlaceholder("Retirer une expression")
+                    .addOptions(expressions.slice(0, 25).map(trigger => ({
+                        label: trigger.expression.slice(0, 100),
+                        value: trigger.normalized_expression.slice(0, 100),
+                        emoji: "🔄"
+                    })))
+            ));
+        }
+        components.push(new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId("page:staff:scenes:root")
+                .setLabel("Retour aux scènes").setEmoji("⬅️").setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId("staff_close")
+                .setLabel("Fermer").setEmoji("❌").setStyle(ButtonStyle.Secondary)
+        ));
+        return {
+            embeds: [new EmbedBuilder().setColor(0x5865F2)
+                .setTitle("🛠️ Zones et expressions")
+                .addFields(
+                    {
+                        name: `Zones RP · ${scopes.length}`,
+                        value: scopes.map(scope => `<#${scope.channel_id}>`).join("\n") || "Aucune zone configurée."
+                    },
+                    {
+                        name: `Expressions · ${expressions.length}`,
+                        value: expressions.map(trigger => `• ${trigger.expression}`).join("\n") || "Aucune expression configurée."
+                    }
+                )],
+            components
+        };
+    }
+
+    buildDiagnostic(interaction) {
+        const configuration = manager.getConfiguration(interaction.guildId);
+        const scopes = manager.getScopes(interaction.guildId);
+        const channelIds = require("../../services/scenes/SceneAssistantService")
+            .getChannelAndParentIds(interaction.channel, interaction.channelId);
+        const matchedScope = scopes.find(scope => channelIds.includes(String(scope.channel_id)));
+        const activeScene = manager.getActiveSceneByChannel(interaction.guildId, interaction.channelId);
+        return {
+            embeds: [new EmbedBuilder().setColor(matchedScope ? 0x57F287 : 0xFEE75C)
+                .setTitle("🧪 Diagnostic des scènes")
+                .addFields(
+                    { name: "Assistant", value: Number(configuration?.is_enabled) === 1 ? "Activé ✅" : "Désactivé ❌", inline: true },
+                    { name: "Salon reconnu", value: matchedScope ? `Oui, via <#${matchedScope.channel_id}> ✅` : "Non ❌", inline: true },
+                    { name: "Scène active ici", value: activeScene ? `**${activeScene.title}** · ${activeScene.rp_message_count} message(s)` : "Aucune" },
+                    { name: "Zones configurées", value: scopes.map(scope => `<#${scope.channel_id}>`).join(", ") || "Aucune" }
+                )],
+            components: [navigationRow()]
+        };
     }
 }
 

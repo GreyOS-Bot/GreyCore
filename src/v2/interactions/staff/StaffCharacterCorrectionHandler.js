@@ -11,15 +11,13 @@ const service = require(
 const view = require(
     "../../views/character/StaffCharacterCorrectionView"
 );
-const staffPolicy = require(
-    "../../core/policies/ValidationStaffPolicy"
-);
+const staffPolicy = require("../../core/policies/StaffPermissionPolicy");
 const { replyError } = require(
     "../../core/services/InteractionResponseService"
 );
 
 function assertStaff(interaction) {
-    if (!staffPolicy.canManageServerTools(interaction)) {
+    if (!staffPolicy.canManageCharacters(interaction)) {
         throw new Error(
             "Cette correction est réservée au staff du serveur."
         );

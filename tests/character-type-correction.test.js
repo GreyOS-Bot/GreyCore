@@ -148,7 +148,10 @@ test(
         assert.deepEqual(componentIds, [
             "v2_staff_character_identity:character",
             "v2_staff_character_info:character",
-            "v2_staff_character_type:character"
+            "v2_staff_character_delete:character",
+            "v2_staff_character_type:character",
+            "page:staff:characters:root",
+            "staff_close"
         ]);
 
         db.close();

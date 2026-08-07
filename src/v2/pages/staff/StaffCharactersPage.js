@@ -35,6 +35,11 @@ class StaffCharactersPage {
                 .setCustomId("v2_staff_characters_users")
                 .setLabel("Gérer un utilisateur")
                 .setEmoji("🛠️")
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId("v2_staff_characters_deploy_all")
+                .setLabel("Déployer l’existant")
+                .setEmoji("🚀")
                 .setStyle(ButtonStyle.Secondary)
         )];
         if (validationChannelId) {

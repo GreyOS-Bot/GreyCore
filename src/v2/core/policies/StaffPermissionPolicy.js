@@ -77,6 +77,10 @@ class StaffPermissionPolicy {
     canOpenCenter(interaction) {
         return this.getGrantedPermissions(interaction).length > 0;
     }
+
+    canManageCharacters(interaction) {
+        return this.canAccess(interaction, "characters", { write: true });
+    }
 }
 
 module.exports = new StaffPermissionPolicy();

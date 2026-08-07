@@ -55,7 +55,12 @@ class StaffCharacterCorrectionView {
                     )
                     .setLabel("Modifier les informations")
                     .setEmoji("📝")
-                    .setStyle(ButtonStyle.Secondary)
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId(`v2_staff_character_delete:${character.id}`)
+                    .setLabel("Supprimer")
+                    .setEmoji("🗑️")
+                    .setStyle(ButtonStyle.Danger)
             );
 
         const typeSelect = new StringSelectMenuBuilder()
@@ -79,7 +84,13 @@ class StaffCharacterCorrectionView {
             components: [
                 buttons,
                 new ActionRowBuilder()
-                    .addComponents(typeSelect)
+                    .addComponents(typeSelect),
+                new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId("page:staff:characters:root")
+                        .setLabel("Retour aux personnages").setEmoji("⬅️").setStyle(ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId("staff_close")
+                        .setLabel("Fermer").setEmoji("❌").setStyle(ButtonStyle.Secondary)
+                )
             ]
         };
     }

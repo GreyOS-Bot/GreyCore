@@ -351,6 +351,110 @@ module.exports = async interaction => {
         return true;
     }
 
+    if (interaction.customId === "v2_staff_characters_deploy_all") {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canManageCharacters(interaction)) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const result = require("../../services/deployment/DeploymentV2Service").deployAllExisting({
+            guildId: interaction.guildId,
+            guildName: interaction.guild?.name || interaction.guildId,
+            approvedBy: interaction.user.id
+        });
+        await interaction.update({
+            content: result.total
+                ? `✅ **${result.total} personnage(s)** ont été déployés sur ce serveur.`
+                : "ℹ️ Aucun personnage supplémentaire n’avait besoin d’être déployé.",
+            embeds: [],
+            components: [require("../../pages/staff/StaffCharactersPage").navigationRow()]
+        });
+        return true;
+    }
+
+    if (interaction.customId.startsWith("v2_staff_character_delete:")) {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canManageCharacters(interaction)) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const characterId = interaction.customId.split(":")[1];
+        const context = require("../../services/character/CharacterTypeCorrectionService")
+            .getForStaff({ guildId: interaction.guildId, characterId });
+        const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+        await interaction.update({
+            embeds: [new EmbedBuilder().setColor(0xED4245)
+                .setTitle("⚠️ Suppression définitive")
+                .setDescription(`Supprimer définitivement **${context.alias || context.firstname || context.proxy_name}** et toutes ses données associées ?`)],
+            components: [new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId(`v2_staff_character_delete_confirm:${characterId}`)
+                    .setLabel("Confirmer la suppression").setStyle(ButtonStyle.Danger),
+                new ButtonBuilder().setCustomId("page:staff:characters:root")
+                    .setLabel("Annuler").setStyle(ButtonStyle.Secondary)
+            )]
+        });
+        return true;
+    }
+
+    if (interaction.customId.startsWith("v2_staff_character_delete_confirm:")) {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canManageCharacters(interaction)) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const characterId = interaction.customId.split(":")[1];
+        require("../../services/character/CharacterTypeCorrectionService")
+            .getForStaff({ guildId: interaction.guildId, characterId });
+        const result = require("../../managers/CharacterRosterV2Manager").deleteCharacter(characterId);
+        await interaction.update({
+            content: `🗑️ Personnage supprimé définitivement avec ${result.continuityCount} continuité(s) et ${result.installationCount} installation(s).`,
+            embeds: [], components: [require("../../pages/staff/StaffCharactersPage").navigationRow()]
+        });
+        return true;
+    }
+
+    if (interaction.customId.startsWith("v2_staff_characters_delete_owner:")) {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canManageCharacters(interaction)) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const userId = interaction.customId.split(":")[1];
+        const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+        await interaction.update({
+            embeds: [new EmbedBuilder().setColor(0xED4245).setTitle("⚠️ Suppression définitive")
+                .setDescription(`Supprimer définitivement tous les personnages de <@${userId}> installés sur ce serveur ?`)],
+            components: [new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId(`v2_staff_characters_delete_owner_confirm:${userId}`)
+                    .setLabel("Tout supprimer").setStyle(ButtonStyle.Danger),
+                new ButtonBuilder().setCustomId("page:staff:characters:root")
+                    .setLabel("Annuler").setStyle(ButtonStyle.Secondary)
+            )]
+        });
+        return true;
+    }
+
+    if (interaction.customId.startsWith("v2_staff_characters_delete_owner_confirm:")) {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canManageCharacters(interaction)) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const userId = interaction.customId.split(":")[1];
+        const result = require("../../managers/CharacterRosterV2Manager")
+            .deleteOwnerCharacters(interaction.guildId, userId);
+        await interaction.update({
+            content: `🗑️ **${result.deleted.length} personnage(s)** de <@${userId}> ont été supprimés définitivement.`,
+            embeds: [], components: [require("../../pages/staff/StaffCharactersPage").navigationRow()]
+        });
+        return true;
+    }
+
     if (
         interaction.customId.startsWith("v2_staff_characters_archive:")
         || interaction.customId.startsWith("v2_staff_characters_restore:")
@@ -399,6 +503,30 @@ module.exports = async interaction => {
                 });
             }
             await interaction.update(page.build(interaction));
+            return true;
+        }
+
+        if (action === "manage") {
+            await interaction.update(page.buildManagement(interaction));
+            return true;
+        }
+
+        if (action === "diagnostic") {
+            await interaction.update(page.buildDiagnostic(interaction));
+            return true;
+        }
+
+        if (action === "new_cycle") {
+            try {
+                require("../../services/scenes/SceneAssistantService").startNewCycle({
+                    guildId: interaction.guildId,
+                    channel: interaction.channel
+                });
+            } catch (error) {
+                await replyError(interaction, error);
+                return true;
+            }
+            await interaction.update(page.buildDiagnostic(interaction));
             return true;
         }
 

@@ -6,6 +6,20 @@ const { replyError } = require(
 );
 
 module.exports = async interaction => {
+    if (["v2_staff_scenes_remove_zone", "v2_staff_scenes_remove_expression"].includes(interaction.customId)) {
+        if (!policy.canAccess(interaction, "scenes", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const sceneManager = require("../../managers/SceneAssistantV2Manager");
+        if (interaction.customId === "v2_staff_scenes_remove_zone") {
+            sceneManager.removeScope(interaction.guildId, interaction.values[0]);
+        } else {
+            sceneManager.removeTriggerExpression(interaction.guildId, interaction.values[0]);
+        }
+        await interaction.update(require("../../pages/staff/StaffScenesPage").buildManagement(interaction));
+        return true;
+    }
     if (interaction.customId?.startsWith("v2_staff_universe_delete_state:")) {
         if (!policy.canAccess(interaction, "universe", { write: true })) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
@@ -127,7 +141,7 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_characters_user_select") {
-        const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+        const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require("discord.js");
         const userId = interaction.values[0];
         const roster = require("../../managers/CharacterRosterV2Manager")
             .getByOwnerOnGuild(interaction.guildId, userId);
@@ -145,6 +159,17 @@ module.exports = async interaction => {
                     ...(lines.length ? lines : ["Aucun personnage installé sur ce serveur."])
                 ].join("\n"))],
             components: [
+                ...(roster.length ? [new ActionRowBuilder().addComponents(
+                    new StringSelectMenuBuilder()
+                        .setCustomId("v2_staff_characters_manage_character")
+                        .setPlaceholder("Corriger ou supprimer un personnage")
+                        .addOptions(roster.slice(0, 25).map(character => ({
+                            label: String(character.firstname || character.proxy_name).slice(0, 100),
+                            description: character.is_archived ? "Personnage archivé" : "Personnage actif",
+                            value: String(character.id),
+                            emoji: character.is_archived ? "📦" : "👤"
+                        })))
+                )] : []),
                 new ActionRowBuilder().addComponents(
                     new ButtonBuilder()
                         .setCustomId(`v2_staff_characters_archive:${userId}`)
@@ -155,11 +180,34 @@ module.exports = async interaction => {
                         .setCustomId(`v2_staff_characters_restore:${userId}`)
                         .setLabel("Restaurer les archives")
                         .setEmoji("♻️")
-                        .setStyle(ButtonStyle.Success)
+                        .setStyle(ButtonStyle.Success),
+                    new ButtonBuilder()
+                        .setCustomId(`v2_staff_characters_delete_owner:${userId}`)
+                        .setLabel("Supprimer tous")
+                        .setEmoji("🗑️")
+                        .setStyle(ButtonStyle.Danger)
                 ),
                 require("../../pages/staff/StaffCharactersPage").navigationRow()
             ]
         });
+        return true;
+    }
+
+    if (interaction.customId === "v2_staff_characters_manage_character") {
+        if (!policy.canManageCharacters(interaction)) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const service = require("../../services/character/CharacterTypeCorrectionService");
+        try {
+            const context = service.getForStaff({
+                guildId: interaction.guildId,
+                characterId: interaction.values[0]
+            });
+            await interaction.update(require("../../views/character/StaffCharacterCorrectionView").build(context));
+        } catch (error) {
+            await replyError(interaction, error);
+        }
         return true;
     }
 
