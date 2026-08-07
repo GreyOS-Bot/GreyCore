@@ -89,6 +89,8 @@ test(
             ,"NarrativeEntityTriggersV2"
             ,"NarrativeEntityMessagesV2"
             ,"NarrativeEntityScopesV2"
+            ,"NarrativeEntityExpressionsV2"
+            ,"NarrativeEntityChannelWelcomesV2"
         ];
 
         const tableNames =

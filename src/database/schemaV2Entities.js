@@ -52,6 +52,27 @@ function initializeEntitySchemaV2() {
     `).run();
 
     db.prepare(`
+        CREATE TABLE IF NOT EXISTS NarrativeEntityExpressionsV2 (
+            entity_id TEXT NOT NULL,
+            expression TEXT NOT NULL,
+            normalized_expression TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY(entity_id, normalized_expression),
+            FOREIGN KEY(entity_id) REFERENCES NarrativeEntitiesV2(id) ON DELETE CASCADE
+        )
+    `).run();
+
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS NarrativeEntityChannelWelcomesV2 (
+            entity_id TEXT NOT NULL,
+            channel_id TEXT NOT NULL,
+            welcomed_at TEXT NOT NULL,
+            PRIMARY KEY(entity_id, channel_id),
+            FOREIGN KEY(entity_id) REFERENCES NarrativeEntitiesV2(id) ON DELETE CASCADE
+        )
+    `).run();
+
+    db.prepare(`
         CREATE INDEX IF NOT EXISTS idx_narrative_entities_guild
         ON NarrativeEntitiesV2(guild_id, is_enabled)
     `).run();
@@ -62,6 +83,10 @@ function initializeEntitySchemaV2() {
     db.prepare(`
         CREATE INDEX IF NOT EXISTS idx_narrative_scopes_channel
         ON NarrativeEntityScopesV2(channel_id, entity_id)
+    `).run();
+    db.prepare(`
+        CREATE INDEX IF NOT EXISTS idx_narrative_expressions_entity
+        ON NarrativeEntityExpressionsV2(entity_id)
     `).run();
 }
 

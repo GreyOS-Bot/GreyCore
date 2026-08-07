@@ -80,13 +80,19 @@ test("une Entité limitée à un forum intervient aussi dans ses fils", context 
     const manager = require("../src/v2/managers/NarrativeEntityV2Manager");
     let entity = manager.create({
         guildId: "guild",
-        name: "Le Dieu du Smut",
+        name: "Goddess",
         messagesText: "Les portes se referment.",
         triggers: ["scene_nsfw"]
     });
     entity = manager.setScopes("guild", entity.id, ["forum-smut"]);
+    entity = manager.setExpressions(
+        "guild",
+        entity.id,
+        "déesse\nviens à nous"
+    );
 
     assert.deepEqual(entity.scopes, ["forum-smut"]);
+    assert.equal(entity.expressions.length, 2);
     assert.equal(
         manager.chooseForTrigger("guild", "scene_nsfw", {
             channelId: "thread-rp",
@@ -100,6 +106,56 @@ test("une Entité limitée à un forum intervient aussi dans ses fils", context 
             channelId: "salon-general",
             random: () => 0
         }),
+        null
+    );
+    assert.equal(
+        manager.chooseForInvocation("guild", "Goddess ?", {
+            channelId: "thread-rp",
+            parentId: "forum-smut",
+            random: () => 0
+        }).entity.id,
+        entity.id
+    );
+    assert.equal(
+        manager.chooseForInvocation("guild", "Ô déesse, viens à nous !", {
+            channelId: "thread-rp",
+            parentId: "forum-smut",
+            random: () => 0
+        }).entity.id,
+        entity.id
+    );
+    assert.equal(
+        manager.chooseForInvocation("guild", "Goddess ?", {
+            channelId: "autre-salon",
+            random: () => 0
+        }),
+        null
+    );
+    assert.equal(
+        manager.claimForumWelcome(
+            "guild",
+            "nouveau-fil-smut",
+            "forum-smut",
+            () => 0
+        ).entity.id,
+        entity.id
+    );
+    assert.equal(
+        manager.claimForumWelcome(
+            "guild",
+            "nouveau-fil-smut",
+            "forum-smut",
+            () => 0
+        ),
+        null
+    );
+    assert.equal(
+        manager.claimForumWelcome(
+            "guild",
+            "fil-autre-forum",
+            "autre-forum",
+            () => 0
+        ),
         null
     );
 });

@@ -9,6 +9,20 @@ module.exports = async interaction => {
         await replyError(interaction, "Tu ne peux pas modifier les Entités.");
         return true;
     }
+    if (interaction.customId.startsWith("v2_staff_entities_expressions_submit:")) {
+        const entityId = interaction.customId.slice(
+            "v2_staff_entities_expressions_submit:".length
+        );
+        try {
+            manager.setExpressions(
+                interaction.guildId,
+                entityId,
+                interaction.fields.getTextInputValue("expressions")
+            );
+            await interaction.update(page.buildDetail(interaction, entityId));
+        } catch (error) { await replyError(interaction, error); }
+        return true;
+    }
     const uploads = interaction.fields.getUploadedFiles("avatar", false);
     const attachment = uploads?.size
         ? Array.from(uploads.values())[0]

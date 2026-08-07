@@ -47,6 +47,33 @@ class NarrativeEntityV2Manager {
         return repository.setScopes(guildId, entityId, unique, new Date().toISOString());
     }
 
+    setExpressions(guildId, entityId, expressionsText) {
+        this.requireEntity(guildId, entityId);
+        const seen = new Set();
+        const expressions = String(expressionsText || "")
+            .split(/\r?\n/)
+            .map(value => value.trim())
+            .filter(Boolean)
+            .map(value => ({ value, normalized: normalizeText(value) }))
+            .filter(expression => {
+                if (!expression.normalized || seen.has(expression.normalized)) return false;
+                seen.add(expression.normalized);
+                return true;
+            });
+        if (expressions.some(expression => expression.value.length > 80)) {
+            throw new Error("Chaque mot ou expression doit contenir au maximum 80 caractères.");
+        }
+        if (expressions.length > 50) {
+            throw new Error("Une Entité peut avoir au maximum 50 mots ou expressions d’appel.");
+        }
+        return repository.setExpressions(
+            guildId,
+            entityId,
+            expressions,
+            new Date().toISOString()
+        );
+    }
+
     delete(guildId, entityId) {
         this.requireEntity(guildId, entityId);
         return repository.delete(guildId, entityId);
@@ -74,6 +101,70 @@ class NarrativeEntityV2Manager {
         if (!messages.length) return null;
         const message = messages[Math.floor(random() * messages.length)];
         return { entity, message, trigger: triggerCatalog.get(triggerKey) };
+    }
+
+    chooseForInvocation(guildId, content, options = {}) {
+        const normalizedContent = normalizeText(content);
+        if (!normalizedContent) return null;
+        const channelIds = new Set([
+            options.channelId,
+            options.parentId
+        ].filter(Boolean).map(String));
+        const words = new Set(normalizedContent.split(/[^a-z0-9]+/).filter(Boolean));
+        const candidates = repository.getByGuild(guildId).filter(entity => {
+            if (!entity.is_enabled) return false;
+            if (
+                channelIds.size
+                && entity.scopes.length
+                && !entity.scopes.some(scope => channelIds.has(String(scope)))
+            ) return false;
+            const calls = [
+                normalizeText(entity.name),
+                ...entity.expressions.map(expression => expression.normalized_expression)
+            ].filter(Boolean);
+            return calls.some(call =>
+                call.includes(" ")
+                    ? normalizedContent.includes(call)
+                    : words.has(call)
+            );
+        });
+        if (!candidates.length) return null;
+        const random = options.random || Math.random;
+        const entity = candidates[Math.floor(random() * candidates.length)];
+        const messages = repository.getMessages(entity.id, null);
+        if (!messages.length) return null;
+        return {
+            entity,
+            message: messages[Math.floor(random() * messages.length)]
+        };
+    }
+
+    claimForumWelcome(guildId, channelId, parentId, random = Math.random) {
+        if (!channelId || !parentId) return null;
+        const candidates = repository
+            .getEnabledForTrigger(guildId, "scene_nsfw")
+            .filter(entity =>
+                entity.scopes.includes(String(parentId))
+                || entity.scopes.includes(String(channelId))
+            );
+        if (!candidates.length) return null;
+        const entity = candidates[Math.floor(random() * candidates.length)];
+        const messages = repository.getMessages(entity.id, "scene_nsfw");
+        if (!messages.length) return null;
+        const claimed = repository.claimChannelWelcome(
+            entity.id,
+            String(channelId),
+            new Date().toISOString()
+        );
+        if (!claimed) return null;
+        return {
+            entity,
+            message: messages[Math.floor(random() * messages.length)]
+        };
+    }
+
+    releaseForumWelcome(entityId, channelId) {
+        repository.releaseChannelWelcome(entityId, String(channelId));
     }
 
     normalize(data) {
@@ -117,3 +208,12 @@ function parseColor(value) {
 }
 
 module.exports = new NarrativeEntityV2Manager();
+
+function normalizeText(value) {
+    return String(value || "")
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .toLocaleLowerCase("fr-FR")
+        .replace(/\s+/g, " ")
+        .trim();
+}

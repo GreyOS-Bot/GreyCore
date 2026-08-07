@@ -18,6 +18,16 @@ const guildSettingsManager =
         "../../../v2/managers/GuildSettingsV2Manager"
     );
 
+const narrativeEntityService =
+    require(
+        "../../../v2/services/entities/NarrativeEntityService"
+    );
+
+const logger =
+    require(
+        "../../../v2/core/services/TechnicalLogger"
+    ).create("MessageCreateRouter");
+
 module.exports =
     async function messageCreateRouter(
         message
@@ -48,6 +58,17 @@ module.exports =
             await proxyMessageHandler(
                 message
             );
+
+        let entityHandled = false;
+        try {
+            entityHandled = await narrativeEntityService
+                .processMessage(message);
+        } catch (error) {
+            logger.warn(
+                "Impossible de faire répondre une Entité :",
+                error
+            );
+        }
 
         try {
             const result =
@@ -105,5 +126,5 @@ module.exports =
             );
         }
 
-        return proxyHandled;
+        return proxyHandled || entityHandled;
     };

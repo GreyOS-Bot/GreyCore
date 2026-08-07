@@ -86,10 +86,33 @@ class NarrativeEntityRepository {
         return this.getById(guildId, entityId);
     }
 
+    setExpressions(guildId, entityId, expressions, now) {
+        const entity = this.getById(guildId, entityId);
+        if (!entity) return null;
+        const run = db.transaction(() => this.replaceExpressions(entityId, expressions, now));
+        run();
+        return this.getById(guildId, entityId);
+    }
+
     delete(guildId, entityId) {
         return db.prepare(`
             DELETE FROM NarrativeEntitiesV2 WHERE guild_id = ? AND id = ?
         `).run(guildId, entityId).changes > 0;
+    }
+
+    claimChannelWelcome(entityId, channelId, welcomedAt) {
+        return db.prepare(`
+            INSERT OR IGNORE INTO NarrativeEntityChannelWelcomesV2 (
+                entity_id, channel_id, welcomed_at
+            ) VALUES (?, ?, ?)
+        `).run(entityId, channelId, welcomedAt).changes > 0;
+    }
+
+    releaseChannelWelcome(entityId, channelId) {
+        db.prepare(`
+            DELETE FROM NarrativeEntityChannelWelcomesV2
+            WHERE entity_id = ? AND channel_id = ?
+        `).run(entityId, channelId);
     }
 
     getMessages(entityId, triggerKey = null) {
@@ -131,6 +154,18 @@ class NarrativeEntityRepository {
         for (const channelId of channelIds || []) insert.run(entityId, channelId, now);
     }
 
+    replaceExpressions(entityId, expressions, now) {
+        db.prepare("DELETE FROM NarrativeEntityExpressionsV2 WHERE entity_id = ?").run(entityId);
+        const insert = db.prepare(`
+            INSERT INTO NarrativeEntityExpressionsV2 (
+                entity_id, expression, normalized_expression, created_at
+            ) VALUES (?, ?, ?, ?)
+        `);
+        for (const expression of expressions || []) {
+            insert.run(entityId, expression.value, expression.normalized, now);
+        }
+    }
+
     hydrate(row) {
         return {
             ...row,
@@ -146,7 +181,12 @@ class NarrativeEntityRepository {
             scopes: db.prepare(`
                 SELECT channel_id FROM NarrativeEntityScopesV2
                 WHERE entity_id = ? ORDER BY channel_id ASC
-            `).all(row.id).map(scope => scope.channel_id)
+            `).all(row.id).map(scope => scope.channel_id),
+            expressions: db.prepare(`
+                SELECT expression, normalized_expression
+                FROM NarrativeEntityExpressionsV2
+                WHERE entity_id = ? ORDER BY expression COLLATE NOCASE ASC
+            `).all(row.id)
         };
     }
 }

@@ -32,6 +32,10 @@ module.exports = async interaction => {
             const entity = manager.getById(interaction.guildId, entityId);
             if (!entity) throw new Error("Cette Entité est introuvable.");
             await interaction.showModal(buildModal(entity));
+        } else if (action === "expressions") {
+            const entity = manager.getById(interaction.guildId, entityId);
+            if (!entity) throw new Error("Cette Entité est introuvable.");
+            await interaction.showModal(buildExpressionsModal(entity));
         } else if (action === "toggle") {
             manager.toggle(interaction.guildId, entityId);
             await interaction.update(page.buildDetail(interaction, entityId));
@@ -83,5 +87,28 @@ function buildModal(entity = null) {
             field("color", "Couleur d’embed", TextInputStyle.Short, 7, true, entity ? `#${entity.embed_color.toString(16).padStart(6, "0")}` : "#5865F2"),
             field("description", "Description (facultative)", TextInputStyle.Paragraph, 1000, false, entity?.description),
             field("messages", "Messages — un par ligne", TextInputStyle.Paragraph, 4000, true, entity?.messages.map(message => message.content).join("\n"))
+        );
+}
+
+function buildExpressionsModal(entity) {
+    const input = new TextInputBuilder()
+        .setCustomId("expressions")
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(false)
+        .setMaxLength(4000)
+        .setPlaceholder("déesse\nviens à nous\non invoque Goddess");
+    if (entity.expressions.length) {
+        input.setValue(
+            entity.expressions.map(item => item.expression).join("\n").slice(0, 4000)
+        );
+    }
+    return new ModalBuilder()
+        .setCustomId(`v2_staff_entities_expressions_submit:${entity.id}`)
+        .setTitle("Mots et expressions d’appel")
+        .addLabelComponents(
+            new LabelBuilder()
+                .setLabel("Un mot ou une expression par ligne")
+                .setDescription(`Le nom « ${entity.name} » fonctionne déjà automatiquement.`)
+                .setTextInputComponent(input)
         );
 }

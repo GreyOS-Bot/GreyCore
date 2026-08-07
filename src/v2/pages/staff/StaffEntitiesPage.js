@@ -110,6 +110,8 @@ class StaffEntitiesPage {
                 new ButtonBuilder().setCustomId(`v2_staff_entities_toggle:${entity.id}`)
                     .setLabel(entity.is_enabled ? "Désactiver" : "Activer")
                     .setEmoji(entity.is_enabled ? "⏸️" : "▶️").setStyle(ButtonStyle.Secondary).setDisabled(!writable),
+                new ButtonBuilder().setCustomId(`v2_staff_entities_expressions:${entity.id}`)
+                    .setLabel("Mots d’appel").setEmoji("💬").setStyle(ButtonStyle.Secondary).setDisabled(!writable),
                 new ButtonBuilder().setCustomId(`v2_staff_entities_delete:${entity.id}`)
                     .setLabel("Supprimer").setEmoji("🗑️").setStyle(ButtonStyle.Danger).setDisabled(!writable)
             ];
@@ -125,6 +127,7 @@ class StaffEntitiesPage {
                     `**Statut :** ${entity.is_enabled ? "Active" : "Désactivée"}`,
                     `**Déclencheurs :** ${triggerLabels.join(", ") || "Aucun"}`,
                     `**Lieux :** ${entity.scopes.length ? entity.scopes.map(channelId => `<#${channelId}>`).join(", ") : "Tous les salons et forums compatibles du serveur"}`,
+                    `**Appels :** le nom **${entity.name}**${entity.expressions.length ? `, ${entity.expressions.map(item => `\`${item.expression}\``).join(", ")}` : ""}`,
                     `**Messages :** ${entity.messages.length}`,
                     "",
                     ...entity.messages.slice(0, 5).map((message, index) => `${index + 1}. ${message.content}`),
