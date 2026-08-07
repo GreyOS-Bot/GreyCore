@@ -21,15 +21,15 @@ class LibraryHomeView {
             new EmbedBuilder()
                 .setColor("#2B2D31")
                 .setTitle(
-                    "🏠 Accueil Greycore"
+                    "🏠 Accueil · Mon espace GreyCore"
                 )
                 .setDescription(
                     [
                         `Bienvenue **${displayName}**.`,
                         "",
                         characters.length
-                            ? "Choisis directement un personnage ci-dessous, ou ouvre la liste détaillée de ta bibliothèque."
-                            : "Retrouve ici tous tes personnages, leurs continuités et leurs installations.",
+                            ? "Choisis un personnage pour ouvrir son tableau de bord, ou navigue dans ton espace personnel."
+                            : "Crée ton premier personnage pour accéder aux fonctionnalités de GreyCore.",
                         "",
                         "━━━━━━━━━━━━━━━━━━",
                         "",
@@ -96,7 +96,7 @@ class LibraryHomeView {
                             "v2_library_open"
                         )
                         .setLabel(
-                            "Voir la bibliothèque"
+                            "Mes personnages"
                         )
                         .setEmoji("📚")
                         .setStyle(
@@ -116,6 +116,19 @@ class LibraryHomeView {
                         )
                 );
 
+        const playerActions = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId("v2_player_help")
+                .setLabel("Aide")
+                .setEmoji("❓")
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId("v2_player_privacy")
+                .setLabel("Confidentialité")
+                .setEmoji("🔐")
+                .setStyle(ButtonStyle.Secondary)
+        );
+
         const navigation =
             new ActionRowBuilder()
                 .addComponents(
@@ -132,6 +145,7 @@ class LibraryHomeView {
 
         components.push(
             mainActions,
+            playerActions,
             navigation
         );
 

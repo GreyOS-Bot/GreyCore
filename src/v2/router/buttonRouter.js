@@ -1,5 +1,6 @@
 const buttonRouters = [
     require("./buttons/StaffRouter"),
+    require("./buttons/PlayerRouter"),
     require("./buttons/SceneRouter"),
     require(
         "./buttons/PageNavigationRouter"

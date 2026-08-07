@@ -99,6 +99,7 @@ class CharacterDashboardPage {
             components: [
                 new ActionRowBuilder().addComponents(...buttons),
                 new ActionRowBuilder().addComponents(
+                    UI.components.navigation.home(),
                     UI.components.navigation.library(),
                     UI.components.navigation.close()
                 )
