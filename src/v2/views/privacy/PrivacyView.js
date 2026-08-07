@@ -64,7 +64,7 @@ function buildPolicy() {
                             "Tes droits",
                         value: [
                             "Tu peux demander l’accès, la rectification, la limitation, l’opposition ou l’effacement de tes données.",
-                            "Utilise `/confidentialite mes-donnees` pour voir un résumé et `/confidentialite oublier` pour dissocier ton identité Discord des données RP conservées.",
+                            "Ouvre `/greycore`, puis **Confidentialité**, pour consulter tes données ou dissocier ton identité Discord des données RP conservées.",
                             "Tu peux aussi contacter le responsable ci-dessus et déposer une réclamation auprès de la CNIL."
                         ].join("\n")
                     }
@@ -117,7 +117,7 @@ function buildCharter() {
                         name:
                             "Vie privée et départ",
                         value:
-                            "Consulte `/confidentialite politique`. Tu peux arrêter d’utiliser GreyCore et demander son oubli avec `/confidentialite oublier`. Cette action est irréversible."
+                            "Ouvre `/greycore`, puis **Confidentialité**, pour consulter la politique ou demander ton oubli. Cette action est irréversible."
                     }
                 )
         ]
@@ -165,7 +165,7 @@ function buildSummary(summary) {
                         name:
                             "Pour protéger ton identité",
                         value:
-                            "Utilise `/confidentialite oublier confirmation:OUBLIER`. Ton identifiant Discord sera anonymisé sans supprimer tes personnages ni leurs contenus RP."
+                            "Depuis `/greycore`, ouvre **Confidentialité** puis **Droit à l’oubli**. Ton identifiant Discord sera anonymisé sans supprimer tes personnages ni leurs contenus RP."
                     }
                 )
         ]

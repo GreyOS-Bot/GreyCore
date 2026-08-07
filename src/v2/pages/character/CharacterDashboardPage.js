@@ -114,11 +114,28 @@ class CharacterDashboardPage {
         }
 
         if (isOwner) {
-            buttons.push(UI.button.secondary({
-                id: `page:character:category:management:${characterId}`,
-                label: "Configuration",
-                emoji: UI.icons.settings
-            }));
+            buttons.push(
+                UI.button.secondary({
+                    id: `v2_aliases_open:${characterId}`,
+                    label: "Alias",
+                    emoji: "🏷️"
+                }),
+                UI.button.success({
+                    id: `v2_character_deploy:${characterId}`,
+                    label: "Installer",
+                    emoji: UI.icons.install
+                }),
+                UI.button.secondary({
+                    id: `page:character:installations:${characterId}`,
+                    label: countLabel("Installations", counts?.installations),
+                    emoji: "🌍"
+                }),
+                UI.button.secondary({
+                    id: `page:character:settings:${characterId}`,
+                    label: "Paramètres",
+                    emoji: UI.icons.settings
+                })
+            );
         }
 
         const actionRows = [];

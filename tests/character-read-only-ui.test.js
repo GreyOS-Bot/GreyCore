@@ -87,15 +87,25 @@ test(
                 ownerDashboard
             ).some(
                 id =>
-                    id.startsWith(
-                        "page:character:category:management:"
-                    )
+                    id === "page:character:settings:character"
             ),
             true
         );
         assert.equal(
             getCustomIds(ownerDashboard).includes(
                 "v2_phone_open:character"
+            ),
+            true
+        );
+        assert.equal(
+            getCustomIds(ownerDashboard).includes(
+                "v2_aliases_open:character"
+            ),
+            true
+        );
+        assert.equal(
+            getCustomIds(ownerDashboard).includes(
+                "v2_character_deploy:character"
             ),
             true
         );

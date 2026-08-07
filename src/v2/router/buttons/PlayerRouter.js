@@ -29,5 +29,25 @@ module.exports = async interaction => {
         });
         return true;
     }
+    if (interaction.customId === "v2_player_privacy_forget") {
+        await interaction.update(
+            require("../../views/player/PlayerPrivacyView").buildForgetConfirmation()
+        );
+        return true;
+    }
+    if (interaction.customId === "v2_player_privacy_forget_confirm") {
+        const erased = privacyService.erase(interaction.user.id);
+        await interaction.update({
+            content: [
+                "✅ **GreyCore t’a oublié(e).**",
+                "Ton identifiant Discord a été remplacé par une référence anonyme.",
+                "Tes personnages et leurs contenus RP sont conservés, mais ils ne sont plus reliés à ton compte Discord.",
+                `Personnages conservés et anonymisés : **${erased.globalCharacters + erased.legacyCharacters}**.`
+            ].join("\n"),
+            embeds: [],
+            components: []
+        });
+        return true;
+    }
     return false;
 };
