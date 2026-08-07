@@ -45,16 +45,25 @@ class StaffPermissionPolicy {
         const guildId = interaction.guildId || interaction.guild?.id;
         if (!guildId) return [];
 
-        if (!manager.hasConfiguration(guildId)) {
-            return validationStaffPolicy.canManageServerTools(interaction)
-                ? ["*"]
-                : [];
-        }
-
-        return manager.getPermissionsForRoles(
+        const permissions = new Set(manager.getPermissionsForRoles(
             guildId,
             this.getRoleIds(interaction)
-        );
+        ));
+        for (const permission of manager.getUserPermissions(
+            guildId,
+            interaction.user?.id
+        )) {
+            permissions.add(permission);
+        }
+
+        if (
+            manager.getValidationChannelAccess(guildId)
+            && validationStaffPolicy.canManageServerTools(interaction)
+        ) {
+            permissions.add("*");
+        }
+
+        return [...permissions];
     }
 
     canAccess(interaction, permissionKey, { write = false } = {}) {

@@ -4,6 +4,7 @@ const {
     ButtonBuilder,
     ButtonStyle,
     RoleSelectMenuBuilder,
+    UserSelectMenuBuilder,
     StringSelectMenuBuilder
 } = require("discord.js");
 const catalog = require("../../core/permissions/StaffPermissionCatalog");
@@ -20,16 +21,21 @@ class StaffPermissionsPage {
             });
         }
 
-        return interaction.update(this.buildRoleSelection());
+        return interaction.update(
+            this.buildAccessSelection(interaction.guildId)
+        );
     }
 
-    buildRoleSelection() {
+    buildAccessSelection(guildId) {
+        const validationEnabled =
+            manager.getValidationChannelAccess(guildId);
         return {
             embeds: [new EmbedBuilder()
                 .setColor(0x5865F2)
                 .setTitle("🔐 Permissions GreyCore")
                 .setDescription([
-                    "Choisis le rôle dont tu souhaites régler les autorisations.",
+                    "Attribue des droits à un rôle ou directement à une personne.",
+                    `Accès par le salon de validation : **${validationEnabled ? "activé ✅" : "désactivé ❌"}**.`,
                     "Le propriétaire du serveur et les administrateurs Discord conservent toujours l'accès complet."
                 ].join("\n\n"))],
             components: [
@@ -40,14 +46,38 @@ class StaffPermissionsPage {
                         .setMinValues(1)
                         .setMaxValues(1)
                 ),
+                new ActionRowBuilder().addComponents(
+                    new UserSelectMenuBuilder()
+                        .setCustomId("v2_staff_permissions_user")
+                        .setPlaceholder("Choisir un utilisateur particulier")
+                        .setMinValues(1)
+                        .setMaxValues(1)
+                ),
+                new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId("v2_staff_permissions_toggle_validation")
+                        .setLabel(
+                            validationEnabled
+                                ? "Désactiver l'accès par validation"
+                                : "Activer l'accès par validation"
+                        )
+                        .setEmoji(validationEnabled ? "🔒" : "🔓")
+                        .setStyle(
+                            validationEnabled
+                                ? ButtonStyle.Danger
+                                : ButtonStyle.Success
+                        )
+                ),
                 navigationRow()
             ]
         };
     }
 
-    buildPermissionSelection(guildId, roleId) {
+    buildPermissionSelection(guildId, subjectId, subjectType = "role") {
         const granted = new Set(
-            manager.getRolePermissions(guildId, roleId)
+            subjectType === "user"
+                ? manager.getUserPermissions(guildId, subjectId)
+                : manager.getRolePermissions(guildId, subjectId)
         );
         const options = catalog.all().map(permission => ({
             label: permission.label,
@@ -66,14 +96,18 @@ class StaffPermissionsPage {
                 .setColor(0x5865F2)
                 .setTitle("🔐 Autorisations du rôle")
                 .setDescription([
-                    `Rôle sélectionné : <@&${roleId}>`,
+                    subjectType === "user"
+                        ? `Utilisateur sélectionné : <@${subjectId}>`
+                        : `Rôle sélectionné : <@&${subjectId}>`,
                     "Sélectionne tous les domaines autorisés puis valide le menu.",
                     "**Lecture seule** permet de consulter les pages sans effectuer de modification."
                 ].join("\n\n"))],
             components: [
                 new ActionRowBuilder().addComponents(
                     new StringSelectMenuBuilder()
-                        .setCustomId(`v2_staff_permissions_save:${roleId}`)
+                        .setCustomId(
+                            `v2_staff_permissions_save:${subjectType}:${subjectId}`
+                        )
                         .setPlaceholder("Choisir les autorisations")
                         .setMinValues(1)
                         .setMaxValues(options.length)

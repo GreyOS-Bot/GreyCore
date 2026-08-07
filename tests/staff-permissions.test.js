@@ -13,6 +13,9 @@ test("les permissions GreyCore sont déléguées par rôle et isolées par serve
     for (const modulePath of [
         "../src/v2/repositories/StaffPermissionRepository",
         "../src/v2/managers/StaffPermissionV2Manager",
+        "../src/v2/repositories/GuildSettingsRepository",
+        "../src/v2/managers/GuildSettingsV2Manager",
+        "../src/v2/core/policies/ValidationStaffPolicy",
         "../src/v2/core/policies/StaffPermissionPolicy"
     ]) {
         delete require.cache[require.resolve(modulePath)];
@@ -62,6 +65,9 @@ test("la lecture seule ouvre toutes les pages sans autoriser leur écriture", co
     for (const modulePath of [
         "../src/v2/repositories/StaffPermissionRepository",
         "../src/v2/managers/StaffPermissionV2Manager",
+        "../src/v2/repositories/GuildSettingsRepository",
+        "../src/v2/managers/GuildSettingsV2Manager",
+        "../src/v2/core/policies/ValidationStaffPolicy",
         "../src/v2/core/policies/StaffPermissionPolicy"
     ]) {
         delete require.cache[require.resolve(modulePath)];
@@ -90,4 +96,52 @@ test("la lecture seule ouvre toutes les pages sans autoriser leur écriture", co
         policy.canAccess(interaction, "bank", { write: true }),
         false
     );
+});
+
+test("un utilisateur particulier peut recevoir ses propres domaines", context => {
+    const isolated = createIsolatedDatabase({ initializeSchema: true });
+    context.after(() => isolated.cleanup());
+    isolated.database.prepare(`
+        INSERT INTO Guilds (id, name, created_at)
+        VALUES ('guild', 'Greyline', '2026-08-07')
+    `).run();
+
+    for (const modulePath of [
+        "../src/v2/repositories/StaffPermissionRepository",
+        "../src/v2/managers/StaffPermissionV2Manager",
+        "../src/v2/repositories/GuildSettingsRepository",
+        "../src/v2/managers/GuildSettingsV2Manager",
+        "../src/v2/core/policies/ValidationStaffPolicy",
+        "../src/v2/core/policies/StaffPermissionPolicy"
+    ]) {
+        delete require.cache[require.resolve(modulePath)];
+    }
+    const manager = require("../src/v2/managers/StaffPermissionV2Manager");
+    const policy = require("../src/v2/core/policies/StaffPermissionPolicy");
+    manager.replaceUserPermissions({
+        guildId: "guild",
+        discordUserId: "specific-user",
+        permissionKeys: ["phone", "bank"],
+        grantedBy: "owner"
+    });
+    manager.setValidationChannelAccess({
+        guildId: "guild",
+        enabled: false,
+        updatedBy: "owner"
+    });
+    const interaction = {
+        guildId: "guild",
+        guild: { ownerId: "owner", channels: { cache: new Map() } },
+        user: { id: "specific-user" },
+        member: {
+            roles: { cache: new Map() },
+            permissions: { has: () => false }
+        },
+        memberPermissions: { has: () => false }
+    };
+
+    assert.equal(policy.canAccess(interaction, "phone"), true);
+    assert.equal(policy.canAccess(interaction, "bank"), true);
+    assert.equal(policy.canAccess(interaction, "scenes"), false);
+    assert.equal(manager.getValidationChannelAccess("guild"), false);
 });

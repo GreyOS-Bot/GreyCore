@@ -13,6 +13,23 @@ class StaffPermissionV2Manager {
         );
     }
 
+    getUserPermissions(guildId, discordUserId) {
+        return repository.getUserPermissions(guildId, discordUserId);
+    }
+
+    getValidationChannelAccess(guildId) {
+        return repository.getValidationChannelAccess(guildId);
+    }
+
+    setValidationChannelAccess({ guildId, enabled, updatedBy }) {
+        return repository.setValidationChannelAccess({
+            guildId,
+            enabled,
+            updatedBy,
+            updatedAt: new Date().toISOString()
+        });
+    }
+
     hasConfiguration(guildId) {
         return repository.hasConfiguration(guildId);
     }
@@ -22,6 +39,16 @@ class StaffPermissionV2Manager {
             .filter(key => catalog.has(key));
 
         return repository.replaceRolePermissions({
+            ...data,
+            permissionKeys,
+            updatedAt: new Date().toISOString()
+        });
+    }
+
+    replaceUserPermissions(data) {
+        const permissionKeys = [...new Set(data.permissionKeys)]
+            .filter(key => catalog.has(key));
+        return repository.replaceUserPermissions({
             ...data,
             permissionKeys,
             updatedAt: new Date().toISOString()
