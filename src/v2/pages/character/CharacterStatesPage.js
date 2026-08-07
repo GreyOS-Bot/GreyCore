@@ -158,7 +158,7 @@ class CharacterStatesPage {
                     UI.button.secondary({
 
                         id:
-                            `page:character:category:character:${characterId}`,
+                            `page:character:home:${characterId}`,
 
                         label:
                             "Personnage",
@@ -167,6 +167,9 @@ class CharacterStatesPage {
                             "⬅️"
 
                     }),
+
+                    UI.components.navigation.home(),
+                    UI.components.navigation.library(),
 
                     UI.components.navigation.close()
 

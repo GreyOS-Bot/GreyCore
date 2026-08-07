@@ -42,16 +42,16 @@ class StaffPermissionsPage {
                 new ActionRowBuilder().addComponents(
                     new RoleSelectMenuBuilder()
                         .setCustomId("v2_staff_permissions_role")
-                        .setPlaceholder("Choisir un rôle")
+                        .setPlaceholder("Choisir un ou plusieurs rôles")
                         .setMinValues(1)
-                        .setMaxValues(1)
+                        .setMaxValues(25)
                 ),
                 new ActionRowBuilder().addComponents(
                     new UserSelectMenuBuilder()
                         .setCustomId("v2_staff_permissions_user")
-                        .setPlaceholder("Choisir un utilisateur particulier")
+                        .setPlaceholder("Choisir un ou plusieurs utilisateurs")
                         .setMinValues(1)
-                        .setMaxValues(1)
+                        .setMaxValues(25)
                 ),
                 new ActionRowBuilder().addComponents(
                     new ButtonBuilder()
@@ -73,11 +73,19 @@ class StaffPermissionsPage {
         };
     }
 
-    buildPermissionSelection(guildId, subjectId, subjectType = "role") {
-        const granted = new Set(
+    buildPermissionSelection(guildId, subjectIds, subjectType = "role") {
+        const normalizedIds = Array.isArray(subjectIds)
+            ? subjectIds.map(String)
+            : [String(subjectIds)];
+        const permissionSets = normalizedIds.map(subjectId => new Set(
             subjectType === "user"
                 ? manager.getUserPermissions(guildId, subjectId)
                 : manager.getRolePermissions(guildId, subjectId)
+        ));
+        const granted = new Set(
+            [...(permissionSets[0] || [])].filter(key =>
+                permissionSets.every(set => set.has(key))
+            )
         );
         const options = catalog.all().map(permission => ({
             label: permission.label,
@@ -94,19 +102,19 @@ class StaffPermissionsPage {
         return {
             embeds: [new EmbedBuilder()
                 .setColor(0x5865F2)
-                .setTitle("🔐 Autorisations du rôle")
+                .setTitle("🔐 Autorisations GreyCore")
                 .setDescription([
                     subjectType === "user"
-                        ? `Utilisateur sélectionné : <@${subjectId}>`
-                        : `Rôle sélectionné : <@&${subjectId}>`,
-                    "Sélectionne tous les domaines autorisés puis valide le menu.",
+                        ? `Utilisateurs sélectionnés : ${normalizedIds.map(id => `<@${id}>`).join(" ")}`
+                        : `Rôles sélectionnés : ${normalizedIds.map(id => `<@&${id}>`).join(" ")}`,
+                    "Sélectionne tous les domaines puis valide. Les mêmes autorisations seront appliquées à toute la sélection.",
                     "**Lecture seule** permet de consulter les pages sans effectuer de modification."
                 ].join("\n\n"))],
             components: [
                 new ActionRowBuilder().addComponents(
                     new StringSelectMenuBuilder()
                         .setCustomId(
-                            `v2_staff_permissions_save:${subjectType}:${subjectId}`
+                            `v2_staff_permissions_save:${subjectType}`
                         )
                         .setPlaceholder("Choisir les autorisations")
                         .setMinValues(1)

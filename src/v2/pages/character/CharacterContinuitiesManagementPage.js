@@ -184,7 +184,7 @@ class CharacterContinuitiesManagementPage {
                     UI.button.secondary({
 
                         id:
-                            `page:character:category:management:${characterId}`,
+                            `page:character:home:${characterId}`,
 
                         label:
                             "Retour",
@@ -193,6 +193,9 @@ class CharacterContinuitiesManagementPage {
                             "⬅️"
 
                     }),
+
+                    UI.components.navigation.home(),
+                    UI.components.navigation.library(),
 
                     UI.components.navigation
                         .close()

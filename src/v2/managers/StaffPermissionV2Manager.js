@@ -45,11 +45,35 @@ class StaffPermissionV2Manager {
         });
     }
 
+    replaceRolePermissionsForMany(data) {
+        const roleIds = [...new Set(data.roleIds.map(String))];
+        const permissionKeys = [...new Set(data.permissionKeys)]
+            .filter(key => catalog.has(key));
+        return repository.replaceRolePermissionsForMany({
+            ...data,
+            roleIds,
+            permissionKeys,
+            updatedAt: new Date().toISOString()
+        });
+    }
+
     replaceUserPermissions(data) {
         const permissionKeys = [...new Set(data.permissionKeys)]
             .filter(key => catalog.has(key));
         return repository.replaceUserPermissions({
             ...data,
+            permissionKeys,
+            updatedAt: new Date().toISOString()
+        });
+    }
+
+    replaceUserPermissionsForMany(data) {
+        const discordUserIds = [...new Set(data.discordUserIds.map(String))];
+        const permissionKeys = [...new Set(data.permissionKeys)]
+            .filter(key => catalog.has(key));
+        return repository.replaceUserPermissionsForMany({
+            ...data,
+            discordUserIds,
             permissionKeys,
             updatedAt: new Date().toISOString()
         });

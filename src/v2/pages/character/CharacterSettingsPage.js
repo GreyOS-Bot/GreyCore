@@ -153,7 +153,7 @@ class CharacterSettingsPage {
                     UI.button.secondary({
 
                         id:
-                            `page:character:category:management:${characterId}`,
+                            `page:character:home:${characterId}`,
 
                         label:
                             "Retour",
@@ -162,6 +162,9 @@ class CharacterSettingsPage {
                             "⬅️"
 
                     }),
+
+                    UI.components.navigation.home(),
+                    UI.components.navigation.library(),
 
                     UI.components.navigation
                         .close()

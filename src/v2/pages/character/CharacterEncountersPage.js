@@ -201,7 +201,7 @@ const dashboardData =
                     UI.button.secondary({
 
                         id:
-                            `page:character:category:social:${characterId}`,
+                            `page:character:home:${characterId}`,
 
                         label:
                             "Retour",
@@ -210,6 +210,9 @@ const dashboardData =
                             "⬅️"
 
                     }),
+
+                    UI.components.navigation.home(),
+                    UI.components.navigation.library(),
 
                     UI.components.navigation.close()
                 )

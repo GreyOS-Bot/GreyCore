@@ -98,6 +98,23 @@ class StaffPermissionRepository {
         return this.getRolePermissions(guildId, roleId);
     }
 
+    replaceRolePermissionsForMany({
+        guildId, roleIds, permissionKeys, grantedBy, updatedAt
+    }) {
+        const replace = db.transaction(() => {
+            for (const roleId of roleIds) {
+                this.replaceRolePermissions({
+                    guildId, roleId, permissionKeys, grantedBy, updatedAt
+                });
+            }
+        });
+        replace();
+        return roleIds.map(roleId => ({
+            subjectId: roleId,
+            permissionKeys: this.getRolePermissions(guildId, roleId)
+        }));
+    }
+
 
     replaceUserPermissions({
         guildId,
@@ -130,6 +147,23 @@ class StaffPermissionRepository {
         });
         transaction();
         return this.getUserPermissions(guildId, discordUserId);
+    }
+
+    replaceUserPermissionsForMany({
+        guildId, discordUserIds, permissionKeys, grantedBy, updatedAt
+    }) {
+        const replace = db.transaction(() => {
+            for (const discordUserId of discordUserIds) {
+                this.replaceUserPermissions({
+                    guildId, discordUserId, permissionKeys, grantedBy, updatedAt
+                });
+            }
+        });
+        replace();
+        return discordUserIds.map(discordUserId => ({
+            subjectId: discordUserId,
+            permissionKeys: this.getUserPermissions(guildId, discordUserId)
+        }));
     }
 }
 

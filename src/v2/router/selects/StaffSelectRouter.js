@@ -301,10 +301,13 @@ module.exports = async interaction => {
             );
             return true;
         }
+        require("../../services/permissions/StaffPermissionDraftService").start(
+            interaction.guildId, interaction.user.id, "role", interaction.values
+        );
         await interaction.update(
             page.buildPermissionSelection(
                 interaction.guildId,
-                interaction.values[0],
+                interaction.values,
                 "role"
             )
         );
@@ -319,10 +322,13 @@ module.exports = async interaction => {
             );
             return true;
         }
+        require("../../services/permissions/StaffPermissionDraftService").start(
+            interaction.guildId, interaction.user.id, "user", interaction.values
+        );
         await interaction.update(
             page.buildPermissionSelection(
                 interaction.guildId,
-                interaction.values[0],
+                interaction.values,
                 "user"
             )
         );
@@ -338,31 +344,40 @@ module.exports = async interaction => {
             return true;
         }
 
-        const [, subjectType, subjectId] =
+        const [, subjectType, legacySubjectId] =
             interaction.customId.split(":");
+        const drafts = require("../../services/permissions/StaffPermissionDraftService");
+        const draft = drafts.get(interaction.guildId, interaction.user.id, subjectType);
+        const subjectIds = draft?.subjectIds
+            || (legacySubjectId ? [legacySubjectId] : []);
+        if (!subjectIds.length) {
+            await replyError(interaction, "Cette sélection a expiré. Choisis de nouveau les rôles ou utilisateurs.");
+            return true;
+        }
         const selected = interaction.values.includes("__none__")
             ? []
             : interaction.values;
         const saved = subjectType === "user"
-            ? manager.replaceUserPermissions({
+            ? manager.replaceUserPermissionsForMany({
                 guildId: interaction.guildId,
-                discordUserId: subjectId,
+                discordUserIds: subjectIds,
                 permissionKeys: selected,
                 grantedBy: interaction.user.id
             })
-            : manager.replaceRolePermissions({
+            : manager.replaceRolePermissionsForMany({
                 guildId: interaction.guildId,
-                roleId: subjectId,
+                roleIds: subjectIds,
                 permissionKeys: selected,
                 grantedBy: interaction.user.id
             });
+        drafts.clear(interaction.guildId, interaction.user.id, subjectType);
         const subjectMention = subjectType === "user"
-            ? `<@${subjectId}>`
-            : `<@&${subjectId}>`;
+            ? subjectIds.map(id => `<@${id}>`).join(" ")
+            : subjectIds.map(id => `<@&${id}>`).join(" ");
 
         await interaction.update({
-            content: saved.length
-                ? `✅ Permissions de ${subjectMention} enregistrées : **${saved.length}** domaine(s).`
+            content: selected.length
+                ? `✅ Permissions de ${subjectMention} enregistrées : **${selected.length}** domaine(s) pour **${saved.length}** sélection(s).`
                 : `✅ Toutes les permissions GreyCore de ${subjectMention} ont été retirées.`,
             embeds: [],
             components: [

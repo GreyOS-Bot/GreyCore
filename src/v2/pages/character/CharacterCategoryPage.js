@@ -31,8 +31,8 @@ class CharacterCategoryPage {
             ...character,
 
             display_name:
-                character.proxy_name
-                || character.display_name
+                character.display_name
+                || character.proxy_name
                 || character.name
                 || "Personnage",
 
@@ -104,12 +104,16 @@ class CharacterCategoryPage {
     `page:character:home:${characterId}`,
 
     label:
-        "Accueil",
+        "Personnage",
 
     emoji:
         "⬅️"
 
 }),
+
+                    UI.components.navigation.home(),
+
+                    UI.components.navigation.library(),
 
                     UI.components.navigation.close()
 

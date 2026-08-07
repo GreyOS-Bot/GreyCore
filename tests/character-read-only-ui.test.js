@@ -51,6 +51,27 @@ test(
             false
         );
 
+        assert.equal(
+            getCustomIds(visitorDashboard).includes(
+                "page:character:profile:character"
+            ),
+            true
+        );
+        assert.equal(
+            getCustomIds(visitorDashboard).includes(
+                "page:character:relationships:character"
+            ),
+            true
+        );
+        assert.equal(
+            getCustomIds(visitorDashboard).some(id =>
+                id.startsWith("page:character:category:character:")
+                || id.startsWith("page:character:category:social:")
+                || id.startsWith("page:character:category:possessions:")
+            ),
+            false
+        );
+
         const ownerDashboard =
             dashboardPage.build(
                 character,
@@ -69,6 +90,12 @@ test(
                     id.startsWith(
                         "page:character:category:management:"
                     )
+            ),
+            true
+        );
+        assert.equal(
+            getCustomIds(ownerDashboard).includes(
+                "v2_phone_open:character"
             ),
             true
         );

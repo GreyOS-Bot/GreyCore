@@ -145,3 +145,38 @@ test("un utilisateur particulier peut recevoir ses propres domaines", context =>
     assert.equal(policy.canAccess(interaction, "scenes"), false);
     assert.equal(manager.getValidationChannelAccess("guild"), false);
 });
+
+test("plusieurs rôles et utilisateurs reçoivent leurs permissions en une seule opération", context => {
+    const isolated = createIsolatedDatabase({ initializeSchema: true });
+    context.after(() => isolated.cleanup());
+    isolated.database.prepare(`
+        INSERT INTO Guilds (id, name, created_at)
+        VALUES ('guild-multiple', 'Greyline', '2026-08-07')
+    `).run();
+
+    for (const modulePath of [
+        "../src/v2/repositories/StaffPermissionRepository",
+        "../src/v2/managers/StaffPermissionV2Manager"
+    ]) {
+        delete require.cache[require.resolve(modulePath)];
+    }
+    const manager = require("../src/v2/managers/StaffPermissionV2Manager");
+
+    const roles = manager.replaceRolePermissionsForMany({
+        guildId: "guild-multiple",
+        roleIds: ["role-a", "role-b"],
+        permissionKeys: ["characters", "scenes"],
+        grantedBy: "owner"
+    });
+    const users = manager.replaceUserPermissionsForMany({
+        guildId: "guild-multiple",
+        discordUserIds: ["user-a", "user-b"],
+        permissionKeys: ["phone"],
+        grantedBy: "owner"
+    });
+
+    assert.equal(roles.length, 2);
+    assert.equal(users.length, 2);
+    assert.deepEqual(manager.getRolePermissions("guild-multiple", "role-b"), ["characters", "scenes"]);
+    assert.deepEqual(manager.getUserPermissions("guild-multiple", "user-a"), ["phone"]);
+});

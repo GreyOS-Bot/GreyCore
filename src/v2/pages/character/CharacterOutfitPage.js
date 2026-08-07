@@ -164,7 +164,7 @@ class CharacterOutfitPage {
             UI.button.secondary({
 
                 id:
-                    `page:character:category:character:${characterId}`,
+                    `page:character:home:${characterId}`,
 
                 label:
                     "Retour",
@@ -245,7 +245,7 @@ const secondaryRow =
                     UI.button.secondary({
 
                         id:
-                            `page:character:category:character:${characterId}`,
+                            `page:character:home:${characterId}`,
 
                         label:
                             "Retour",

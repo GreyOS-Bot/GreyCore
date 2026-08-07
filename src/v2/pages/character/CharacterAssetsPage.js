@@ -62,10 +62,12 @@ class CharacterAssetsPage {
         const navigation = new ActionRowBuilder()
             .addComponents(
                 UI.button.secondary({
-                    id: `page:character:category:possessions:${character.id}`,
+                    id: `page:character:home:${character.id}`,
                     label: "Retour",
                     emoji: "⬅️"
                 }),
+                UI.components.navigation.home(),
+                UI.components.navigation.library(),
                 UI.components.navigation.close()
             );
 
