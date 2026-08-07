@@ -63,6 +63,14 @@ module.exports =
                 });
             }
 
+            if (result?.moveIntentDetected) {
+                await message.channel.send(
+                    sceneAssistantService.buildMoveIntentPrompt(
+                        result.cycle
+                    )
+                );
+            }
+
             if (
                 result?.kind === "no_active_scene"
                 && result.shouldPrompt

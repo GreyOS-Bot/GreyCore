@@ -119,6 +119,38 @@ module.exports = {
                 .setDescription(
                     "Relance un cycle dans le salon RP actuel, sans le fermer."
                 )
+        )
+
+        .addSubcommand(sub =>
+            sub
+                .setName("expressions")
+                .setDescription("Affiche les expressions qui proposent un rattrapage.")
+        )
+
+        .addSubcommand(sub =>
+            sub
+                .setName("ajouter-expression")
+                .setDescription("Ajoute une expression qui propose un rattrapage.")
+                .addStringOption(option =>
+                    option
+                        .setName("expression")
+                        .setDescription("Exemple : On passe en privé ?")
+                        .setMaxLength(100)
+                        .setRequired(true)
+                )
+        )
+
+        .addSubcommand(sub =>
+            sub
+                .setName("retirer-expression")
+                .setDescription("Retire une expression de rattrapage.")
+                .addStringOption(option =>
+                    option
+                        .setName("expression")
+                        .setDescription("Expression à retirer.")
+                        .setMaxLength(100)
+                        .setRequired(true)
+                )
         ),
 
     async execute(interaction) {
@@ -301,6 +333,60 @@ module.exports = {
             );
         }
 
+        if (subcommand === "expressions") {
+            const expressions = sceneAssistantManager
+                .getTriggerExpressions(interaction.guildId);
+
+            return replyPrivate(
+                interaction,
+                [
+                    "🔄 **Expressions de rattrapage**",
+                    ...expressions.map(
+                        trigger => `• ${trigger.expression}`
+                    ),
+                    "",
+                    "Dans une scène active, GreyCore proposera alors de poursuivre la scène dans un autre salon."
+                ].join("\n")
+            );
+        }
+
+        if (subcommand === "ajouter-expression") {
+            try {
+                const expression = interaction.options
+                    .getString("expression", true);
+
+                sceneAssistantManager.addTriggerExpression({
+                    guildId: interaction.guildId,
+                    expression,
+                    createdBy: interaction.user.id
+                });
+
+                return replyPrivate(
+                    interaction,
+                    `✅ L'expression **${expression}** est maintenant reconnue.`
+                );
+            } catch (error) {
+                return replyError(interaction, error);
+            }
+        }
+
+        if (subcommand === "retirer-expression") {
+            const expression = interaction.options
+                .getString("expression", true);
+            const removed = sceneAssistantManager
+                .removeTriggerExpression(
+                    interaction.guildId,
+                    expression
+                );
+
+            return replyPrivate(
+                interaction,
+                removed
+                    ? `✅ L'expression **${expression}** a été retirée.`
+                    : "ℹ️ Cette expression n'était pas configurée."
+            );
+        }
+
         if (subcommand === "nouveau-cycle") {
             try {
                 sceneAssistantService.startNewCycle({
@@ -387,12 +473,6 @@ function buildStatusPayload(status) {
                 .setTimestamp()
         ]
     };
-
-    payload.components = [
-        sceneAssistantService.buildSceneActions(
-            status.scene || cycle
-        )
-    ];
 
     return payload;
 }

@@ -158,6 +158,18 @@ function initializeSceneAssistantSchemaV2() {
             FOREIGN KEY(character_id) REFERENCES CharactersV2(id) ON DELETE CASCADE
         )
     `).run();
+
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS GuildSceneTriggerExpressionsV2 (
+            guild_id TEXT NOT NULL,
+            expression TEXT NOT NULL,
+            normalized_expression TEXT NOT NULL,
+            created_by TEXT,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY(guild_id, normalized_expression),
+            FOREIGN KEY(guild_id) REFERENCES Guilds(id) ON DELETE CASCADE
+        )
+    `).run();
 }
 
 module.exports = initializeSceneAssistantSchemaV2;

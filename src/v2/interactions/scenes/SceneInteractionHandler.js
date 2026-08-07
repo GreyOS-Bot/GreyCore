@@ -45,13 +45,10 @@ async function submitStart(interaction) {
         createdBy: interaction.user.id
     });
 
-    return replyPrivate(interaction, {
-        content: `✅ La scène **${scene.title}** commence dans <#${interaction.channelId}>.`,
-        components: [
-            require("../../services/scenes/SceneAssistantService")
-                .buildSceneActions(scene)
-        ]
-    });
+    return replyPrivate(
+        interaction,
+        `✅ La scène **${scene.title}** commence dans <#${interaction.channelId}>.`
+    );
 }
 
 async function submitMove(interaction, sceneId, destinationId) {

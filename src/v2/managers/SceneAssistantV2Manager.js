@@ -6,6 +6,66 @@ const { randomUUID } = require("node:crypto");
 
 class SceneAssistantV2Manager {
 
+    normalizeTriggerExpression(value) {
+        return String(value || "")
+            .normalize("NFD")
+            .replace(/\p{Diacritic}/gu, "")
+            .toLocaleLowerCase("fr-FR")
+            .replace(/[^a-z0-9]+/g, " ")
+            .trim();
+    }
+
+    getTriggerExpressions(guildId) {
+        const configured = repository.getTriggerExpressions(guildId);
+        return configured.length
+            ? configured
+            : [{
+                expression: "Rattrapage ?",
+                normalized_expression: "rattrapage",
+                is_default: 1
+            }];
+    }
+
+    addTriggerExpression({ guildId, expression, createdBy }) {
+        const cleanExpression = String(expression || "").trim();
+        const normalizedExpression = this.normalizeTriggerExpression(cleanExpression);
+        if (!normalizedExpression) {
+            throw new Error("L’expression de déclenchement est vide.");
+        }
+
+        if (!repository.getTriggerExpressions(guildId).length) {
+            repository.addTriggerExpression({
+                guildId,
+                expression: "Rattrapage ?",
+                normalizedExpression: "rattrapage",
+                createdBy,
+                createdAt: new Date().toISOString()
+            });
+        }
+
+        return repository.addTriggerExpression({
+            guildId,
+            expression: cleanExpression.slice(0, 100),
+            normalizedExpression,
+            createdBy,
+            createdAt: new Date().toISOString()
+        });
+    }
+
+    removeTriggerExpression(guildId, expression) {
+        return repository.removeTriggerExpression(
+            guildId,
+            this.normalizeTriggerExpression(expression)
+        );
+    }
+
+    matchesTriggerExpression(guildId, content) {
+        const normalizedContent = this.normalizeTriggerExpression(content);
+        return this.getTriggerExpressions(guildId).some(trigger =>
+            normalizedContent.includes(trigger.normalized_expression)
+        );
+    }
+
     createScene({
         guildId,
         title,

@@ -3,6 +3,47 @@ const db =
 
 class SceneAssistantRepository {
 
+    getTriggerExpressions(guildId) {
+        return db.prepare(`
+            SELECT *
+            FROM GuildSceneTriggerExpressionsV2
+            WHERE guild_id = ?
+            ORDER BY expression COLLATE NOCASE
+        `).all(guildId);
+    }
+
+    addTriggerExpression({
+        guildId,
+        expression,
+        normalizedExpression,
+        createdBy,
+        createdAt
+    }) {
+        db.prepare(`
+            INSERT INTO GuildSceneTriggerExpressionsV2 (
+                guild_id, expression, normalized_expression,
+                created_by, created_at
+            ) VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(guild_id, normalized_expression)
+            DO UPDATE SET expression = excluded.expression
+        `).run(
+            guildId,
+            expression,
+            normalizedExpression,
+            createdBy,
+            createdAt
+        );
+
+        return this.getTriggerExpressions(guildId);
+    }
+
+    removeTriggerExpression(guildId, normalizedExpression) {
+        return db.prepare(`
+            DELETE FROM GuildSceneTriggerExpressionsV2
+            WHERE guild_id = ? AND normalized_expression = ?
+        `).run(guildId, normalizedExpression).changes === 1;
+    }
+
     createScene({
         id,
         guildId,

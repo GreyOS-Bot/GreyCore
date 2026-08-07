@@ -11,6 +11,14 @@ module.exports = async interaction => {
         await handler.resume(interaction);
         return true;
     }
+    if (interaction.customId === "v2_scene_move_cancel") {
+        await interaction.update({
+            content: "✅ Proposition de rattrapage annulée.",
+            embeds: [],
+            components: []
+        });
+        return true;
+    }
     if (interaction.customId.startsWith("v2_scene_move:")) {
         await handler.openMove(interaction, interaction.customId.split(":")[1]);
         return true;

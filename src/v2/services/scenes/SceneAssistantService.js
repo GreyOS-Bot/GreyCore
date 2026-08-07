@@ -77,6 +77,11 @@ class SceneAssistantService {
             scene.id,
             this.getMessageTimestamp(message)
         );
+        const moveIntentDetected =
+            manager.matchesTriggerExpression(
+                guildId,
+                message.content
+            );
 
         await this.trackParticipant(
             message,
@@ -99,6 +104,7 @@ class SceneAssistantService {
                 configuration,
                 cycle,
                 evaluation,
+                moveIntentDetected,
                 justReachedThreshold: false
             };
         }
@@ -114,6 +120,7 @@ class SceneAssistantService {
             configuration,
             cycle: updatedCycle,
             evaluation,
+            moveIntentDetected,
             justReachedThreshold
         };
     }
@@ -387,14 +394,28 @@ class SceneAssistantService {
         };
     }
 
-    buildSceneActions(scene) {
-        return new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId(`v2_scene_move:${scene.id}`)
-                .setLabel("Déplacer la scène")
-                .setEmoji("➡️")
-                .setStyle(ButtonStyle.Primary)
-        );
+    buildMoveIntentPrompt(scene) {
+        return {
+            embeds: [new EmbedBuilder()
+                .setColor(0x5865F2)
+                .setTitle("🔄 Poursuivre cette scène ?")
+                .setDescription([
+                    "GreyCore a détecté une demande de rattrapage.",
+                    "Souhaitez-vous poursuivre cette scène dans un autre salon ?"
+                ].join("\n\n"))],
+            components: [new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`v2_scene_move:${scene.id}`)
+                    .setLabel("Continuer la scène")
+                    .setEmoji("➡️")
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId("v2_scene_move_cancel")
+                    .setLabel("Annuler")
+                    .setEmoji("❌")
+                    .setStyle(ButtonStyle.Secondary)
+            )]
+        };
     }
 
     async trackParticipant(message, scene) {

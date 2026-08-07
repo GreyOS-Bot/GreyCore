@@ -78,7 +78,7 @@ test(
         );
 
         const first = await service.processMessage(
-            createMessage(channel)
+            createMessage(channel, "Rattrapage ?")
         );
         const second = await service.processMessage(
             createMessage(channel)
@@ -91,6 +91,8 @@ test(
             first.justReachedThreshold,
             false
         );
+        assert.equal(first.moveIntentDetected, true);
+        assert.equal(second.moveIntentDetected, false);
         assert.equal(
             second.justReachedThreshold,
             false
@@ -236,7 +238,7 @@ function createThreadInCategory() {
     };
 }
 
-function createMessage(channel) {
+function createMessage(channel, content = "Une réponse RP") {
     return {
         guildId: "guild",
         channelId: channel.id,
@@ -244,6 +246,7 @@ function createMessage(channel) {
         author: {
             bot: false
         },
+        content,
         createdTimestamp:
             Date.parse(
                 "2026-07-30T12:00:00.000Z"
