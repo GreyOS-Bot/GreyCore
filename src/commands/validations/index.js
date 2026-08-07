@@ -24,6 +24,10 @@ const {
     "../../v2/core/services/InteractionResponseService"
 );
 
+const validationMessageCleanup = require(
+    "../../v2/services/validation/ValidationMessageCleanupService"
+);
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("validations")
@@ -131,8 +135,8 @@ module.exports = {
                         reason
                     });
 
-            await removeValidationMessage(
-                interaction,
+            await validationMessageCleanup.remove(
+                interaction.client,
                 previousInstallation
             );
 
@@ -178,31 +182,4 @@ function formatIncompleteChoice(
             : "";
 
     return `${name}${familyName} — ${owner} — ${installation.status}`;
-}
-
-async function removeValidationMessage(
-    interaction,
-    installation
-) {
-    if (
-        !installation?.validation_channel_id
-        || !installation.validation_message_id
-    ) {
-        return;
-    }
-
-    try {
-        const channel =
-            await interaction.client.channels.fetch(
-                installation.validation_channel_id
-            );
-        const message =
-            await channel?.messages?.fetch(
-                installation.validation_message_id
-            );
-
-        await message?.delete();
-    } catch {
-        // L’installation reste annulée même si Discord a déjà supprimé la carte.
-    }
 }

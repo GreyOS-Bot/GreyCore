@@ -6,6 +6,25 @@ const { replyError } = require(
 );
 
 module.exports = async interaction => {
+    if (interaction.customId === "v2_staff_characters_cancel_installation_select") {
+        if (!policy.canManageCharacters(interaction)) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require("discord.js");
+        await interaction.showModal(new ModalBuilder()
+            .setCustomId(`v2_staff_characters_cancel_installation_submit:${interaction.values[0]}`)
+            .setTitle("Annuler l’installation")
+            .addComponents(new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId("reason")
+                    .setLabel("Motif conservé dans l’historique")
+                    .setStyle(TextInputStyle.Paragraph)
+                    .setMaxLength(500)
+                    .setRequired(true)
+            )));
+        return true;
+    }
     if (["v2_staff_scenes_remove_zone", "v2_staff_scenes_remove_expression"].includes(interaction.customId)) {
         if (!policy.canAccess(interaction, "scenes", { write: true })) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
@@ -105,6 +124,69 @@ module.exports = async interaction => {
         require("../../managers/GuildSettingsV2Manager")
             .setValidationChannel(interaction.guildId, interaction.values[0]);
         await interaction.update(require("../../pages/staff/StaffSettingsPage").build(interaction));
+        return true;
+    }
+    if (interaction.customId?.startsWith("v2_staff_settings_advanced_remove:")) {
+        if (!policy.canAccess(interaction, "settings", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        require("../../managers/GuildAdvancedSettingV2Manager")
+            .remove(interaction.guildId, interaction.values[0]);
+        await interaction.update(
+            require("../../pages/staff/StaffSettingsPage").buildAdvanced(
+                interaction,
+                Number(interaction.customId.split(":")[1])
+            )
+        );
+        return true;
+    }
+    if (interaction.customId === "v2_staff_settings_create_validation_role") {
+        if (!policy.canAccess(interaction, "settings", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const { ChannelType, PermissionFlagsBits } = require("discord.js");
+        const staffRoleId = interaction.values[0];
+        try {
+            await interaction.deferUpdate();
+            const createdChannel = await interaction.guild.channels.create({
+                name: "📋・validations",
+                type: ChannelType.GuildText,
+                permissionOverwrites: [
+                    {
+                        id: interaction.guild.roles.everyone.id,
+                        deny: [PermissionFlagsBits.ViewChannel]
+                    },
+                    {
+                        id: staffRoleId,
+                        allow: [
+                            PermissionFlagsBits.ViewChannel,
+                            PermissionFlagsBits.SendMessages,
+                            PermissionFlagsBits.ReadMessageHistory
+                        ]
+                    },
+                    {
+                        id: interaction.guild.members.me.id,
+                        allow: [
+                            PermissionFlagsBits.ViewChannel,
+                            PermissionFlagsBits.SendMessages,
+                            PermissionFlagsBits.ReadMessageHistory,
+                            PermissionFlagsBits.ManageMessages
+                        ]
+                    }
+                ],
+                reason: "Configuration GreyCore : salon de validation"
+            });
+            require("../../managers/GuildSettingsV2Manager")
+                .setValidationChannel(interaction.guildId, createdChannel.id);
+            await interaction.editReply(
+                require("../../pages/staff/StaffSettingsPage").build(interaction)
+            );
+        } catch (error) {
+            await require("../../core/services/InteractionResponseService")
+                .editOrReplyError(interaction, "Impossible de créer le salon privé. Vérifie que GreyCore peut gérer les salons et leurs permissions.");
+        }
         return true;
     }
     if (interaction.customId === "v2_staff_modules_toggle") {

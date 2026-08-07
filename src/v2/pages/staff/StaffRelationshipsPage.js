@@ -21,9 +21,14 @@ class StaffRelationshipsPage {
                     { name: "Relations actives", value: String(stats.relationships), inline: true },
                     { name: "Demandes en attente", value: String(stats.pending), inline: true },
                     { name: "Types configurés", value: String(stats.types), inline: true },
-                    { name: "Aperçu des types", value: types.slice(0, 20).map(type => `• ${type.label_a_to_b}`).join("\n") || "Aucun type configuré. Installe les types par défaut depuis les outils de relations." }
+                    { name: "Aperçu des types", value: types.slice(0, 20).map(type => `• ${type.label_a_to_b}`).join("\n") || "Aucun type configuré. Utilise le bouton d’installation ci-dessous." }
                 )],
             components: [new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId("v2_staff_relationships_install_defaults")
+                    .setLabel("Installer les types par défaut")
+                    .setEmoji("📦")
+                    .setStyle(ButtonStyle.Success),
                 new ButtonBuilder()
                     .setCustomId("v2_staff_relationships_create_type")
                     .setLabel("Nouveau type")

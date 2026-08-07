@@ -1,7 +1,12 @@
 const repository = require("../repositories/RelationshipTypeRepository");
+const defaultTypes = require("../core/catalogs/DefaultRelationshipTypes");
 
 class RelationshipTypeV2Manager {
     getByGuild(guildId) { return repository.getByGuild(guildId); }
+
+    installDefaults(guildId) {
+        return repository.installDefaults(String(guildId), defaultTypes);
+    }
 
     create({ guildId, labelAToB, labelBToA, isSymmetric }) {
         const firstLabel = this.normalizeLabel(labelAToB, "Le libellé principal");

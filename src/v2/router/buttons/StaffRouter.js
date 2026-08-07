@@ -26,6 +26,21 @@ module.exports = async interaction => {
         return true;
     }
 
+    if (interaction.customId === "v2_staff_relationships_install_defaults") {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canAccess(interaction, "relationships", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        require("../../managers/RelationshipTypeV2Manager")
+            .installDefaults(interaction.guildId);
+        await interaction.update(
+            require("../../pages/staff/StaffRelationshipsPage").build(interaction)
+        );
+        return true;
+    }
+
     if (interaction.customId === "v2_staff_relationships_create_type") {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
@@ -228,13 +243,65 @@ module.exports = async interaction => {
     if (interaction.customId.startsWith("v2_staff_settings_")) {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "settings", { write: true })) {
-            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+        const action = interaction.customId.slice("v2_staff_settings_".length);
+        const readOnlyActions = action === "advanced"
+            || action.startsWith("advanced_page:");
+        if (!policy.canAccess(interaction, "settings", { write: !readOnlyActions })) {
+            await replyError(
+                interaction,
+                readOnlyActions
+                    ? "Tu n’as pas accès aux paramètres GreyCore."
+                    : "Tu disposes uniquement d'un accès en lecture."
+            );
             return true;
         }
-        const action = interaction.customId.slice("v2_staff_settings_".length);
         const settings = require("../../managers/GuildSettingsV2Manager");
         const page = require("../../pages/staff/StaffSettingsPage");
+        if (action === "advanced") {
+            await interaction.update(page.buildAdvanced(interaction));
+            return true;
+        }
+        if (action.startsWith("advanced_page:")) {
+            await interaction.update(
+                page.buildAdvanced(interaction, Number(action.split(":")[1]))
+            );
+            return true;
+        }
+        if (action === "advanced_set") {
+            const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require("discord.js");
+            await interaction.showModal(new ModalBuilder()
+                .setCustomId("v2_staff_settings_advanced_set_submit")
+                .setTitle("Paramètre avancé")
+                .addComponents(
+                    new ActionRowBuilder().addComponents(new TextInputBuilder()
+                        .setCustomId("key").setLabel("Clé du paramètre")
+                        .setStyle(TextInputStyle.Short).setMaxLength(100).setRequired(true)),
+                    new ActionRowBuilder().addComponents(new TextInputBuilder()
+                        .setCustomId("value").setLabel("Valeur")
+                        .setStyle(TextInputStyle.Paragraph).setMaxLength(4000).setRequired(true))
+                ));
+            return true;
+        }
+        if (action === "create_validation") {
+            const { EmbedBuilder, ActionRowBuilder, RoleSelectMenuBuilder } = require("discord.js");
+            await interaction.update({
+                embeds: [new EmbedBuilder()
+                    .setColor(0x5865F2)
+                    .setTitle("📋 Créer le salon de validation")
+                    .setDescription("Choisis le rôle qui doit accéder au futur salon privé. GreyCore créera le salon, réglera ses permissions et l’enregistrera automatiquement.")],
+                components: [
+                    new ActionRowBuilder().addComponents(
+                        new RoleSelectMenuBuilder()
+                            .setCustomId("v2_staff_settings_create_validation_role")
+                            .setPlaceholder("Choisir le rôle du staff")
+                            .setMinValues(1)
+                            .setMaxValues(1)
+                    ),
+                    require("../../pages/staff/StaffCharactersPage").navigationRow()
+                ]
+            });
+            return true;
+        }
         if (action === "remove_validation") {
             settings.removeValidationChannel(interaction.guildId);
             await interaction.update(page.build(interaction));
@@ -373,6 +440,47 @@ module.exports = async interaction => {
         return true;
     }
 
+    if (interaction.customId === "v2_staff_characters_cancel_installation") {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canManageCharacters(interaction)) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const installations = require("../../services/validation/ValidationManagerV2")
+            .searchIncompleteForGuild(interaction.guildId);
+        if (!installations.length) {
+            await interaction.update({
+                content: "✅ Aucune installation non aboutie n’est actuellement bloquée.",
+                embeds: [],
+                components: [require("../../pages/staff/StaffCharactersPage").navigationRow()]
+            });
+            return true;
+        }
+        const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
+        await interaction.update({
+            content: "",
+            embeds: [new EmbedBuilder()
+                .setColor(0xFEE75C)
+                .setTitle("🧹 Annuler une installation non aboutie")
+                .setDescription("Choisis l’installation à débloquer. Le personnage restera dans la bibliothèque de son propriétaire et pourra être réinstallé.")],
+            components: [
+                new ActionRowBuilder().addComponents(
+                    new StringSelectMenuBuilder()
+                        .setCustomId("v2_staff_characters_cancel_installation_select")
+                        .setPlaceholder("Choisir une installation")
+                        .addOptions(installations.map(installation => ({
+                            label: String(installation.firstname || installation.proxy_name).slice(0, 100),
+                            description: `${installation.status} · propriétaire ${installation.owner_id}`.slice(0, 100),
+                            value: String(installation.id)
+                        })))
+                ),
+                require("../../pages/staff/StaffCharactersPage").navigationRow()
+            ]
+        });
+        return true;
+    }
+
     if (interaction.customId.startsWith("v2_staff_character_delete:")) {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
@@ -482,12 +590,17 @@ module.exports = async interaction => {
     if (interaction.customId.startsWith("v2_staff_scenes_")) {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "scenes", { write: true })) {
-            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+        const action = interaction.customId.slice("v2_staff_scenes_".length);
+        const readOnlyActions = ["manage", "diagnostic"].includes(action);
+        if (!policy.canAccess(interaction, "scenes", { write: !readOnlyActions })) {
+            await replyError(
+                interaction,
+                readOnlyActions
+                    ? "Tu n’as pas accès aux cycles de scènes."
+                    : "Tu disposes uniquement d'un accès en lecture."
+            );
             return true;
         }
-
-        const action = interaction.customId.slice("v2_staff_scenes_".length);
         const manager = require("../../managers/SceneAssistantV2Manager");
         const page = require("../../pages/staff/StaffScenesPage");
         if (action === "toggle") {

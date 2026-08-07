@@ -56,6 +56,29 @@ class RelationshipTypeRepository {
         return this.getById(data.guildId, result.lastInsertRowid);
     }
 
+    installDefaults(guildId, defaultTypes) {
+        const now = new Date().toISOString();
+        const insert = db.prepare(`
+            INSERT INTO RelationshipTypes (
+                guild_id, key, label_a_to_b, label_b_to_a,
+                is_symmetric, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(guild_id, key) DO UPDATE SET
+                label_a_to_b = excluded.label_a_to_b,
+                label_b_to_a = excluded.label_b_to_a,
+                is_symmetric = excluded.is_symmetric
+        `);
+        db.transaction(() => {
+            for (const type of defaultTypes) {
+                insert.run(
+                    guildId, type.key, type.labelAToB, type.labelBToA,
+                    type.isSymmetric ? 1 : 0, now
+                );
+            }
+        })();
+        return this.getByGuild(guildId);
+    }
+
     countUsages(guildId, relationshipTypeId) {
         const queries = [
             "SELECT COUNT(*) AS total FROM CharacterRelationships WHERE guild_id = ? AND relationship_type_id = ?",

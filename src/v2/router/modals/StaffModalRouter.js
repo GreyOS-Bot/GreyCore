@@ -4,6 +4,54 @@ const page = require("../../pages/staff/StaffScenesPage");
 const { replyError } = require("../../core/services/InteractionResponseService");
 
 module.exports = async interaction => {
+    if (interaction.customId === "v2_staff_settings_advanced_set_submit") {
+        if (!policy.canAccess(interaction, "settings", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        try {
+            require("../../managers/GuildAdvancedSettingV2Manager").set(
+                interaction.guildId,
+                interaction.fields.getTextInputValue("key"),
+                interaction.fields.getTextInputValue("value")
+            );
+            await interaction.update(
+                require("../../pages/staff/StaffSettingsPage").buildAdvanced(interaction)
+            );
+        } catch (error) {
+            await replyError(interaction, error);
+        }
+        return true;
+    }
+    if (interaction.customId?.startsWith("v2_staff_characters_cancel_installation_submit:")) {
+        if (!policy.canManageCharacters(interaction)) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        try {
+            await interaction.deferUpdate();
+            const installationId = interaction.customId.split(":")[1];
+            const validationManager = require("../../services/validation/ValidationManagerV2");
+            const previousInstallation = validationManager.getInstallation(installationId);
+            const result = validationManager.cancelIncompleteInstallation({
+                installationId,
+                guildId: interaction.guildId,
+                cancelledBy: interaction.user.id,
+                reason: interaction.fields.getTextInputValue("reason")
+            });
+            await require("../../services/validation/ValidationMessageCleanupService")
+                .remove(interaction.client, previousInstallation);
+            await interaction.editReply({
+                content: `✅ L’installation de **${result.context.proxy_name}** a été annulée. Le personnage n’a pas été supprimé.`,
+                embeds: [],
+                components: [require("../../pages/staff/StaffCharactersPage").navigationRow()]
+            });
+        } catch (error) {
+            await require("../../core/services/InteractionResponseService")
+                .editOrReplyError(interaction, error, { embeds: [], components: [] });
+        }
+        return true;
+    }
     if (interaction.customId === "v2_staff_universe_create_state_submit") {
         if (!policy.canAccess(interaction, "universe", { write: true })) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");

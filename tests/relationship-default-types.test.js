@@ -86,6 +86,23 @@ test(
                     key
                 );
             }
+
+            const v2Manager =
+                loadRelationshipTypeV2Manager();
+            const v2Types =
+                v2Manager.installDefaults(
+                    "guild-default-types"
+                );
+
+            assert.equal(
+                v2Types.length,
+                types.length
+            );
+            assert.equal(
+                v2Types.find(type => type.key === "sexfriend")
+                    .label_a_to_b,
+                "Friends with benefits de"
+            );
         } finally {
             isolated.cleanup();
         }
@@ -102,5 +119,18 @@ function loadRelationshipManager() {
 
     return require(
         "../src/managers/RelationshipManager"
+    );
+}
+
+function loadRelationshipTypeV2Manager() {
+    for (const dependency of [
+        "../src/v2/repositories/RelationshipTypeRepository",
+        "../src/v2/managers/RelationshipTypeV2Manager"
+    ]) {
+        delete require.cache[require.resolve(dependency)];
+    }
+
+    return require(
+        "../src/v2/managers/RelationshipTypeV2Manager"
     );
 }
