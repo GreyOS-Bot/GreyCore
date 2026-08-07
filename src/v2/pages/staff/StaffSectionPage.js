@@ -26,6 +26,13 @@ class StaffSectionPage {
             return require("./StaffPermissionsPage").execute(interaction);
         }
 
+        if (sectionKey === "characters") {
+            return require("./StaffCharactersPage").execute(interaction);
+        }
+        if (sectionKey === "scenes") {
+            return require("./StaffScenesPage").execute(interaction);
+        }
+
         const section = catalog.get(sectionKey);
         if (!section || !policy.canAccess(interaction, sectionKey)) {
             return interaction.update({
