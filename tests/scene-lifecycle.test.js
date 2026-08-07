@@ -75,3 +75,106 @@ test(
         );
     }
 );
+
+test(
+    "une scène démarre une seule fois puis exige deux participants pour se clôturer",
+    context => {
+        const isolated = createIsolatedDatabase({
+            initializeSchema: true
+        });
+        context.after(() => isolated.cleanup());
+
+        isolated.database.prepare(`
+            INSERT INTO Guilds (id, name, created_at)
+            VALUES ('guild', 'Greyline', '2026-08-06')
+        `).run();
+        isolated.database.prepare(`
+            INSERT INTO UsersV2 (
+                discord_user_id, created_at, updated_at
+            ) VALUES
+                ('player-1', '2026-08-06', '2026-08-06'),
+                ('player-2', '2026-08-06', '2026-08-06')
+        `).run();
+        isolated.database.prepare(`
+            INSERT INTO CharactersV2 (
+                id, owner_user_id, proxy_name, character_type,
+                created_at, updated_at
+            ) VALUES
+                ('character-1', 1, 'Reya', 'personnage_joue', '2026-08-06', '2026-08-06'),
+                ('character-2', 2, 'Alba', 'personnage_joue', '2026-08-06', '2026-08-06')
+        `).run();
+
+        const modules = [
+            "../src/v2/repositories/SceneAssistantRepository",
+            "../src/v2/managers/SceneAssistantV2Manager"
+        ];
+        for (const modulePath of modules) {
+            delete require.cache[require.resolve(modulePath)];
+        }
+        const manager = require(
+            "../src/v2/managers/SceneAssistantV2Manager"
+        );
+
+        manager.configure({
+            guildId: "guild",
+            durationDays: 8,
+            recommendedMessageCount: 100,
+            inactivityHours: 48
+        });
+        assert.equal(manager.proposeSceneStart({
+            guildId: "guild",
+            channelId: "steel",
+            messageId: "opening-message",
+            characterId: "character-1"
+        }), true);
+        assert.equal(manager.proposeSceneStart({
+            guildId: "guild",
+            channelId: "steel",
+            messageId: "another-message",
+            characterId: "character-1"
+        }), false);
+
+        const scene = manager.createScene({
+            guildId: "guild",
+            channelId: "steel",
+            title: "Soirée au Steel",
+            startedAt: "2026-08-01T10:00:00.000Z"
+        });
+        manager.resolveStartProposal("guild", "steel");
+        manager.addParticipant(scene.id, "character-1");
+        manager.addParticipant(scene.id, "character-2");
+        manager.recordSceneMessage(
+            scene.id,
+            "2026-08-01T10:00:00.000Z"
+        );
+
+        assert.equal(
+            manager.getInactiveScenes(
+                new Date("2026-08-03T10:00:01.000Z")
+            ).length,
+            1
+        );
+        manager.saveClosurePrompt({
+            sceneId: scene.id,
+            guildId: "guild",
+            channelId: "steel",
+            messageId: "closure-message"
+        });
+        assert.equal(manager.addClosureVote(scene.id, "player-1"), 1);
+        assert.equal(manager.addClosureVote(scene.id, "player-1"), 1);
+        assert.equal(manager.addClosureVote(scene.id, "player-2"), 2);
+        manager.closeScene(scene.id);
+
+        assert.equal(manager.getScene(scene.id).status, "closed");
+        assert.equal(
+            manager.getActiveSceneByChannel("guild", "steel"),
+            null
+        );
+        assert.equal(manager.proposeSceneStart({
+            guildId: "guild",
+            channelId: "steel",
+            messageId: "next-opening-message",
+            characterId: "character-1"
+        }), true);
+    }
+);

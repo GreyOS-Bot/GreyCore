@@ -207,6 +207,8 @@ module.exports =
                 v2Installation.character_id;
         }
 
+        message.greycoreProxyWebhookMessage = webhookMessage;
+
         console.log(
             `✅ Proxy envoyé : ${character.name} → ${webhookMessage.id}`
         );

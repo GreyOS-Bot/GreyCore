@@ -191,19 +191,24 @@ const TOPICS = {
             {
                 name: "Commencer ou reprendre",
                 value: [
-                    "Dans une zone RP suivie sans scène active, GreyCore propose **Commencer une scène** ou **Reprendre une scène**.",
-                    "Ignorer cette proposition n’empêche jamais de RP.",
-                    "Utilise `/scene statut` pour retrouver les actions et les compteurs de la scène active."
+                    "Au premier message d'un personnage, GreyCore ajoute une unique réaction 🎬.",
+                    "Cliquer dessus démarre la scène ; l'ignorer n'empêche jamais de RP.",
+                    "La réaction disparaît dès que la scène commence."
                 ].join("\n"),
                 inline: false
             },
             {
                 name: "Déplacer une scène",
                 value: [
-                    "Clique sur **Déplacer la scène**, choisis le nouveau salon puis indique facultativement le lien du message de transition.",
+                    "Écris une expression comme **Rattrapage ?** : GreyCore proposera alors le déplacement.",
                     "Sans lien, GreyCore reprend automatiquement le dernier échange exploitable.",
                     "Les jours, messages et participants restent attachés à la même scène."
                 ].join("\n"),
+                inline: false
+            },
+            {
+                name: "Clôturer une scène",
+                value: "Après la durée d'inactivité choisie par le serveur, GreyCore propose discrètement la clôture. Deux participants différents doivent confirmer.",
                 inline: false
             },
             {

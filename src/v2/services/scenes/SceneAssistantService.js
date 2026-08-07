@@ -16,6 +16,23 @@ const DAY_IN_MILLISECONDS =
 
 class SceneAssistantService {
 
+    proposeStartFromMessage({
+        message,
+        guildId,
+        channelId,
+        characterId
+    }) {
+        return manager.proposeSceneStart({
+            guildId,
+            channelId,
+            messageId: message.id,
+            characterId,
+            proposedAt: new Date(
+                this.getMessageTimestamp(message)
+            ).toISOString()
+        });
+    }
+
     async processMessage(message) {
         if (
             !message
@@ -63,14 +80,25 @@ class SceneAssistantService {
         );
 
         if (!scene) {
+            const characterId =
+                message.greycoreSceneCharacterId
+                || null;
+
             return {
                 kind: "no_active_scene",
-                shouldPrompt: manager.shouldPrompt(
-                    guildId,
-                    channelId,
-                    new Date(this.getMessageTimestamp(message))
-                )
+                shouldOfferStart: Boolean(characterId),
+                characterId
             };
+        }
+
+        const cancelledClosurePrompt =
+            manager.getPendingClosurePrompt(scene.id);
+
+        if (cancelledClosurePrompt) {
+            manager.resolveClosurePrompt(
+                scene.id,
+                "activity_resumed"
+            );
         }
 
         const cycle = manager.recordSceneMessage(
@@ -105,6 +133,7 @@ class SceneAssistantService {
                 cycle,
                 evaluation,
                 moveIntentDetected,
+                cancelledClosurePrompt,
                 justReachedThreshold: false
             };
         }
@@ -121,6 +150,7 @@ class SceneAssistantService {
             cycle: updatedCycle,
             evaluation,
             moveIntentDetected,
+            cancelledClosurePrompt,
             justReachedThreshold
         };
     }
@@ -416,6 +446,40 @@ class SceneAssistantService {
                     .setStyle(ButtonStyle.Secondary)
             )]
         };
+    }
+
+    buildClosurePrompt(scene, inactivityHours) {
+        return {
+            embeds: [new EmbedBuilder()
+                .setColor(0xFEE75C)
+                .setTitle(
+                    `🏁 Cette scène semble inactive depuis ${inactivityHours} heures.`
+                )
+                .setDescription(
+                    "Souhaitez-vous la clôturer ? Deux participants différents doivent confirmer."
+                )],
+            components: [this.buildClosureActions(scene, 0)]
+        };
+    }
+
+    buildClosureActions(scene, voteCount) {
+        return new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`v2_scene_close_vote:${scene.id}`)
+                    .setLabel(`Clôturer · ${voteCount}/2`)
+                    .setEmoji("✅")
+                    .setStyle(ButtonStyle.Danger),
+                new ButtonBuilder()
+                    .setCustomId(`v2_scene_keep_open:${scene.id}`)
+                    .setLabel("Laisser ouverte")
+                    .setEmoji("⏳")
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId(`v2_scene_close_cancel:${scene.id}`)
+                    .setLabel("Annuler")
+                    .setEmoji("❌")
+                    .setStyle(ButtonStyle.Secondary)
+            );
     }
 
     async trackParticipant(message, scene) {

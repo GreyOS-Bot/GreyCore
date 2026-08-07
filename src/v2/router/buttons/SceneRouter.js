@@ -23,5 +23,17 @@ module.exports = async interaction => {
         await handler.openMove(interaction, interaction.customId.split(":")[1]);
         return true;
     }
+    if (interaction.customId.startsWith("v2_scene_close_vote:")) {
+        await handler.voteClose(interaction, interaction.customId.split(":")[1]);
+        return true;
+    }
+    if (interaction.customId.startsWith("v2_scene_keep_open:")) {
+        await handler.keepOpen(interaction, interaction.customId.split(":")[1]);
+        return true;
+    }
+    if (interaction.customId.startsWith("v2_scene_close_cancel:")) {
+        await handler.keepOpen(interaction, interaction.customId.split(":")[1], true);
+        return true;
+    }
     return false;
 };

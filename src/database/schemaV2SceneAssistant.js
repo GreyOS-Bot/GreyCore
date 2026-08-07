@@ -170,6 +170,60 @@ function initializeSceneAssistantSchemaV2() {
             FOREIGN KEY(guild_id) REFERENCES Guilds(id) ON DELETE CASCADE
         )
     `).run();
+
+    ensureColumn(
+        "GuildSceneAssistantSettingsV2",
+        "inactivity_hours",
+        "INTEGER NOT NULL DEFAULT 48"
+    );
+
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS SceneStartProposalsV2 (
+            guild_id TEXT NOT NULL,
+            channel_id TEXT NOT NULL,
+            message_id TEXT NOT NULL,
+            character_id TEXT,
+            proposed_at TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            PRIMARY KEY(guild_id, channel_id),
+            UNIQUE(message_id),
+            FOREIGN KEY(guild_id) REFERENCES Guilds(id) ON DELETE CASCADE,
+            FOREIGN KEY(character_id) REFERENCES CharactersV2(id) ON DELETE SET NULL
+        )
+    `).run();
+
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS SceneClosurePromptsV2 (
+            scene_id TEXT PRIMARY KEY,
+            guild_id TEXT NOT NULL,
+            channel_id TEXT NOT NULL,
+            message_id TEXT NOT NULL UNIQUE,
+            status TEXT NOT NULL DEFAULT 'pending',
+            prompted_at TEXT NOT NULL,
+            resolved_at TEXT,
+            FOREIGN KEY(scene_id) REFERENCES ScenesV2(id) ON DELETE CASCADE,
+            FOREIGN KEY(guild_id) REFERENCES Guilds(id) ON DELETE CASCADE
+        )
+    `).run();
+
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS SceneClosureVotesV2 (
+            scene_id TEXT NOT NULL,
+            discord_user_id TEXT NOT NULL,
+            voted_at TEXT NOT NULL,
+            PRIMARY KEY(scene_id, discord_user_id),
+            FOREIGN KEY(scene_id) REFERENCES ScenesV2(id) ON DELETE CASCADE
+        )
+    `).run();
+}
+
+function ensureColumn(tableName, columnName, definition) {
+    const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
+    if (!columns.some(column => column.name === columnName)) {
+        db.prepare(
+            `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`
+        ).run();
+    }
 }
 
 module.exports = initializeSceneAssistantSchemaV2;

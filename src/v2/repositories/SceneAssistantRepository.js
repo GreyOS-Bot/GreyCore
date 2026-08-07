@@ -3,6 +3,48 @@ const db =
 
 class SceneAssistantRepository {
 
+    saveStartProposal({
+        guildId,
+        channelId,
+        messageId,
+        characterId,
+        proposedAt
+    }) {
+        return db.prepare(`
+            INSERT INTO SceneStartProposalsV2 (
+                guild_id, channel_id, message_id, character_id,
+                proposed_at, status
+            ) VALUES (?, ?, ?, ?, ?, 'pending')
+            ON CONFLICT(guild_id, channel_id) DO UPDATE SET
+                message_id = excluded.message_id,
+                character_id = excluded.character_id,
+                proposed_at = excluded.proposed_at,
+                status = 'pending'
+            WHERE SceneStartProposalsV2.status != 'pending'
+        `).run(
+            guildId,
+            channelId,
+            messageId,
+            characterId,
+            proposedAt
+        ).changes === 1;
+    }
+
+    getStartProposalByMessage(messageId) {
+        return db.prepare(`
+            SELECT * FROM SceneStartProposalsV2
+            WHERE message_id = ? AND status = 'pending'
+        `).get(messageId) || null;
+    }
+
+    resolveStartProposal(guildId, channelId, status) {
+        return db.prepare(`
+            UPDATE SceneStartProposalsV2
+            SET status = ?
+            WHERE guild_id = ? AND channel_id = ? AND status = 'pending'
+        `).run(status, guildId, channelId).changes === 1;
+    }
+
     getTriggerExpressions(guildId) {
         return db.prepare(`
             SELECT *
@@ -200,6 +242,136 @@ class SceneAssistantRepository {
         return this.getScene(sceneId);
     }
 
+    getPendingClosurePrompt(sceneId) {
+        return db.prepare(`
+            SELECT * FROM SceneClosurePromptsV2
+            WHERE scene_id = ? AND status = 'pending'
+        `).get(sceneId) || null;
+    }
+
+    getClosurePromptByMessage(messageId) {
+        return db.prepare(`
+            SELECT * FROM SceneClosurePromptsV2
+            WHERE message_id = ? AND status = 'pending'
+        `).get(messageId) || null;
+    }
+
+    getInactiveScenes(nowIso) {
+        return db.prepare(`
+            SELECT scene.*, link.channel_id,
+                settings.inactivity_hours
+            FROM ScenesV2 scene
+            JOIN GuildSceneAssistantSettingsV2 settings
+                ON settings.guild_id = scene.guild_id
+            JOIN SceneChannelsV2 link
+                ON link.scene_id = scene.id
+                AND link.unlinked_at IS NULL
+            LEFT JOIN SceneClosurePromptsV2 prompt
+                ON prompt.scene_id = scene.id
+                AND prompt.status = 'pending'
+            WHERE settings.is_enabled = 1
+            AND settings.inactivity_hours > 0
+            AND scene.status IN ('active', 'conclude')
+            AND scene.last_rp_message_at IS NOT NULL
+            AND datetime(scene.last_rp_message_at, '+' || settings.inactivity_hours || ' hours') <= datetime(?)
+            AND prompt.scene_id IS NULL
+        `).all(nowIso);
+    }
+
+    saveClosurePrompt({
+        sceneId,
+        guildId,
+        channelId,
+        messageId,
+        promptedAt
+    }) {
+        db.prepare(`
+            DELETE FROM SceneClosureVotesV2
+            WHERE scene_id = ?
+        `).run(sceneId);
+
+        db.prepare(`
+            INSERT INTO SceneClosurePromptsV2 (
+                scene_id, guild_id, channel_id, message_id,
+                status, prompted_at
+            ) VALUES (?, ?, ?, ?, 'pending', ?)
+            ON CONFLICT(scene_id) DO UPDATE SET
+                channel_id = excluded.channel_id,
+                message_id = excluded.message_id,
+                status = 'pending',
+                prompted_at = excluded.prompted_at,
+                resolved_at = NULL
+        `).run(sceneId, guildId, channelId, messageId, promptedAt);
+    }
+
+    resolveClosurePrompt(sceneId, status, resolvedAt) {
+        db.prepare(`
+            UPDATE SceneClosurePromptsV2
+            SET status = ?, resolved_at = ?
+            WHERE scene_id = ? AND status = 'pending'
+        `).run(status, resolvedAt, sceneId);
+    }
+
+    addClosureVote(sceneId, discordUserId, votedAt) {
+        db.prepare(`
+            INSERT INTO SceneClosureVotesV2 (
+                scene_id, discord_user_id, voted_at
+            ) VALUES (?, ?, ?)
+            ON CONFLICT(scene_id, discord_user_id) DO NOTHING
+        `).run(sceneId, discordUserId, votedAt);
+
+        return db.prepare(`
+            SELECT COUNT(*) AS total
+            FROM SceneClosureVotesV2
+            WHERE scene_id = ?
+        `).get(sceneId).total;
+    }
+
+    isSceneParticipantUser(sceneId, discordUserId) {
+        return Boolean(db.prepare(`
+            SELECT 1
+            FROM SceneParticipantsV2 participant
+            JOIN CharactersV2 character
+                ON character.id = participant.character_id
+            JOIN UsersV2 user
+                ON user.id = character.owner_user_id
+            WHERE participant.scene_id = ?
+            AND participant.left_at IS NULL
+            AND user.discord_user_id = ?
+            LIMIT 1
+        `).get(sceneId, discordUserId));
+    }
+
+    touchScene(sceneId, occurredAt) {
+        db.prepare(`
+            UPDATE ScenesV2
+            SET last_rp_message_at = ?, updated_at = ?
+            WHERE id = ?
+        `).run(occurredAt, occurredAt, sceneId);
+    }
+
+    closeScene(sceneId, endedAt) {
+        const transaction = db.transaction(() => {
+            db.prepare(`
+                UPDATE ScenesV2
+                SET status = 'closed', ended_at = ?, updated_at = ?
+                WHERE id = ?
+            `).run(endedAt, endedAt, sceneId);
+            db.prepare(`
+                UPDATE SceneChannelsV2
+                SET unlinked_at = ?
+                WHERE scene_id = ? AND unlinked_at IS NULL
+            `).run(endedAt, sceneId);
+            db.prepare(`
+                UPDATE SceneParticipantsV2
+                SET left_at = ?
+                WHERE scene_id = ? AND left_at IS NULL
+            `).run(endedAt, sceneId);
+        });
+        transaction();
+        return this.getScene(sceneId);
+    }
+
     markSceneConclude(sceneId, notifiedAt) {
         db.prepare(`
             UPDATE ScenesV2
@@ -271,6 +443,7 @@ class SceneAssistantRepository {
         isEnabled,
         durationDays,
         recommendedMessageCount,
+        inactivityHours,
         updatedAt
     }) {
         db.prepare(`
@@ -279,22 +452,25 @@ class SceneAssistantRepository {
                 is_enabled,
                 duration_days,
                 recommended_message_count,
+                inactivity_hours,
                 created_at,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
 
             ON CONFLICT(guild_id)
             DO UPDATE SET
                 is_enabled = excluded.is_enabled,
                 duration_days = excluded.duration_days,
                 recommended_message_count = excluded.recommended_message_count,
+                inactivity_hours = excluded.inactivity_hours,
                 updated_at = excluded.updated_at
         `).run(
             guildId,
             isEnabled ? 1 : 0,
             durationDays,
             recommendedMessageCount,
+            inactivityHours,
             updatedAt,
             updatedAt
         );

@@ -39,18 +39,14 @@ test(
 
         const channel = createThreadInCategory();
 
+        const openingMessage = createMessage(channel);
+        openingMessage.greycoreSceneCharacterId = "character";
         const withoutScene = await service.processMessage(
-            createMessage(channel)
+            openingMessage
         );
 
         assert.equal(withoutScene.kind, "no_active_scene");
-        assert.equal(withoutScene.shouldPrompt, true);
-
-        const repeatedPrompt = await service.processMessage(
-            createMessage(channel)
-        );
-
-        assert.equal(repeatedPrompt.shouldPrompt, false);
+        assert.equal(withoutScene.shouldOfferStart, true);
 
         manager.createScene({
             guildId: "guild",

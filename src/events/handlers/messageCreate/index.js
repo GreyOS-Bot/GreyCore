@@ -73,11 +73,30 @@ module.exports =
 
             if (
                 result?.kind === "no_active_scene"
-                && result.shouldPrompt
+                && result.shouldOfferStart
             ) {
-                await message.channel.send(
-                    sceneAssistantService.buildStartPrompt()
-                );
+                const targetMessage =
+                    message.greycoreProxyWebhookMessage
+                    || message;
+                const proposed = sceneAssistantService
+                    .proposeStartFromMessage({
+                        message: targetMessage,
+                        guildId: message.guildId,
+                        channelId: message.channelId,
+                        characterId: result.characterId
+                    });
+
+                if (proposed) {
+                    await targetMessage.react("🎬");
+                }
+            }
+
+            if (result?.cancelledClosurePrompt) {
+                const prompt = result.cancelledClosurePrompt;
+                const promptMessage = await message.channel.messages
+                    .fetch(prompt.message_id)
+                    .catch(() => null);
+                await promptMessage?.delete?.().catch(() => null);
             }
         } catch (error) {
             console.error(

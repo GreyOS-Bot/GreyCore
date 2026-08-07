@@ -11,6 +11,9 @@ const staffErrorLogService =
 const relationshipManager =
     require("../managers/RelationshipManager");
 
+const sceneInactivityService =
+    require("../v2/services/scenes/SceneInactivityService");
+
 module.exports = {
     name: "clientReady",
     once: true,
@@ -37,6 +40,7 @@ module.exports = {
 
         databaseBackupService.start();
         staffErrorLogService.initialize(client);
+        sceneInactivityService.start(client);
 
         console.log(
             `✅ Greycore connecté en tant que ${client.user.tag}`

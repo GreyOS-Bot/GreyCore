@@ -271,6 +271,16 @@ module.exports = {
                         .setMinValue(1)
                         .setRequired(false)
                 )
+                .addIntegerOption(option =>
+                    option
+                        .setName("inactivite_heures")
+                        .setDescription(
+                            "Délai avant de proposer une clôture (48 heures par défaut)."
+                        )
+                        .setMinValue(1)
+                        .setMaxValue(720)
+                        .setRequired(false)
+                )
         )
 
         .addSubcommand(sub =>
@@ -414,6 +424,10 @@ module.exports = {
                 interaction.options.getInteger(
                     "messages_recommandes"
                 );
+            const inactivityHours =
+                interaction.options.getInteger(
+                    "inactivite_heures"
+                ) || 48;
 
             if (
                 (mode === "duration" || mode === "both")
@@ -465,7 +479,8 @@ module.exports = {
                         recommendedMessageCount:
                             mode === "duration"
                                 ? null
-                                : recommendedMessageCount
+                                : recommendedMessageCount,
+                        inactivityHours
                     });
 
                 return interaction.reply({
@@ -851,9 +866,12 @@ function formatSceneAssistantSummary(configuration) {
         configuration.duration_days;
     const recommendedMessageCount =
         configuration.recommended_message_count;
+    const inactivityHours =
+        configuration.inactivity_hours || 48;
 
     return [
         `\u2022 Dur\u00e9e recommand\u00e9e : ${durationDays ? `**${durationDays} jour(s)**` : "non suivie"}`,
-        `\u2022 Messages RP recommand\u00e9s : ${recommendedMessageCount ? `**${recommendedMessageCount}**` : "non suivis"}`
+        `\u2022 Messages RP recommand\u00e9s : ${recommendedMessageCount ? `**${recommendedMessageCount}**` : "non suivis"}`,
+        `• Proposition de clôture après : **${inactivityHours} heure(s) d'inactivité**`
     ].join("\n");
 }

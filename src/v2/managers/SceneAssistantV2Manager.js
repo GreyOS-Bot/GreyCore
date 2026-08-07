@@ -104,6 +104,30 @@ class SceneAssistantV2Manager {
         return repository.getActiveScenes(guildId);
     }
 
+    proposeSceneStart({
+        guildId,
+        channelId,
+        messageId,
+        characterId = null,
+        proposedAt = new Date().toISOString()
+    }) {
+        return repository.saveStartProposal({
+            guildId,
+            channelId,
+            messageId,
+            characterId,
+            proposedAt
+        });
+    }
+
+    getStartProposalByMessage(messageId) {
+        return repository.getStartProposalByMessage(messageId);
+    }
+
+    resolveStartProposal(guildId, channelId, status = "started") {
+        return repository.resolveStartProposal(guildId, channelId, status);
+    }
+
     shouldPrompt(guildId, channelId, now = new Date()) {
         const cooldownSince = new Date(
             now.getTime() - 24 * 60 * 60 * 1000
@@ -126,6 +150,58 @@ class SceneAssistantV2Manager {
 
     recordSceneMessage(sceneId, occurredAt = new Date().toISOString()) {
         return repository.recordSceneMessage(sceneId, occurredAt);
+    }
+
+    getPendingClosurePrompt(sceneId) {
+        return repository.getPendingClosurePrompt(sceneId);
+    }
+
+    getClosurePromptByMessage(messageId) {
+        return repository.getClosurePromptByMessage(messageId);
+    }
+
+    getInactiveScenes(now = new Date()) {
+        return repository.getInactiveScenes(now.toISOString());
+    }
+
+    saveClosurePrompt(data) {
+        return repository.saveClosurePrompt({
+            ...data,
+            promptedAt: data.promptedAt || new Date().toISOString()
+        });
+    }
+
+    resolveClosurePrompt(sceneId, status) {
+        return repository.resolveClosurePrompt(
+            sceneId,
+            status,
+            new Date().toISOString()
+        );
+    }
+
+    addClosureVote(sceneId, discordUserId) {
+        return repository.addClosureVote(
+            sceneId,
+            discordUserId,
+            new Date().toISOString()
+        );
+    }
+
+    isSceneParticipantUser(sceneId, discordUserId) {
+        return repository.isSceneParticipantUser(sceneId, discordUserId);
+    }
+
+    keepSceneOpen(sceneId) {
+        const now = new Date().toISOString();
+        repository.touchScene(sceneId, now);
+        repository.resolveClosurePrompt(sceneId, "cancelled", now);
+        return repository.getScene(sceneId);
+    }
+
+    closeScene(sceneId) {
+        const now = new Date().toISOString();
+        repository.resolveClosurePrompt(sceneId, "closed", now);
+        return repository.closeScene(sceneId, now);
     }
 
     markSceneConclude(sceneId, notifiedAt = new Date().toISOString()) {
@@ -160,7 +236,8 @@ class SceneAssistantV2Manager {
     configure({
         guildId,
         durationDays,
-        recommendedMessageCount
+        recommendedMessageCount,
+        inactivityHours = 48
     }) {
         this.assertThresholds({
             durationDays,
@@ -172,6 +249,7 @@ class SceneAssistantV2Manager {
             isEnabled: true,
             durationDays,
             recommendedMessageCount,
+            inactivityHours,
             updatedAt: new Date().toISOString()
         });
     }
@@ -189,6 +267,8 @@ class SceneAssistantV2Manager {
             durationDays: configuration.duration_days,
             recommendedMessageCount:
                 configuration.recommended_message_count,
+            inactivityHours:
+                configuration.inactivity_hours || 48,
             updatedAt: new Date().toISOString()
         });
     }

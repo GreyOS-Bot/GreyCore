@@ -9,6 +9,7 @@ const {
 } = require("discord.js");
 
 const manager = require("../../managers/SceneAssistantV2Manager");
+const sceneAssistantService = require("../../services/scenes/SceneAssistantService");
 const {
     replyError,
     replyPrivate,
@@ -228,12 +229,75 @@ function selectMoveChannel(interaction, sceneId) {
     );
 }
 
+async function voteClose(interaction, sceneId) {
+    const scene = manager.getScene(sceneId);
+    const prompt = manager.getClosurePromptByMessage(
+        interaction.message.id
+    );
+
+    if (!scene || !prompt || scene.guild_id !== interaction.guildId) {
+        return replyError(interaction, "Cette proposition de clôture n'est plus active.");
+    }
+
+    if (!manager.isSceneParticipantUser(sceneId, interaction.user.id)) {
+        return replyError(
+            interaction,
+            "Seuls les participants de cette scène peuvent confirmer sa clôture."
+        );
+    }
+
+    const votes = manager.addClosureVote(sceneId, interaction.user.id);
+    if (votes < 2) {
+        return interaction.update({
+            components: [
+                sceneAssistantService.buildClosureActions(scene, votes)
+            ]
+        });
+    }
+
+    manager.closeScene(sceneId);
+    return interaction.update({
+        content: `🏁 La scène **${scene.title}** est clôturée après la confirmation de deux participants.`,
+        embeds: [],
+        components: []
+    });
+}
+
+async function keepOpen(interaction, sceneId, cancelled = false) {
+    const scene = manager.getScene(sceneId);
+    const prompt = manager.getClosurePromptByMessage(
+        interaction.message.id
+    );
+
+    if (!scene || !prompt || scene.guild_id !== interaction.guildId) {
+        return replyError(interaction, "Cette proposition de clôture n'est plus active.");
+    }
+
+    if (!manager.isSceneParticipantUser(sceneId, interaction.user.id)) {
+        return replyError(
+            interaction,
+            "Seuls les participants de cette scène peuvent agir sur cette proposition."
+        );
+    }
+
+    manager.keepSceneOpen(sceneId);
+    return interaction.update({
+        content: cancelled
+            ? "❌ Proposition de clôture annulée."
+            : "⏳ La scène reste ouverte. GreyCore attendra une nouvelle période d'inactivité.",
+        embeds: [],
+        components: []
+    });
+}
+
 module.exports = {
     start,
     submitStart,
     resume,
     selectResume,
     openMove,
-    selectMoveChannel
-    ,submitMove
+    selectMoveChannel,
+    submitMove,
+    voteClose,
+    keepOpen
 };

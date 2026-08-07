@@ -79,6 +79,9 @@ test(
             "SceneAssistantChannelPromptsV2",
             "SceneTimelineWarningsV2",
             "GuildSceneTriggerExpressionsV2"
+            ,"SceneStartProposalsV2"
+            ,"SceneClosurePromptsV2"
+            ,"SceneClosureVotesV2"
         ];
 
         const tableNames =
