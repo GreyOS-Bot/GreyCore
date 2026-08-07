@@ -6,6 +6,23 @@ const { replyError } = require(
 );
 
 module.exports = async interaction => {
+    if (interaction.customId === "v2_staff_modules_toggle") {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canAccess(interaction, "modules", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const manager = require("../../managers/GuildModuleV2Manager");
+        const moduleKey = interaction.values[0];
+        if (!manager.getModule(moduleKey)) {
+            await replyError(interaction, "Module inconnu.");
+            return true;
+        }
+        manager.setEnabled(interaction.guildId, moduleKey, !manager.isEnabled(interaction.guildId, moduleKey));
+        await interaction.update(require("../../pages/staff/StaffModulesPage").build(interaction));
+        return true;
+    }
     if (interaction.customId === "v2_staff_scenes_zone_select") {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         if (!policy.canAccess(interaction, "scenes", { write: true })) {

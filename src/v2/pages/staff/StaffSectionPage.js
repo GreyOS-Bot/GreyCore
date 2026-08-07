@@ -41,6 +41,15 @@ class StaffSectionPage {
         if (sectionKey === "relationships") {
             return require("./StaffRelationshipsPage").execute(interaction);
         }
+        if (sectionKey === "universe") {
+            return require("./StaffUniversePage").execute(interaction);
+        }
+        if (sectionKey === "automations") {
+            return require("./StaffAutomationsPage").execute(interaction);
+        }
+        if (sectionKey === "modules") {
+            return require("./StaffModulesPage").execute(interaction);
+        }
 
         const section = catalog.get(sectionKey);
         if (!section || !policy.canAccess(interaction, sectionKey)) {

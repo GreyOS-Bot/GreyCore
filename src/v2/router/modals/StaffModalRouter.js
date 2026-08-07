@@ -4,6 +4,27 @@ const page = require("../../pages/staff/StaffScenesPage");
 const { replyError } = require("../../core/services/InteractionResponseService");
 
 module.exports = async interaction => {
+    if (interaction.customId === "v2_staff_automations_creation_limit_submit") {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canAccess(interaction, "automations", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const limitCount = Number(interaction.fields.getTextInputValue("limit_count"));
+        const windowDays = Number(interaction.fields.getTextInputValue("window_days"));
+        try {
+            require("../../managers/GuildSettingsV2Manager").configurePlayedCharacterCreationLimit(
+                interaction.guildId,
+                { enabled: true, limitCount, windowDays }
+            );
+        } catch (error) {
+            await replyError(interaction, error);
+            return true;
+        }
+        await interaction.update(require("../../pages/staff/StaffAutomationsPage").build(interaction));
+        return true;
+    }
     if (!interaction.customId?.startsWith("v2_staff_scenes_")) return false;
     if (!policy.canAccess(interaction, "scenes", { write: true })) {
         await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");

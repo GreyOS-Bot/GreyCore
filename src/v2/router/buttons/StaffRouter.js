@@ -38,6 +38,63 @@ module.exports = async interaction => {
         return true;
     }
 
+    if (interaction.customId === "v2_staff_universe_install_states") {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canAccess(interaction, "universe", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        require("../../managers/StateTypeV2Manager")
+            .installDefaultStateTypes(interaction.guildId, interaction.user.id);
+        await interaction.update(require("../../pages/staff/StaffUniversePage").build(interaction));
+        return true;
+    }
+
+    if (interaction.customId.startsWith("v2_staff_automations_")) {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canAccess(interaction, "automations", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const action = interaction.customId.slice("v2_staff_automations_".length);
+        const settings = require("../../managers/GuildSettingsV2Manager");
+        const page = require("../../pages/staff/StaffAutomationsPage");
+        if (action === "toggle_limit") {
+            const current = settings.getPlayedCharacterCreationLimit(interaction.guildId);
+            settings.configurePlayedCharacterCreationLimit(interaction.guildId, {
+                enabled: !current.enabled,
+                limitCount: current.limitCount,
+                windowDays: current.windowDays
+            });
+            await interaction.update(page.build(interaction));
+            return true;
+        }
+        if (action === "disable_approval") {
+            require("../../managers/CharacterApprovalAutomationV2Manager").disable(interaction.guildId);
+            await interaction.update(page.build(interaction));
+            return true;
+        }
+        if (action === "creation_limit") {
+            const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require("discord.js");
+            const current = settings.getPlayedCharacterCreationLimit(interaction.guildId);
+            const modal = new ModalBuilder()
+                .setCustomId("v2_staff_automations_creation_limit_submit")
+                .setTitle("Limite de création des PJ")
+                .addComponents(
+                    new ActionRowBuilder().addComponents(new TextInputBuilder()
+                        .setCustomId("limit_count").setLabel("Nombre maximal de PJ")
+                        .setStyle(TextInputStyle.Short).setRequired(true).setValue(String(current.limitCount))),
+                    new ActionRowBuilder().addComponents(new TextInputBuilder()
+                        .setCustomId("window_days").setLabel("Période en jours")
+                        .setStyle(TextInputStyle.Short).setRequired(true).setValue(String(current.windowDays)))
+                );
+            await interaction.showModal(modal);
+            return true;
+        }
+    }
+
     if (interaction.customId === "v2_staff_permissions_toggle_validation") {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const manager = require("../../managers/StaffPermissionV2Manager");
