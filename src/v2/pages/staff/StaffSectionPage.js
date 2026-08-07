@@ -50,6 +50,12 @@ class StaffSectionPage {
         if (sectionKey === "modules") {
             return require("./StaffModulesPage").execute(interaction);
         }
+        if (sectionKey === "logs") {
+            return require("./StaffLogsPage").execute(interaction);
+        }
+        if (sectionKey === "settings") {
+            return require("./StaffSettingsPage").execute(interaction);
+        }
 
         const section = catalog.get(sectionKey);
         if (!section || !policy.canAccess(interaction, sectionKey)) {

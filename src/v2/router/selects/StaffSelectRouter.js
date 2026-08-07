@@ -6,6 +6,26 @@ const { replyError } = require(
 );
 
 module.exports = async interaction => {
+    if (interaction.customId === "v2_staff_logs_channel") {
+        if (!policy.canAccess(interaction, "logs", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        require("../../managers/GuildSettingsV2Manager")
+            .setErrorLogChannel(interaction.guildId, interaction.values[0]);
+        await interaction.update(require("../../pages/staff/StaffLogsPage").build(interaction));
+        return true;
+    }
+    if (interaction.customId === "v2_staff_settings_validation_channel") {
+        if (!policy.canAccess(interaction, "settings", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        require("../../managers/GuildSettingsV2Manager")
+            .setValidationChannel(interaction.guildId, interaction.values[0]);
+        await interaction.update(require("../../pages/staff/StaffSettingsPage").build(interaction));
+        return true;
+    }
     if (interaction.customId === "v2_staff_modules_toggle") {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");

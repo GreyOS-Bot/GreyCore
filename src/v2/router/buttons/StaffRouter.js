@@ -95,6 +95,62 @@ module.exports = async interaction => {
         }
     }
 
+    if (interaction.customId === "v2_staff_logs_remove_channel") {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canAccess(interaction, "logs", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        require("../../managers/GuildSettingsV2Manager").removeErrorLogChannel(interaction.guildId);
+        await interaction.update(require("../../pages/staff/StaffLogsPage").build(interaction));
+        return true;
+    }
+
+    if (interaction.customId.startsWith("v2_staff_settings_")) {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canAccess(interaction, "settings", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const action = interaction.customId.slice("v2_staff_settings_".length);
+        const settings = require("../../managers/GuildSettingsV2Manager");
+        const page = require("../../pages/staff/StaffSettingsPage");
+        if (action === "remove_validation") {
+            settings.removeValidationChannel(interaction.guildId);
+            await interaction.update(page.build(interaction));
+            return true;
+        }
+        if (action === "toggle_maintenance") {
+            const current = settings.getMaintenance(interaction.guildId);
+            settings.setMaintenance(interaction.guildId, {
+                enabled: !current.enabled,
+                message: current.message
+            });
+            await interaction.update(page.build(interaction));
+            return true;
+        }
+        if (action === "maintenance_message") {
+            const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require("discord.js");
+            const current = settings.getMaintenance(interaction.guildId);
+            const modal = new ModalBuilder()
+                .setCustomId("v2_staff_settings_maintenance_submit")
+                .setTitle("Message de maintenance")
+                .addComponents(new ActionRowBuilder().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId("message")
+                        .setLabel("Message affiché aux utilisateurs")
+                        .setStyle(TextInputStyle.Paragraph)
+                        .setMaxLength(1000)
+                        .setRequired(true)
+                        .setValue(current.message.slice(0, 1000))
+                ));
+            await interaction.showModal(modal);
+            return true;
+        }
+    }
+
     if (interaction.customId === "v2_staff_permissions_toggle_validation") {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const manager = require("../../managers/StaffPermissionV2Manager");

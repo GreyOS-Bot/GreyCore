@@ -4,6 +4,20 @@ const page = require("../../pages/staff/StaffScenesPage");
 const { replyError } = require("../../core/services/InteractionResponseService");
 
 module.exports = async interaction => {
+    if (interaction.customId === "v2_staff_settings_maintenance_submit") {
+        if (!policy.canAccess(interaction, "settings", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const settings = require("../../managers/GuildSettingsV2Manager");
+        const current = settings.getMaintenance(interaction.guildId);
+        settings.setMaintenance(interaction.guildId, {
+            enabled: current.enabled,
+            message: interaction.fields.getTextInputValue("message")
+        });
+        await interaction.update(require("../../pages/staff/StaffSettingsPage").build(interaction));
+        return true;
+    }
     if (interaction.customId === "v2_staff_automations_creation_limit_submit") {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
