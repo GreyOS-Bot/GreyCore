@@ -54,6 +54,11 @@ test(
         );
 
         assert.equal(
+            homeButtons.some(button => button.custom_id === "v2_player_archives"),
+            true
+        );
+
+        assert.equal(
             homeButtons.some(button =>
                 button.custom_id ===
                 "v2_player_directory"

@@ -123,6 +123,11 @@ class LibraryHomeView {
                 .setEmoji("🔔")
                 .setStyle(ButtonStyle.Secondary),
             new ButtonBuilder()
+                .setCustomId("v2_player_archives")
+                .setLabel("Archives")
+                .setEmoji("📦")
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
                 .setCustomId("v2_player_directory")
                 .setLabel("Annuaire du serveur")
                 .setEmoji("📖")
@@ -131,7 +136,10 @@ class LibraryHomeView {
                 .setCustomId("v2_player_scenes")
                 .setLabel("Scènes RP")
                 .setEmoji("🎬")
-                .setStyle(ButtonStyle.Secondary),
+                .setStyle(ButtonStyle.Secondary)
+        );
+
+        const playerResources = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 .setCustomId("v2_player_help")
                 .setLabel("Aide")
@@ -161,6 +169,7 @@ class LibraryHomeView {
         components.push(
             mainActions,
             playerActions,
+            playerResources,
             navigation
         );
 

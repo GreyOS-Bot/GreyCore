@@ -131,6 +131,19 @@ class CharacterSettingsPage {
             new ActionRowBuilder()
                 .addComponents(
 
+                    UI.button.secondary({
+
+                        id:
+                            `v2_character_archive:${characterId}`,
+
+                        label:
+                            "Archiver le personnage",
+
+                        emoji:
+                            "📦"
+
+                    }),
+
                     UI.button.danger({
 
                         id:

@@ -18,6 +18,54 @@ module.exports =
 
         if (
             interaction.isButton()
+            && interaction.customId.startsWith("v2_character_archive:")
+            && !interaction.customId.startsWith("v2_character_archive_confirm:")
+        ) {
+            const characterId = interaction.customId.split(":")[1];
+            const v2 = require("../../index");
+            const character = v2.managers.character.getById(characterId);
+            const policy = require("../../core/policies/CharacterManagementPolicy");
+            if (!character || !policy.isOwner(interaction, character)) {
+                await replyError(interaction, "Tu ne peux pas archiver ce personnage.");
+                return true;
+            }
+            const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require("discord.js");
+            await interaction.update({
+                embeds: [new EmbedBuilder()
+                    .setColor(0xFEE75C)
+                    .setTitle("📦 Archiver ce personnage ?")
+                    .setDescription(`**${character.proxy_name}** ne sera plus jouable ni visible dans l’annuaire. Toutes ses données seront conservées et tu pourras le restaurer depuis /greycore.`)],
+                components: [new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId(`v2_character_archive_confirm:${characterId}`).setLabel("Archiver").setEmoji("📦").setStyle(ButtonStyle.Danger),
+                    new ButtonBuilder().setCustomId(`page:character:settings:${characterId}`).setLabel("Annuler").setStyle(ButtonStyle.Secondary)
+                )]
+            });
+            return true;
+        }
+
+        if (
+            interaction.isButton()
+            && interaction.customId.startsWith("v2_character_archive_confirm:")
+        ) {
+            const characterId = interaction.customId.split(":")[1];
+            const v2 = require("../../index");
+            const character = v2.managers.character.getById(characterId);
+            const policy = require("../../core/policies/CharacterManagementPolicy");
+            if (!character || !policy.isOwner(interaction, character)) {
+                await replyError(interaction, "Tu ne peux pas archiver ce personnage.");
+                return true;
+            }
+            v2.managers.character.setArchived(characterId, true);
+            await interaction.update({
+                content: `✅ **${character.proxy_name}** a été archivé sans supprimer ses données.`,
+                embeds: [],
+                components: []
+            });
+            return true;
+        }
+
+        if (
+            interaction.isButton()
             && interaction.customId.startsWith(
                 "v2_staff_character_identity:"
             )
