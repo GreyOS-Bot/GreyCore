@@ -61,6 +61,40 @@ module.exports = async interaction => {
         const action = interaction.customId.slice("v2_staff_automations_".length);
         const settings = require("../../managers/GuildSettingsV2Manager");
         const page = require("../../pages/staff/StaffAutomationsPage");
+        const drafts = require("../../services/automation/ApprovalAutomationDraftService");
+        if (action === "configure_approval") {
+            const configuration = require("../../managers/CharacterApprovalAutomationV2Manager")
+                .getConfiguration(interaction.guildId);
+            const draft = drafts.start(interaction.guildId, interaction.user.id, configuration);
+            await interaction.update(page.buildApprovalConfiguration(interaction, draft));
+            return true;
+        }
+        if (action === "cancel_approval") {
+            drafts.clear(interaction.guildId, interaction.user.id);
+            await interaction.update(page.build(interaction));
+            return true;
+        }
+        if (action === "approval_details") {
+            const draft = drafts.get(interaction.guildId, interaction.user.id);
+            if (!draft) {
+                await replyError(interaction, "Cette configuration a expiré. Ouvre-la de nouveau.");
+                return true;
+            }
+            const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require("discord.js");
+            const threshold = new TextInputBuilder()
+                .setCustomId("approved_count").setLabel("Personnages validés nécessaires")
+                .setStyle(TextInputStyle.Short).setRequired(true)
+                .setValue(String(draft.approvedCharacterCount));
+            const message = new TextInputBuilder()
+                .setCustomId("welcome_message").setLabel("Message de bienvenue (facultatif)")
+                .setStyle(TextInputStyle.Paragraph).setRequired(false).setMaxLength(2000);
+            if (draft.welcomeMessage) message.setValue(draft.welcomeMessage.slice(0, 2000));
+            await interaction.showModal(new ModalBuilder()
+                .setCustomId("v2_staff_automations_approval_submit")
+                .setTitle("Finaliser l’automatisation")
+                .addComponents(new ActionRowBuilder().addComponents(threshold), new ActionRowBuilder().addComponents(message)));
+            return true;
+        }
         if (action === "toggle_limit") {
             const current = settings.getPlayedCharacterCreationLimit(interaction.guildId);
             settings.configurePlayedCharacterCreationLimit(interaction.guildId, {

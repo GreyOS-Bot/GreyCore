@@ -6,6 +6,31 @@ const { replyError } = require(
 );
 
 module.exports = async interaction => {
+    if (interaction.customId?.startsWith("v2_staff_automations_") && [
+        "v2_staff_automations_required_role",
+        "v2_staff_automations_remove_role",
+        "v2_staff_automations_add_role",
+        "v2_staff_automations_welcome_channel"
+    ].includes(interaction.customId)) {
+        if (!policy.canAccess(interaction, "automations", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const fields = {
+            v2_staff_automations_required_role: "requiredRoleId",
+            v2_staff_automations_remove_role: "removeRoleId",
+            v2_staff_automations_add_role: "addRoleId",
+            v2_staff_automations_welcome_channel: "welcomeChannelId"
+        };
+        const drafts = require("../../services/automation/ApprovalAutomationDraftService");
+        const draft = drafts.update(interaction.guildId, interaction.user.id, {
+            [fields[interaction.customId]]: interaction.values[0] || null
+        });
+        await interaction.update(
+            require("../../pages/staff/StaffAutomationsPage").buildApprovalConfiguration(interaction, draft)
+        );
+        return true;
+    }
     if (interaction.customId === "v2_staff_logs_channel") {
         if (!policy.canAccess(interaction, "logs", { write: true })) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");

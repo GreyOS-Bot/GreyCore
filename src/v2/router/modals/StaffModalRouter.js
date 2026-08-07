@@ -4,6 +4,35 @@ const page = require("../../pages/staff/StaffScenesPage");
 const { replyError } = require("../../core/services/InteractionResponseService");
 
 module.exports = async interaction => {
+    if (interaction.customId === "v2_staff_automations_approval_submit") {
+        if (!policy.canAccess(interaction, "automations", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const drafts = require("../../services/automation/ApprovalAutomationDraftService");
+        const draft = drafts.get(interaction.guildId, interaction.user.id);
+        if (!draft) {
+            await replyError(interaction, "Cette configuration a expiré. Ouvre-la de nouveau.");
+            return true;
+        }
+        try {
+            require("../../managers/CharacterApprovalAutomationV2Manager").configure({
+                guildId: interaction.guildId,
+                approvedCharacterCount: Number(interaction.fields.getTextInputValue("approved_count")),
+                requiredRoleId: draft.requiredRoleId,
+                removeRoleId: draft.removeRoleId,
+                addRoleId: draft.addRoleId,
+                welcomeChannelId: draft.welcomeChannelId,
+                welcomeMessage: interaction.fields.getTextInputValue("welcome_message")
+            });
+        } catch (error) {
+            await replyError(interaction, error);
+            return true;
+        }
+        drafts.clear(interaction.guildId, interaction.user.id);
+        await interaction.update(require("../../pages/staff/StaffAutomationsPage").build(interaction));
+        return true;
+    }
     if (interaction.customId === "v2_staff_settings_maintenance_submit") {
         if (!policy.canAccess(interaction, "settings", { write: true })) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
