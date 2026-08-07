@@ -4,6 +4,31 @@ const page = require("../../pages/staff/StaffScenesPage");
 const { replyError } = require("../../core/services/InteractionResponseService");
 
 module.exports = async interaction => {
+    if (interaction.customId === "v2_staff_universe_create_state_submit") {
+        if (!policy.canAccess(interaction, "universe", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const color = interaction.fields.getTextInputValue("color").trim();
+        if (color && !/^#[0-9a-f]{6}$/i.test(color)) {
+            await replyError(interaction, "La couleur doit être au format hexadécimal, par exemple `#E67E22`.");
+            return true;
+        }
+        try {
+            require("../../managers/StateTypeV2Manager").createStateType({
+                guildId: interaction.guildId,
+                name: interaction.fields.getTextInputValue("name"),
+                emoji: interaction.fields.getTextInputValue("emoji"),
+                color: color || "#2B2D31",
+                createdBy: interaction.user.id
+            });
+        } catch (error) {
+            await replyError(interaction, error);
+            return true;
+        }
+        await interaction.update(require("../../pages/staff/StaffUniversePage").build(interaction));
+        return true;
+    }
     if (interaction.customId === "v2_staff_relationships_create_type_submit") {
         if (!policy.canAccess(interaction, "relationships", { write: true })) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");

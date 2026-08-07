@@ -51,7 +51,12 @@ class StaffAutomationsPage {
                     .setCustomId("v2_staff_automations_disable_approval")
                     .setLabel("Désactiver l’accueil")
                     .setStyle(ButtonStyle.Secondary)
-                    .setDisabled(!approvalEnabled)
+                    .setDisabled(!approvalEnabled),
+                new ButtonBuilder()
+                    .setCustomId("v2_staff_automations_announcement")
+                    .setLabel("Publier une annonce")
+                    .setEmoji("📢")
+                    .setStyle(ButtonStyle.Secondary)
             ), navigationRow()]
         };
     }

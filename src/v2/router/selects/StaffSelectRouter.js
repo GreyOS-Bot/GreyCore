@@ -6,6 +6,29 @@ const { replyError } = require(
 );
 
 module.exports = async interaction => {
+    if (interaction.customId?.startsWith("v2_staff_universe_delete_state:")) {
+        if (!policy.canAccess(interaction, "universe", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const pageNumber = Number(interaction.customId.split(":")[1]);
+        const stateManager = require("../../managers/StateTypeV2Manager");
+        const typeId = Number(interaction.values[0]);
+        const usages = stateManager.countStatesUsingType(interaction.guildId, typeId);
+        if (usages > 0) {
+            await replyError(interaction, `Cet état est encore utilisé ${usages} fois et ne peut pas être supprimé.`);
+            return true;
+        }
+        try {
+            stateManager.deleteStateType(interaction.guildId, typeId);
+        } catch (error) {
+            await replyError(interaction, error);
+            return true;
+        }
+        await interaction.update(require("../../pages/staff/StaffUniversePage")
+            .buildStateManagement(interaction, pageNumber));
+        return true;
+    }
     if (interaction.customId?.startsWith("v2_staff_relationships_delete_type:")) {
         if (!policy.canAccess(interaction, "relationships", { write: true })) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");

@@ -93,6 +93,44 @@ module.exports = async interaction => {
         return true;
     }
 
+    if (interaction.customId === "v2_staff_universe_create_state") {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canAccess(interaction, "universe", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require("discord.js");
+        await interaction.showModal(new ModalBuilder()
+            .setCustomId("v2_staff_universe_create_state_submit")
+            .setTitle("Nouveau type d’état")
+            .addComponents(
+                new ActionRowBuilder().addComponents(new TextInputBuilder()
+                    .setCustomId("name").setLabel("Nom de l’état")
+                    .setStyle(TextInputStyle.Short).setMaxLength(80).setRequired(true)),
+                new ActionRowBuilder().addComponents(new TextInputBuilder()
+                    .setCustomId("emoji").setLabel("Emoji (facultatif)")
+                    .setStyle(TextInputStyle.Short).setMaxLength(32).setRequired(false)),
+                new ActionRowBuilder().addComponents(new TextInputBuilder()
+                    .setCustomId("color").setLabel("Couleur hexadécimale (facultatif)")
+                    .setPlaceholder("#E67E22").setStyle(TextInputStyle.Short)
+                    .setMaxLength(7).setRequired(false))
+            ));
+        return true;
+    }
+
+    if (interaction.customId.startsWith("v2_staff_universe_manage_states:")) {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canAccess(interaction, "universe")) {
+            await replyError(interaction, "Tu n'as pas accès à la gestion de l’univers.");
+            return true;
+        }
+        await interaction.update(require("../../pages/staff/StaffUniversePage")
+            .buildStateManagement(interaction, Number(interaction.customId.split(":")[1])));
+        return true;
+    }
+
     if (interaction.customId.startsWith("v2_staff_automations_")) {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
@@ -104,6 +142,10 @@ module.exports = async interaction => {
         const settings = require("../../managers/GuildSettingsV2Manager");
         const page = require("../../pages/staff/StaffAutomationsPage");
         const drafts = require("../../services/automation/ApprovalAutomationDraftService");
+        if (action === "announcement") {
+            await interaction.showModal(require("../../modals/AnnouncementModal").build());
+            return true;
+        }
         if (action === "configure_approval") {
             const configuration = require("../../managers/CharacterApprovalAutomationV2Manager")
                 .getConfiguration(interaction.guildId);

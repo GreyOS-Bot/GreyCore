@@ -27,13 +27,9 @@ module.exports =
             return false;
         }
 
-        if (
-            !await requireStaffCommandAccess(
-                interaction
-            )
-        ) {
-            return true;
-        }
+        const internalAccess = require("../../core/policies/StaffPermissionPolicy")
+            .canAccess(interaction, "automations", { write: true });
+        if (!internalAccess && !await requireStaffCommandAccess(interaction)) return true;
 
         await deferPrivate(interaction);
 
