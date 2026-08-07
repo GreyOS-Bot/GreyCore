@@ -23,7 +23,7 @@ class StaffSettingsPage {
                     },
                     {
                         name: "Confidentialité et charte",
-                        value: "Les utilisateurs peuvent consulter `/confidentialite politique`, `/confidentialite charte`, leurs données et demander leur anonymisation depuis Discord."
+                        value: "Les documents applicables sont consultables ci-dessous. Les utilisateurs disposent des mêmes textes et du droit à l’oubli depuis `/greycore`."
                     }
                 )],
             components: [new ActionRowBuilder().addComponents(
@@ -31,6 +31,17 @@ class StaffSettingsPage {
                     .setCustomId("v2_staff_settings_validation_channel")
                     .setPlaceholder("Choisir le salon de validation")
                     .setChannelTypes(ChannelType.GuildText)
+            ), new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId("v2_staff_settings_privacy_policy")
+                    .setLabel("Politique de confidentialité")
+                    .setEmoji("🔐")
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId("v2_staff_settings_charter")
+                    .setLabel("Charte d’utilisation")
+                    .setEmoji("📜")
+                    .setStyle(ButtonStyle.Secondary)
             ), new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId("v2_staff_settings_remove_validation")
@@ -123,6 +134,28 @@ class StaffSettingsPage {
     }
 
     execute(interaction) { return interaction.update(this.build(interaction)); }
+
+    buildLegal(interaction, type) {
+        const privacy = require("../../views/privacy/PrivacyView");
+        const payload = type === "charter"
+            ? privacy.buildCharter()
+            : privacy.buildPolicy();
+        return {
+            ...payload,
+            components: [new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId("page:staff:settings:root")
+                    .setLabel("Retour aux paramètres")
+                    .setEmoji("⬅️")
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId("staff_close")
+                    .setLabel("Fermer")
+                    .setEmoji("❌")
+                    .setStyle(ButtonStyle.Secondary)
+            )]
+        };
+    }
 }
 
 module.exports = new StaffSettingsPage();

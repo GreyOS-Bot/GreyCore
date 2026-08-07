@@ -240,12 +240,49 @@ module.exports = async interaction => {
         return true;
     }
 
+    if (interaction.customId === "v2_staff_logs_test") {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canAccess(interaction, "logs", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const channelId = require("../../managers/GuildSettingsV2Manager")
+            .getErrorLogChannelId(interaction.guildId);
+        const channel = channelId
+            ? await interaction.client.channels.fetch(channelId).catch(() => null)
+            : null;
+        if (!channel?.isTextBased?.()) {
+            await replyError(interaction, "Le salon des journaux est introuvable ou inaccessible à GreyCore.");
+            return true;
+        }
+        const { EmbedBuilder } = require("discord.js");
+        await channel.send({
+            embeds: [new EmbedBuilder()
+                .setColor(0x57F287)
+                .setTitle("✅ Test des journaux GreyCore")
+                .setDescription("Le salon est correctement configuré et GreyCore peut y envoyer ses alertes de maintenance.")
+                .addFields(
+                    { name: "Serveur", value: `${interaction.guild?.name || "Serveur"} (${interaction.guildId})` },
+                    { name: "Test demandé par", value: `${interaction.user} (${interaction.user.id})` }
+                )
+                .setTimestamp()]
+        });
+        await interaction.update({
+            ...require("../../pages/staff/StaffLogsPage").build(interaction),
+            content: `✅ Alerte de test envoyée dans <#${channelId}>.`
+        });
+        return true;
+    }
+
     if (interaction.customId.startsWith("v2_staff_settings_")) {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
         const action = interaction.customId.slice("v2_staff_settings_".length);
         const readOnlyActions = action === "advanced"
-            || action.startsWith("advanced_page:");
+            || action.startsWith("advanced_page:")
+            || action === "privacy_policy"
+            || action === "charter";
         if (!policy.canAccess(interaction, "settings", { write: !readOnlyActions })) {
             await replyError(
                 interaction,
@@ -257,6 +294,10 @@ module.exports = async interaction => {
         }
         const settings = require("../../managers/GuildSettingsV2Manager");
         const page = require("../../pages/staff/StaffSettingsPage");
+        if (action === "privacy_policy" || action === "charter") {
+            await interaction.update(page.buildLegal(interaction, action));
+            return true;
+        }
         if (action === "advanced") {
             await interaction.update(page.buildAdvanced(interaction));
             return true;

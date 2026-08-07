@@ -21,6 +21,12 @@ class StaffLogsPage {
                     .setChannelTypes(ChannelType.GuildText)
             ), new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
+                    .setCustomId("v2_staff_logs_test")
+                    .setLabel("Envoyer une alerte de test")
+                    .setEmoji("🧪")
+                    .setStyle(ButtonStyle.Primary)
+                    .setDisabled(!channelId),
+                new ButtonBuilder()
                     .setCustomId("v2_staff_logs_remove_channel")
                     .setLabel("Retirer le salon")
                     .setEmoji("🗑️")
