@@ -3,10 +3,15 @@ const manager = require("../../managers/NarrativeEntityV2Manager");
 const webhookManager = require("../../../webhooks/webhookManager");
 
 class NarrativeEntityService {
-    resolve(guildId, triggerKey) { return manager.chooseForTrigger(guildId, triggerKey); }
+    resolve(guildId, triggerKey, channel = null) {
+        return manager.chooseForTrigger(guildId, triggerKey, {
+            channelId: channel?.id,
+            parentId: channel?.parentId
+        });
+    }
 
     async send({ channel, triggerKey, content = null, suffix = null, variables = {} }) {
-        const selection = this.resolve(channel.guildId, triggerKey);
+        const selection = this.resolve(channel.guildId, triggerKey, channel);
         if (!selection) return null;
         const { entity, message } = selection;
         const rendered = Object.entries(variables).reduce(

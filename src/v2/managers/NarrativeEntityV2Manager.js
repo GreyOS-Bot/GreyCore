@@ -41,14 +41,33 @@ class NarrativeEntityV2Manager {
         return repository.setTriggers(guildId, entityId, unique, new Date().toISOString());
     }
 
+    setScopes(guildId, entityId, channelIds) {
+        this.requireEntity(guildId, entityId);
+        const unique = [...new Set((channelIds || []).map(String))].slice(0, 25);
+        return repository.setScopes(guildId, entityId, unique, new Date().toISOString());
+    }
+
     delete(guildId, entityId) {
         this.requireEntity(guildId, entityId);
         return repository.delete(guildId, entityId);
     }
 
-    chooseForTrigger(guildId, triggerKey, random = Math.random) {
+    chooseForTrigger(guildId, triggerKey, options = {}) {
         if (!triggerCatalog.has(triggerKey)) return null;
-        const entities = repository.getEnabledForTrigger(guildId, triggerKey);
+        const normalized = typeof options === "function"
+            ? { random: options }
+            : options;
+        const random = normalized.random || Math.random;
+        const channelIds = new Set([
+            normalized.channelId,
+            normalized.parentId
+        ].filter(Boolean).map(String));
+        const entities = repository.getEnabledForTrigger(guildId, triggerKey)
+            .filter(entity =>
+                !channelIds.size
+                || !entity.scopes.length
+                || entity.scopes.some(scope => channelIds.has(String(scope)))
+            );
         if (!entities.length) return null;
         const entity = entities[Math.floor(random() * entities.length)];
         const messages = repository.getMessages(entity.id, triggerKey);

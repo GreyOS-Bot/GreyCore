@@ -78,6 +78,14 @@ class NarrativeEntityRepository {
         return this.getById(guildId, entityId);
     }
 
+    setScopes(guildId, entityId, channelIds, now) {
+        const entity = this.getById(guildId, entityId);
+        if (!entity) return null;
+        const run = db.transaction(() => this.replaceScopes(entityId, channelIds, now));
+        run();
+        return this.getById(guildId, entityId);
+    }
+
     delete(guildId, entityId) {
         return db.prepare(`
             DELETE FROM NarrativeEntitiesV2 WHERE guild_id = ? AND id = ?
@@ -114,6 +122,15 @@ class NarrativeEntityRepository {
         }
     }
 
+    replaceScopes(entityId, channelIds, now) {
+        db.prepare("DELETE FROM NarrativeEntityScopesV2 WHERE entity_id = ?").run(entityId);
+        const insert = db.prepare(`
+            INSERT INTO NarrativeEntityScopesV2 (entity_id, channel_id, created_at)
+            VALUES (?, ?, ?)
+        `);
+        for (const channelId of channelIds || []) insert.run(entityId, channelId, now);
+    }
+
     hydrate(row) {
         return {
             ...row,
@@ -125,7 +142,11 @@ class NarrativeEntityRepository {
             messages: db.prepare(`
                 SELECT id, trigger_key, content, is_enabled
                 FROM NarrativeEntityMessagesV2 WHERE entity_id = ? ORDER BY id ASC
-            `).all(row.id)
+            `).all(row.id),
+            scopes: db.prepare(`
+                SELECT channel_id FROM NarrativeEntityScopesV2
+                WHERE entity_id = ? ORDER BY channel_id ASC
+            `).all(row.id).map(scope => scope.channel_id)
         };
     }
 }

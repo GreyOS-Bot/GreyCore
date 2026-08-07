@@ -65,3 +65,41 @@ test("une Entité peut être désactivée, modifiée puis supprimée", context =
     assert.equal(manager.delete("guild", entity.id), true);
     assert.equal(manager.getByGuild("guild").length, 0);
 });
+
+test("une Entité limitée à un forum intervient aussi dans ses fils", context => {
+    const isolated = createIsolatedDatabase({ initializeSchema: true });
+    context.after(() => isolated.cleanup());
+    isolated.database.prepare(`
+        INSERT INTO Guilds (id, name, created_at) VALUES ('guild', 'Greyline', '2026-08-08')
+    `).run();
+
+    for (const modulePath of [
+        "../src/v2/repositories/NarrativeEntityRepository",
+        "../src/v2/managers/NarrativeEntityV2Manager"
+    ]) delete require.cache[require.resolve(modulePath)];
+    const manager = require("../src/v2/managers/NarrativeEntityV2Manager");
+    let entity = manager.create({
+        guildId: "guild",
+        name: "Le Dieu du Smut",
+        messagesText: "Les portes se referment.",
+        triggers: ["scene_nsfw"]
+    });
+    entity = manager.setScopes("guild", entity.id, ["forum-smut"]);
+
+    assert.deepEqual(entity.scopes, ["forum-smut"]);
+    assert.equal(
+        manager.chooseForTrigger("guild", "scene_nsfw", {
+            channelId: "thread-rp",
+            parentId: "forum-smut",
+            random: () => 0
+        }).entity.id,
+        entity.id
+    );
+    assert.equal(
+        manager.chooseForTrigger("guild", "scene_nsfw", {
+            channelId: "salon-general",
+            random: () => 0
+        }),
+        null
+    );
+});

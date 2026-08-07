@@ -1,6 +1,6 @@
 const {
     EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle,
-    StringSelectMenuBuilder
+    StringSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType
 } = require("discord.js");
 const manager = require("../../managers/NarrativeEntityV2Manager");
 const triggerCatalog = require("../../core/catalogs/NarrativeEntityTriggerCatalog");
@@ -15,7 +15,8 @@ class StaffEntitiesPage {
             entity.is_enabled ? "✅" : "⏸️",
             `**${entity.name}**`,
             `· ${entity.triggers.length} déclencheur(s)`,
-            `· ${entity.messages.length} message(s)`
+            `· ${entity.messages.length} message(s)`,
+            `· ${entity.scopes.length ? `${entity.scopes.length} lieu(x)` : "tout le serveur"}`
         ].join(" "));
         const components = [];
 
@@ -83,6 +84,18 @@ class StaffEntitiesPage {
                 emoji: trigger.emoji,
                 default: entity.triggers.includes(trigger.key)
             })));
+        const scopeSelect = new ChannelSelectMenuBuilder()
+            .setCustomId(`v2_staff_entities_scopes:${entity.id}`)
+            .setPlaceholder("Salons et forums où l’Entité peut intervenir")
+            .setChannelTypes(
+                ChannelType.GuildText,
+                ChannelType.GuildAnnouncement,
+                ChannelType.GuildForum
+            )
+            .setMinValues(0)
+            .setMaxValues(25)
+            .setDefaultChannels(...entity.scopes.slice(0, 25))
+            .setDisabled(!writable);
 
         const actionButtons = confirmDelete
             ? [
@@ -111,6 +124,7 @@ class StaffEntitiesPage {
                     "",
                     `**Statut :** ${entity.is_enabled ? "Active" : "Désactivée"}`,
                     `**Déclencheurs :** ${triggerLabels.join(", ") || "Aucun"}`,
+                    `**Lieux :** ${entity.scopes.length ? entity.scopes.map(channelId => `<#${channelId}>`).join(", ") : "Tous les salons et forums compatibles du serveur"}`,
                     `**Messages :** ${entity.messages.length}`,
                     "",
                     ...entity.messages.slice(0, 5).map((message, index) => `${index + 1}. ${message.content}`),
@@ -118,6 +132,7 @@ class StaffEntitiesPage {
                 ].join("\n"))],
             components: [
                 new ActionRowBuilder().addComponents(triggerSelect),
+                new ActionRowBuilder().addComponents(scopeSelect),
                 new ActionRowBuilder().addComponents(...actionButtons),
                 new ActionRowBuilder().addComponents(
                     new ButtonBuilder().setCustomId("page:staff:section:entities")
