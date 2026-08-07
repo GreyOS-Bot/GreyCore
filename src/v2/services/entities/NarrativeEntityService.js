@@ -1,6 +1,7 @@
 const { EmbedBuilder, ChannelType } = require("discord.js");
 const manager = require("../../managers/NarrativeEntityV2Manager");
 const webhookManager = require("../../../webhooks/webhookManager");
+const { withThreadId } = require("../../core/services/ProxyThreadContext");
 
 class NarrativeEntityService {
     constructor() {
@@ -24,14 +25,14 @@ class NarrativeEntityService {
             String(content || message.content)
         );
         const webhook = await webhookManager.getOrCreateWebhook(channel);
-        return webhook.send({
+        return webhook.send(withThreadId(channel, {
             username: entity.name,
             avatarURL: entity.avatar_url || undefined,
             embeds: [new EmbedBuilder().setColor(entity.embed_color).setDescription(
                 [rendered, suffix].filter(Boolean).join("\n\n")
             )],
             allowedMentions: { parse: [] }
-        });
+        }));
     }
 
     async processInvocation(message) {
@@ -97,14 +98,14 @@ class NarrativeEntityService {
 
     async sendSelection(channel, selection) {
         const webhook = await webhookManager.getOrCreateWebhook(channel);
-        return webhook.send({
+        return webhook.send(withThreadId(channel, {
             username: selection.entity.name,
             avatarURL: selection.entity.avatar_url || undefined,
             embeds: [new EmbedBuilder()
                 .setColor(selection.entity.embed_color)
                 .setDescription(selection.message.content)],
             allowedMentions: { parse: [] }
-        });
+        }));
     }
 
     pruneCooldowns(now) {

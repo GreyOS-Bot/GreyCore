@@ -26,13 +26,15 @@ test("le premier message d’un fil de forum déclenche l’accueil de l’Entit
             id: "fil-smut",
             guildId: "guild",
             parentId: "forum-smut",
-            parent: { type: ChannelType.GuildForum }
+            parent: { type: ChannelType.GuildForum },
+            isThread: () => true
         }
     });
 
     assert.equal(handled, true);
     assert.equal(sent.length, 1);
     assert.equal(sent[0].username, "Goddess");
+    assert.equal(sent[0].threadId, "fil-smut");
     assert.equal(sent[0].embeds[0].data.description, "Bienvenue dans le Smut.");
 });
 
