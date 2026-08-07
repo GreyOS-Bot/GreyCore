@@ -131,8 +131,9 @@ test("une Entité limitée à un forum intervient aussi dans ses fils", context 
         }),
         null
     );
+    manager.setTriggers("guild", entity.id, []);
     assert.equal(
-        manager.claimForumWelcome(
+        manager.claimScopedWelcome(
             "guild",
             "nouveau-fil-smut",
             "forum-smut",
@@ -141,7 +142,7 @@ test("une Entité limitée à un forum intervient aussi dans ses fils", context 
         entity.id
     );
     assert.equal(
-        manager.claimForumWelcome(
+        manager.claimScopedWelcome(
             "guild",
             "nouveau-fil-smut",
             "forum-smut",
@@ -150,12 +151,22 @@ test("une Entité limitée à un forum intervient aussi dans ses fils", context 
         null
     );
     assert.equal(
-        manager.claimForumWelcome(
+        manager.claimScopedWelcome(
             "guild",
             "fil-autre-forum",
             "autre-forum",
             () => 0
         ),
         null
+    );
+    manager.setScopes("guild", entity.id, ["salon-direct"]);
+    assert.equal(
+        manager.claimScopedWelcome(
+            "guild",
+            "salon-direct",
+            null,
+            () => 0
+        ).entity.id,
+        entity.id
     );
 });

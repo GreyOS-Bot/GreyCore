@@ -1,12 +1,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { ChannelType } = require("discord.js");
 const { stubModule } = require("./helpers/moduleStub");
 
 test("le premier message d’un fil de forum déclenche l’accueil de l’Entité", async () => {
     const sent = [];
     stubModule("src/v2/managers/NarrativeEntityV2Manager.js", {
-        claimForumWelcome: () => selection(),
+        claimScopedWelcome: () => selection(),
         releaseForumWelcome: () => {},
         chooseForInvocation: () => null
     });
@@ -26,7 +25,6 @@ test("le premier message d’un fil de forum déclenche l’accueil de l’Entit
             id: "fil-smut",
             guildId: "guild",
             parentId: "forum-smut",
-            parent: { type: ChannelType.GuildForum },
             isThread: () => true
         }
     });

@@ -1,4 +1,4 @@
-const { EmbedBuilder, ChannelType } = require("discord.js");
+const { EmbedBuilder } = require("discord.js");
 const manager = require("../../managers/NarrativeEntityV2Manager");
 const webhookManager = require("../../../webhooks/webhookManager");
 const { withThreadId } = require("../../core/services/ProxyThreadContext");
@@ -64,26 +64,22 @@ class NarrativeEntityService {
     }
 
     async processMessage(message) {
-        if (await this.processForumWelcome(message)) return true;
+        if (await this.processScopedWelcome(message)) return true;
         return this.processInvocation(message);
     }
 
-    async processForumWelcome(message) {
+    async processScopedWelcome(message) {
         if (
             !message?.guildId
             || message.author?.bot
             || message.webhookId
-            || !message.channel?.parentId
+            || !message.channelId
         ) return false;
 
-        const parent = message.channel.parent
-            || await message.client?.channels?.fetch(message.channel.parentId).catch(() => null);
-        if (parent?.type !== ChannelType.GuildForum) return false;
-
-        const selection = manager.claimForumWelcome(
+        const selection = manager.claimScopedWelcome(
             message.guildId,
             message.channelId,
-            message.channel.parentId
+            message.channel?.parentId || null
         );
         if (!selection) return false;
 

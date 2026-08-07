@@ -139,17 +139,21 @@ class NarrativeEntityV2Manager {
         };
     }
 
-    claimForumWelcome(guildId, channelId, parentId, random = Math.random) {
-        if (!channelId || !parentId) return null;
+    claimScopedWelcome(guildId, channelId, parentId = null, random = Math.random) {
+        if (!channelId) return null;
+        const scopeIds = new Set(
+            [channelId, parentId].filter(Boolean).map(String)
+        );
         const candidates = repository
-            .getEnabledForTrigger(guildId, "scene_nsfw")
+            .getByGuild(guildId)
             .filter(entity =>
-                entity.scopes.includes(String(parentId))
-                || entity.scopes.includes(String(channelId))
+                entity.is_enabled
+                && entity.scopes.length > 0
+                && entity.scopes.some(scope => scopeIds.has(String(scope)))
             );
         if (!candidates.length) return null;
         const entity = candidates[Math.floor(random() * candidates.length)];
-        const messages = repository.getMessages(entity.id, "scene_nsfw");
+        const messages = repository.getMessages(entity.id, null);
         if (!messages.length) return null;
         const claimed = repository.claimChannelWelcome(
             entity.id,
@@ -161,6 +165,10 @@ class NarrativeEntityV2Manager {
             entity,
             message: messages[Math.floor(random() * messages.length)]
         };
+    }
+
+    claimForumWelcome(guildId, channelId, parentId, random = Math.random) {
+        return this.claimScopedWelcome(guildId, channelId, parentId, random);
     }
 
     releaseForumWelcome(entityId, channelId) {
