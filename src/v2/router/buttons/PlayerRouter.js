@@ -23,6 +23,21 @@ module.exports = async interaction => {
         );
         return true;
     }
+    if (interaction.customId === "v2_player_scenes") {
+        const sceneService = require("../../services/scenes/SceneAssistantService");
+        const sceneManager = require("../../managers/SceneAssistantV2Manager");
+        const status = sceneService.getStatus({
+            guildId: interaction.guildId,
+            channel: interaction.channel
+        });
+        await interaction.update(
+            require("../../views/player/PlayerScenesView").build(
+                status,
+                sceneManager.getActiveScenes(interaction.guildId)
+            )
+        );
+        return true;
+    }
     if (interaction.customId === "v2_player_privacy") {
         await interaction.update(require("../../views/player/PlayerPrivacyView").build());
         return true;

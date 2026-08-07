@@ -26,6 +26,22 @@ test("l’annuaire joueur trie, filtre et pagine les personnages validés", () =
     const ids = all.components.flatMap(row => row.toJSON().components.map(item => item.custom_id));
     assert.ok(ids.includes("v2_player_directory_letter_am"));
     assert.ok(ids.includes("v2_player_directory_letter_nz"));
+    assert.ok(ids.includes("v2_player_directory_character"));
+});
+
+test("l’annuaire ouvre une fiche publique par son identifiant", async () => {
+    const opened = [];
+    stubModule("src/v2/pages/character/OpenCharacterDashboardPage.js", {
+        execute: async (_interaction, characterId) => opened.push(characterId)
+    });
+    const selectPath = require.resolve("../src/v2/router/selects/PlayerSelectRouter");
+    delete require.cache[selectPath];
+    const selectRouter = require(selectPath);
+    const selected = interaction("v2_player_directory_character", "select");
+    selected.values = ["character-freyja"];
+
+    assert.equal(await selectRouter(selected), true);
+    assert.deepEqual(opened, ["character-freyja"]);
 });
 
 test("les boutons et menus de l’annuaire rechargent la bonne page", async () => {
@@ -54,6 +70,7 @@ test("les boutons et menus de l’annuaire rechargent la bonne page", async () =
 
 function character(firstname, owner) {
     return {
+        id: `character-${firstname}`,
         firstname,
         proxy_name: firstname,
         discord_user_id: owner,

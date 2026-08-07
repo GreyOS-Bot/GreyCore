@@ -56,6 +56,14 @@ test(
             true
         );
 
+        assert.equal(
+            homeButtons.some(button =>
+                button.custom_id ===
+                "v2_player_scenes"
+            ),
+            true
+        );
+
         assert.match(
             homeEmbed.title,
             /Accueil/

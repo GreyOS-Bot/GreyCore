@@ -85,6 +85,24 @@ function build(characters, options = {}) {
             text: `GreyCore · ${filtered.length} personnage(s) · Page ${page + 1}/${pageCount}`
         });
 
+    const characterSelector = visible.length
+        ? new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder()
+                .setCustomId("v2_player_directory_character")
+                .setPlaceholder("Voir la fiche d’un personnage")
+                .addOptions(visible.map(character => ({
+                    label: displayName(character).slice(0, 100),
+                    value: String(character.id),
+                    description: `${characterTypes.getDisplayLabel(character.character_type)} · ${
+                        !character.discord_user_id || String(character.discord_user_id).startsWith("anonymized_")
+                            ? "Ancien utilisateur"
+                            : `Utilisateur ${character.discord_user_id}`
+                    }`.slice(0, 100),
+                    emoji: "👤"
+                })))
+        )
+        : null;
+
     const firstLetters = new StringSelectMenuBuilder()
         .setCustomId("v2_player_directory_letter_am")
         .setPlaceholder("Toutes les lettres ou A à M")
@@ -129,6 +147,7 @@ function build(characters, options = {}) {
     return {
         embeds: [embed],
         components: [
+            ...(characterSelector ? [characterSelector] : []),
             new ActionRowBuilder().addComponents(firstLetters),
             new ActionRowBuilder().addComponents(lastLetters),
             pagination,

@@ -123,6 +123,11 @@ class LibraryHomeView {
                 .setEmoji("📖")
                 .setStyle(ButtonStyle.Secondary),
             new ButtonBuilder()
+                .setCustomId("v2_player_scenes")
+                .setLabel("Scènes RP")
+                .setEmoji("🎬")
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
                 .setCustomId("v2_player_help")
                 .setLabel("Aide")
                 .setEmoji("❓")
