@@ -9,11 +9,30 @@ module.exports = async interaction => {
         await replyError(interaction, "Tu ne peux pas modifier les Entités.");
         return true;
     }
+    const uploads = interaction.fields.getUploadedFiles("avatar", false);
+    const attachment = uploads?.size
+        ? Array.from(uploads.values())[0]
+        : null;
+    if (
+        attachment
+        && !require("../../services/outfits/OutfitImageStorageService")
+            .isImage(attachment)
+    ) {
+        await replyError(interaction, "Le fichier de l’avatar doit être une image.");
+        return true;
+    }
+
+    const entityId = interaction.customId.startsWith("v2_staff_entities_edit_submit:")
+        ? interaction.customId.slice("v2_staff_entities_edit_submit:".length)
+        : null;
+    const currentEntity = entityId
+        ? manager.getById(interaction.guildId, entityId)
+        : null;
     const values = {
         guildId: interaction.guildId,
         createdBy: interaction.user.id,
         name: interaction.fields.getTextInputValue("name"),
-        avatarUrl: interaction.fields.getTextInputValue("avatar_url"),
+        avatarUrl: attachment?.url || currentEntity?.avatar_url || null,
         color: interaction.fields.getTextInputValue("color"),
         description: interaction.fields.getTextInputValue("description"),
         messagesText: interaction.fields.getTextInputValue("messages")
@@ -25,7 +44,7 @@ module.exports = async interaction => {
         } else if (interaction.customId.startsWith("v2_staff_entities_edit_submit:")) {
             entity = manager.update({
                 ...values,
-                entityId: interaction.customId.slice("v2_staff_entities_edit_submit:".length)
+                entityId
             });
         } else return false;
         await interaction.update(page.buildDetail(interaction, entity.id));

@@ -1,5 +1,9 @@
 const {
-    ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
+    LabelBuilder,
+    FileUploadBuilder
 } = require("discord.js");
 const policy = require("../../core/policies/StaffPermissionPolicy");
 const manager = require("../../managers/NarrativeEntityV2Manager");
@@ -49,17 +53,33 @@ function parse(customId) {
 
 function buildModal(entity = null) {
     const field = (id, label, style, maxLength, required, value = null) => {
-        const input = new TextInputBuilder().setCustomId(id).setLabel(label)
+        const input = new TextInputBuilder().setCustomId(id)
             .setStyle(style).setMaxLength(maxLength).setRequired(required);
         if (value) input.setValue(String(value).slice(0, maxLength));
-        return new ActionRowBuilder().addComponents(input);
+        return new LabelBuilder()
+            .setLabel(label)
+            .setTextInputComponent(input);
     };
+
+    const avatar = new FileUploadBuilder()
+        .setCustomId("avatar")
+        .setMinValues(0)
+        .setMaxValues(1)
+        .setRequired(false);
+
     return new ModalBuilder()
         .setCustomId(entity ? `v2_staff_entities_edit_submit:${entity.id}` : "v2_staff_entities_create_submit")
         .setTitle(entity ? "Modifier l’Entité" : "Nouvelle Entité")
-        .addComponents(
+        .addLabelComponents(
             field("name", "Nom", TextInputStyle.Short, 80, true, entity?.name),
-            field("avatar_url", "Avatar — adresse web (facultatif)", TextInputStyle.Short, 1000, false, entity?.avatar_url),
+            new LabelBuilder()
+                .setLabel("Avatar (facultatif)")
+                .setDescription(
+                    entity
+                        ? "Ajoutez une image uniquement pour remplacer l’avatar actuel."
+                        : "Envoyez directement l’image qui représentera cette Entité."
+                )
+                .setFileUploadComponent(avatar),
             field("color", "Couleur d’embed", TextInputStyle.Short, 7, true, entity ? `#${entity.embed_color.toString(16).padStart(6, "0")}` : "#5865F2"),
             field("description", "Description (facultative)", TextInputStyle.Paragraph, 1000, false, entity?.description),
             field("messages", "Messages — un par ligne", TextInputStyle.Paragraph, 4000, true, entity?.messages.map(message => message.content).join("\n"))
