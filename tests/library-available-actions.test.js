@@ -48,6 +48,14 @@ test(
         const homeButtons =
             getButtons(home);
 
+        assert.equal(
+            homeButtons.some(button =>
+                button.custom_id ===
+                "v2_player_directory"
+            ),
+            true
+        );
+
         assert.match(
             homeEmbed.title,
             /Accueil/

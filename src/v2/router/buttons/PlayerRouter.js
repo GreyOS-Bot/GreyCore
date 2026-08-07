@@ -8,6 +8,21 @@ module.exports = async interaction => {
         await interaction.update(require("../../views/player/PlayerHelpView").build());
         return true;
     }
+    if (
+        interaction.customId === "v2_player_directory"
+        || interaction.customId.startsWith("v2_player_directory_page:")
+    ) {
+        const [, letter = "all", rawPage = "0"] = interaction.customId.split(":");
+        const characters = require("../../managers/CharacterRosterV2Manager")
+            .getRoster(interaction.guildId, { includeArchived: false });
+        await interaction.update(
+            require("../../views/player/PlayerDirectoryView").build(characters, {
+                letter,
+                page: Number(rawPage) || 0
+            })
+        );
+        return true;
+    }
     if (interaction.customId === "v2_player_privacy") {
         await interaction.update(require("../../views/player/PlayerPrivacyView").build());
         return true;
