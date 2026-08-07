@@ -26,6 +26,34 @@ module.exports = async interaction => {
         return true;
     }
 
+    if (interaction.customId === "v2_staff_relationships_create_type") {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canAccess(interaction, "relationships", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require("discord.js");
+        await interaction.showModal(new ModalBuilder()
+            .setCustomId("v2_staff_relationships_create_type_submit")
+            .setTitle("Nouveau type de relation")
+            .addComponents(
+                new ActionRowBuilder().addComponents(new TextInputBuilder()
+                    .setCustomId("label_a_to_b").setLabel("Libellé principal")
+                    .setPlaceholder("Ex. Mentor de").setStyle(TextInputStyle.Short)
+                    .setMaxLength(80).setRequired(true)),
+                new ActionRowBuilder().addComponents(new TextInputBuilder()
+                    .setCustomId("label_b_to_a").setLabel("Libellé inverse si nécessaire")
+                    .setPlaceholder("Ex. Protégé·e de").setStyle(TextInputStyle.Short)
+                    .setMaxLength(80).setRequired(false)),
+                new ActionRowBuilder().addComponents(new TextInputBuilder()
+                    .setCustomId("symmetric").setLabel("Relation symétrique ? oui ou non")
+                    .setPlaceholder("non").setStyle(TextInputStyle.Short)
+                    .setMaxLength(3).setRequired(true))
+            ));
+        return true;
+    }
+
     if (interaction.customId === "v2_staff_bank_install_defaults") {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");

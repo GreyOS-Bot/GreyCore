@@ -20,11 +20,18 @@ class StaffRelationshipsPage {
                     { name: "Types configurés", value: String(stats.types), inline: true },
                     { name: "Aperçu des types", value: types.slice(0, 20).map(type => `• ${type.label_a_to_b}`).join("\n") || "Aucun type configuré. Installe les types par défaut depuis les outils de relations." }
                 )],
-            components: [new ActionRowBuilder().addComponents(new ButtonBuilder()
-                .setCustomId("v2_staff_domain_toggle:relationships")
-                .setLabel(enabled ? "Désactiver les relations" : "Activer les relations")
-                .setEmoji(enabled ? "⏸️" : "▶️")
-                .setStyle(enabled ? ButtonStyle.Danger : ButtonStyle.Success)), navigationRow()]
+            components: [new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId("v2_staff_relationships_create_type")
+                    .setLabel("Nouveau type")
+                    .setEmoji("➕")
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId("v2_staff_domain_toggle:relationships")
+                    .setLabel(enabled ? "Désactiver les relations" : "Activer les relations")
+                    .setEmoji(enabled ? "⏸️" : "▶️")
+                    .setStyle(enabled ? ButtonStyle.Danger : ButtonStyle.Success)
+            ), navigationRow()]
         };
     }
 

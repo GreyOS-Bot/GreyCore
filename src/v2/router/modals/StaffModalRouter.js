@@ -4,6 +4,30 @@ const page = require("../../pages/staff/StaffScenesPage");
 const { replyError } = require("../../core/services/InteractionResponseService");
 
 module.exports = async interaction => {
+    if (interaction.customId === "v2_staff_relationships_create_type_submit") {
+        if (!policy.canAccess(interaction, "relationships", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const symmetricValue = interaction.fields.getTextInputValue("symmetric").trim().toLowerCase();
+        if (!["oui", "non"].includes(symmetricValue)) {
+            await replyError(interaction, "Indique `oui` ou `non` pour la relation symétrique.");
+            return true;
+        }
+        try {
+            require("../../managers/RelationshipTypeV2Manager").create({
+                guildId: interaction.guildId,
+                labelAToB: interaction.fields.getTextInputValue("label_a_to_b"),
+                labelBToA: interaction.fields.getTextInputValue("label_b_to_a"),
+                isSymmetric: symmetricValue === "oui"
+            });
+        } catch (error) {
+            await replyError(interaction, error);
+            return true;
+        }
+        await interaction.update(require("../../pages/staff/StaffRelationshipsPage").build(interaction));
+        return true;
+    }
     if (interaction.customId === "v2_staff_automations_approval_submit") {
         if (!policy.canAccess(interaction, "automations", { write: true })) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
