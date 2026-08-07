@@ -1,6 +1,8 @@
 const repository = require("../repositories/RelationshipTypeRepository");
 
 class RelationshipTypeV2Manager {
+    getByGuild(guildId) { return repository.getByGuild(guildId); }
+
     create({ guildId, labelAToB, labelBToA, isSymmetric }) {
         const firstLabel = this.normalizeLabel(labelAToB, "Le libellé principal");
         const reverseLabel = isSymmetric
@@ -29,6 +31,17 @@ class RelationshipTypeV2Manager {
         return label.normalize("NFD").replace(/\p{Diacritic}/gu, "")
             .toLocaleLowerCase("fr-FR").replace(/[^a-z0-9]+/g, "_")
             .replace(/^_+|_+$/g, "").slice(0, 60);
+    }
+
+    delete(guildId, relationshipTypeId) {
+        const type = repository.getById(guildId, relationshipTypeId);
+        if (!type) throw new Error("Ce type de relation est introuvable.");
+        const usages = repository.countUsages(guildId, relationshipTypeId);
+        if (usages > 0) {
+            throw new Error(`Ce type est encore utilisé ${usages} fois et ne peut pas être supprimé.`);
+        }
+        repository.delete(guildId, relationshipTypeId);
+        return type;
     }
 }
 

@@ -54,6 +54,20 @@ module.exports = async interaction => {
         return true;
     }
 
+    if (interaction.customId.startsWith("v2_staff_relationships_manage_types:")) {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canAccess(interaction, "relationships")) {
+            await replyError(interaction, "Tu n'as pas accès à la gestion des relations.");
+            return true;
+        }
+        const page = Number(interaction.customId.split(":")[1]);
+        await interaction.update(
+            require("../../pages/staff/StaffRelationshipsPage").buildTypeManagement(interaction, page)
+        );
+        return true;
+    }
+
     if (interaction.customId === "v2_staff_bank_install_defaults") {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");

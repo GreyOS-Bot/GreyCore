@@ -6,6 +6,25 @@ const { replyError } = require(
 );
 
 module.exports = async interaction => {
+    if (interaction.customId?.startsWith("v2_staff_relationships_delete_type:")) {
+        if (!policy.canAccess(interaction, "relationships", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const pageNumber = Number(interaction.customId.split(":")[1]);
+        try {
+            require("../../managers/RelationshipTypeV2Manager")
+                .delete(interaction.guildId, Number(interaction.values[0]));
+        } catch (error) {
+            await replyError(interaction, error);
+            return true;
+        }
+        await interaction.update(
+            require("../../pages/staff/StaffRelationshipsPage")
+                .buildTypeManagement(interaction, pageNumber)
+        );
+        return true;
+    }
     if (interaction.customId?.startsWith("v2_staff_automations_") && [
         "v2_staff_automations_required_role",
         "v2_staff_automations_remove_role",
