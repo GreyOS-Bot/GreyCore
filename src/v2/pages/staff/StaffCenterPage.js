@@ -29,6 +29,11 @@ class StaffCenterPage {
                 label: "Démarrage",
                 emoji: "🧭"
             });
+            visible.unshift({
+                key: "overview",
+                label: "Configuration",
+                emoji: "📋"
+            });
         }
 
         const buttons = visible.map(section =>

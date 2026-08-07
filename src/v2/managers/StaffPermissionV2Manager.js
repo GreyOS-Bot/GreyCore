@@ -2,6 +2,10 @@ const repository = require("../repositories/StaffPermissionRepository");
 const catalog = require("../core/permissions/StaffPermissionCatalog");
 
 class StaffPermissionV2Manager {
+    getAssignments(guildId) {
+        return repository.getAssignments(guildId);
+    }
+
     getRolePermissions(guildId, roleId) {
         return repository.getRolePermissions(guildId, roleId);
     }

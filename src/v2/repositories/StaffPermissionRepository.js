@@ -1,6 +1,25 @@
 const db = require("../../database/database");
 
 class StaffPermissionRepository {
+    getAssignments(guildId) {
+        return {
+            roles: db.prepare(`
+                SELECT role_id, GROUP_CONCAT(permission_key) AS permission_keys
+                FROM GuildStaffRolePermissionsV2
+                WHERE guild_id = ?
+                GROUP BY role_id
+                ORDER BY role_id
+            `).all(guildId),
+            users: db.prepare(`
+                SELECT discord_user_id, GROUP_CONCAT(permission_key) AS permission_keys
+                FROM GuildStaffUserPermissionsV2
+                WHERE guild_id = ?
+                GROUP BY discord_user_id
+                ORDER BY discord_user_id
+            `).all(guildId)
+        };
+    }
+
     hasConfiguration(guildId) {
         const roleConfigured = Boolean(db.prepare(`
             SELECT 1 FROM GuildStaffRolePermissionsV2

@@ -29,7 +29,9 @@ class StaffSectionPage {
             return require("./StaffPermissionsPage").execute(interaction);
         }
 
-        const permissionKey = sectionKey === "setup" ? "settings" : sectionKey;
+        const permissionKey = ["setup", "overview"].includes(sectionKey)
+            ? "settings"
+            : sectionKey;
         const section = catalog.get(permissionKey);
         if (!section || !policy.canAccess(interaction, permissionKey)) {
             return deny(interaction);
@@ -37,6 +39,9 @@ class StaffSectionPage {
 
         if (sectionKey === "setup") {
             return require("./StaffSetupPage").execute(interaction);
+        }
+        if (sectionKey === "overview") {
+            return require("./StaffConfigurationOverviewPage").execute(interaction);
         }
 
         if (sectionKey === "characters") {
