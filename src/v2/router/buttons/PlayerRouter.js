@@ -8,6 +8,14 @@ module.exports = async interaction => {
         await interaction.update(require("../../views/player/PlayerHelpView").build());
         return true;
     }
+    if (interaction.customId === "v2_player_activity") {
+        const activity = require("../../services/player/PlayerActivityService")
+            .getActivity(interaction.guildId, interaction.user.id);
+        await interaction.update(
+            require("../../views/player/PlayerActivityView").build(activity)
+        );
+        return true;
+    }
     if (
         interaction.customId === "v2_player_directory"
         || interaction.customId.startsWith("v2_player_directory_page:")

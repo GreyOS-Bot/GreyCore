@@ -49,6 +49,11 @@ test(
             getButtons(home);
 
         assert.equal(
+            homeButtons.some(button => button.custom_id === "v2_player_activity"),
+            true
+        );
+
+        assert.equal(
             homeButtons.some(button =>
                 button.custom_id ===
                 "v2_player_directory"

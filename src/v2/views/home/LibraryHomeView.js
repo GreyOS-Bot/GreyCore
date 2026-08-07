@@ -118,6 +118,11 @@ class LibraryHomeView {
 
         const playerActions = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
+                .setCustomId("v2_player_activity")
+                .setLabel("Notifications")
+                .setEmoji("🔔")
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
                 .setCustomId("v2_player_directory")
                 .setLabel("Annuaire du serveur")
                 .setEmoji("📖")
