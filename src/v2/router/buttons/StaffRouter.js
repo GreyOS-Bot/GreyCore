@@ -2,6 +2,42 @@ module.exports = async interaction => {
     if (!interaction.isButton?.()) return false;
     if (!interaction.customId) return false;
 
+    if (interaction.customId.startsWith("v2_staff_domain_toggle:")) {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        const moduleManager = require("../../managers/GuildModuleV2Manager");
+        const moduleKey = interaction.customId.split(":")[1];
+        const permissionKey = moduleKey === "assets" ? "bank" : moduleKey;
+        if (!policy.canAccess(interaction, permissionKey, { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        moduleManager.setEnabled(
+            interaction.guildId,
+            moduleKey,
+            !moduleManager.isEnabled(interaction.guildId, moduleKey)
+        );
+        const pages = {
+            phone: "StaffPhonePage",
+            assets: "StaffBankPage",
+            relationships: "StaffRelationshipsPage"
+        };
+        await interaction.update(require(`../../pages/staff/${pages[moduleKey]}`).build(interaction));
+        return true;
+    }
+
+    if (interaction.customId === "v2_staff_bank_install_defaults") {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canAccess(interaction, "bank", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        require("../../managers/AssetTypeV2Manager").ensureDefaults(interaction.guildId);
+        await interaction.update(require("../../pages/staff/StaffBankPage").build(interaction));
+        return true;
+    }
+
     if (interaction.customId === "v2_staff_permissions_toggle_validation") {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const manager = require("../../managers/StaffPermissionV2Manager");
