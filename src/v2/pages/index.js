@@ -3,6 +3,14 @@ const UI =
 
 const pageRoutes = [
     [
+        "page:staff:home",
+        require("./staff/StaffCenterPage")
+    ],
+    [
+        "page:staff:section",
+        require("./staff/StaffSectionPage")
+    ],
+    [
         "page:character:home",
         require(
             "./character/OpenCharacterDashboardPage"

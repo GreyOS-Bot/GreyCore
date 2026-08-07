@@ -82,6 +82,7 @@ test(
             ,"SceneStartProposalsV2"
             ,"SceneClosurePromptsV2"
             ,"SceneClosureVotesV2"
+            ,"GuildStaffRolePermissionsV2"
         ];
 
         const tableNames =

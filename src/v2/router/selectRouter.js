@@ -1,4 +1,5 @@
 const selectRouters = [
+    require("./selects/StaffSelectRouter"),
     require("./selects/SceneSelectRouter"),
     require(
         "./selects/StaffCharacterCorrectionSelectRouter"

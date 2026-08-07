@@ -14,6 +14,8 @@ const initializeAutomationSchemaV2 =
     require("./schemaV2Automation");
 const initializeSceneAssistantSchemaV2 =
     require("./schemaV2SceneAssistant");
+const initializeStaffPermissionsSchemaV2 =
+    require("./schemaV2StaffPermissions");
 
 function columnExists(
     tableName,
@@ -261,6 +263,7 @@ function initializeSchemaV2() {
     initializeAssetSchemaV2();
     initializeAutomationSchemaV2();
     initializeSceneAssistantSchemaV2();
+    initializeStaffPermissionsSchemaV2();
 
     console.log(
         "✅ Tables principales de Greycore Database V2 prêtes."
