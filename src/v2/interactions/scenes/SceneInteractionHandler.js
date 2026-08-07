@@ -10,6 +10,9 @@ const {
 
 const manager = require("../../managers/SceneAssistantV2Manager");
 const sceneAssistantService = require("../../services/scenes/SceneAssistantService");
+const narrativeEntityService = require("../../services/entities/NarrativeEntityService");
+const logger = require("../../core/services/TechnicalLogger")
+    .create("SceneInteractionHandler");
 const {
     replyError,
     replyPrivate,
@@ -44,6 +47,13 @@ async function submitStart(interaction) {
         channelId: interaction.channelId,
         title: interaction.fields.getTextInputValue("title"),
         createdBy: interaction.user.id
+    });
+
+    await sendNarrativeOrFallback({
+        channel: interaction.channel,
+        triggerKey: "scene_created",
+        suffix: `🎬 **${scene.title}** commence dans <#${interaction.channelId}>.`,
+        fallback: null
     });
 
     return replyPrivate(
@@ -94,16 +104,25 @@ async function submitMove(interaction, sceneId, destinationId) {
             .join("\n")
         : "> Aucun message de transition disponible.";
 
-    await source.send(
-        `🔄 La scène **${scene.title}** se poursuit désormais dans <#${destinationId}>.`
-    );
-    await destination.send([
+    await sendNarrativeOrFallback({
+        channel: source,
+        triggerKey: "scene_moved",
+        suffix: `🔄 La scène **${scene.title}** se poursuit désormais dans <#${destinationId}>.`,
+        fallback: `🔄 La scène **${scene.title}** se poursuit désormais dans <#${destinationId}>.`
+    });
+    const destinationContinuity = [
         `🔄 Suite de la scène **${scene.title}** provenant de <#${source.id}>.`,
         "",
         "**Dernier échange :**",
         quote,
         transition?.url ? `\n[Voir le message d’origine](${transition.url})` : ""
-    ].filter(Boolean).join("\n"));
+    ].filter(Boolean).join("\n");
+    await sendNarrativeOrFallback({
+        channel: destination,
+        triggerKey: "scene_moved",
+        suffix: destinationContinuity,
+        fallback: destinationContinuity
+    });
 
     manager.moveScene({
         sceneId,
@@ -256,6 +275,12 @@ async function voteClose(interaction, sceneId) {
     }
 
     manager.closeScene(sceneId);
+    await sendNarrativeOrFallback({
+        channel: interaction.channel,
+        triggerKey: "scene_closed",
+        suffix: `🏁 La scène **${scene.title}** est désormais clôturée.`,
+        fallback: null
+    });
     return interaction.update({
         content: `🏁 La scène **${scene.title}** est clôturée après la confirmation de deux participants.`,
         embeds: [],
@@ -288,6 +313,25 @@ async function keepOpen(interaction, sceneId, cancelled = false) {
         embeds: [],
         components: []
     });
+}
+
+async function sendNarrativeOrFallback({ channel, triggerKey, suffix, fallback }) {
+    try {
+        const sent = await narrativeEntityService.send({
+            channel,
+            triggerKey,
+            suffix
+        });
+        if (sent) return sent;
+    } catch (error) {
+        logger.warn(
+            "[NarrativeEntity] Envoi impossible, utilisation du message standard :",
+            error.message
+        );
+    }
+    return fallback && channel?.send
+        ? channel.send(fallback)
+        : null;
 }
 
 module.exports = {

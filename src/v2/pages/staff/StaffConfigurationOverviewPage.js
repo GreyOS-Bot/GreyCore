@@ -6,6 +6,7 @@ const approval = require("../../managers/CharacterApprovalAutomationV2Manager");
 const relationships = require("../../repositories/RelationshipTypeRepository");
 const states = require("../../managers/StateTypeV2Manager");
 const scenes = require("../../managers/SceneAssistantV2Manager");
+const entities = require("../../managers/NarrativeEntityV2Manager");
 const permissionPolicy = require("../../core/policies/StaffPermissionPolicy");
 const { navigationRow } = require("./StaffCharactersPage");
 
@@ -24,6 +25,7 @@ class StaffConfigurationOverviewPage {
         const expressions = scenes.getTriggerExpressions(guildId);
         const relationshipTypes = relationships.getByGuild(guildId);
         const stateTypeList = states.getStateTypesByGuild(guildId);
+        const entityList = entities.getByGuild(guildId);
 
         const enabledModules = moduleConfig.filter(item => item.isEnabled);
         const disabledModules = moduleConfig.filter(item => !item.isEnabled);
@@ -53,7 +55,8 @@ class StaffConfigurationOverviewPage {
                     name: "🎭 Référentiels RP",
                     value: [
                         `Relations : **${relationshipTypes.length} type(s)**`,
-                        `États : **${stateTypeList.length} type(s)**`
+                        `États : **${stateTypeList.length} type(s)**`,
+                        `Entités : **${entityList.length}** dont **${entityList.filter(entity => entity.is_enabled).length} active(s)**`
                     ].join("\n"),
                     inline: true
                 },
@@ -105,7 +108,7 @@ class StaffConfigurationOverviewPage {
             embeds: [embed],
             components: [
                 row(...generalButtons),
-                row(["relationships", "Relations", "🎭"], ["universe", "Univers", "🌍"], ["scenes", "Scènes", "🎬"], ["automations", "Automatisations", "🤖"]),
+                row(["relationships", "Relations", "🎭"], ["universe", "Univers", "🌍"], ["entities", "Entités", "✨"], ["scenes", "Scènes", "🎬"], ["automations", "Automatisations", "🤖"]),
                 navigationRow()
             ]
         };

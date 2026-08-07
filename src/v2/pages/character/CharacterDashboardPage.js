@@ -1,11 +1,7 @@
-const {
-    ActionRowBuilder
-} = require("discord.js");
-
+const { ActionRowBuilder } = require("discord.js");
 const UI = require("../../framework");
 
 class CharacterDashboardPage {
-
     build(character, counts = null, {
         isOwner = false,
         modules = []
@@ -40,123 +36,64 @@ class CharacterDashboardPage {
             const module = modules.find(
                 entry => entry.key === moduleKey
             );
-
-            return module
-                ? module.isEnabled
-                : true;
+            return module ? module.isEnabled : true;
         };
 
-        const countLabel = (label, count) =>
-            Number(count || 0) > 0
-                ? `${label} (${count})`
-                : label;
+        const buttons = [
+            UI.button.primary({
+                id: `page:character:category:character:${characterId}`,
+                label: "Personnage",
+                emoji: "👤"
+            })
+        ];
 
-        const buttons = [UI.button.primary({
-            id: `page:character:profile:${characterId}`,
-            label: "Fiche",
-            emoji: UI.icons.profile
-        })];
-
-        if (isEnabled("relationships")) {
+        if (["relationships", "encounters", "journal", "states"]
+            .some(isEnabled)) {
             buttons.push(UI.button.primary({
-                id: `page:character:relationships:${characterId}`,
-                label: countLabel("Relations", counts?.relations),
-                emoji: UI.icons.relations
+                id: `page:character:category:life:${characterId}`,
+                label: "Vie du personnage",
+                emoji: "📖"
             }));
         }
 
-        if (isEnabled("encounters")) {
+        if (
+            isEnabled("outfit")
+            || (isOwner && isEnabled("phone"))
+        ) {
             buttons.push(UI.button.primary({
-                id: `page:character:encounters:${characterId}`,
-                label: countLabel("Rencontres", counts?.encounters),
-                emoji: UI.icons.encounters
-            }));
-        }
-
-        if (isOwner && isEnabled("phone")) {
-            buttons.push(UI.button.primary({
-                id: `v2_phone_open:${characterId}`,
-                label: "Téléphone",
-                emoji: UI.icons.phone
-            }));
-        }
-
-        if (isEnabled("states")) {
-            buttons.push(UI.button.primary({
-                id: `page:character:states:${characterId}`,
-                label: countLabel("États", counts?.states),
-                emoji: UI.icons.states
-            }));
-        }
-
-        if (isEnabled("outfit")) {
-            buttons.push(UI.button.primary({
-                id: `page:character:outfit:${characterId}`,
-                label: "Tenues",
-                emoji: UI.icons.outfit
-            }));
-        }
-
-        if (isEnabled("journal")) {
-            buttons.push(UI.button.primary({
-                id: `page:character:journal:${characterId}`,
-                label: countLabel("Journal", counts?.journal),
-                emoji: UI.icons.journal
+                id: `page:character:category:effects:${characterId}`,
+                label: "Effets personnels",
+                emoji: "🎒"
             }));
         }
 
         if (isEnabled("assets")) {
             buttons.push(UI.button.primary({
-                id: `page:character:assets:${characterId}`,
-                label: "Biens",
-                emoji: UI.icons.inventory
+                id: `page:character:category:heritage:${characterId}`,
+                label: "Patrimoine",
+                emoji: "🏠"
             }));
         }
 
         if (isOwner) {
-            buttons.push(
-                UI.button.secondary({
-                    id: `v2_aliases_open:${characterId}`,
-                    label: "Alias",
-                    emoji: "🏷️"
-                }),
-                UI.button.success({
-                    id: `v2_character_deploy:${characterId}`,
-                    label: "Installer",
-                    emoji: UI.icons.install
-                }),
-                UI.button.secondary({
-                    id: `page:character:installations:${characterId}`,
-                    label: countLabel("Installations", counts?.installations),
-                    emoji: "🌍"
-                }),
-                UI.button.secondary({
-                    id: `page:character:settings:${characterId}`,
-                    label: "Paramètres",
-                    emoji: UI.icons.settings
-                })
-            );
-        }
-
-        const actionRows = [];
-        for (let index = 0; index < buttons.length; index += 4) {
-            actionRows.push(
-                new ActionRowBuilder().addComponents(
-                    ...buttons.slice(index, index + 4)
-                )
-            );
+            buttons.push(UI.button.primary({
+                id: `page:character:category:universe:${characterId}`,
+                label: "Univers",
+                emoji: "🌍"
+            }));
         }
 
         return UI.page.create({
             embed: UI.embed.create({
                 title: null,
                 thumbnail: character.avatar_url || null,
-                description: UI.components.characterHeader.build(
-                    headerCharacter
-                )
+                description: [
+                    UI.components.characterHeader.build(headerCharacter),
+                    "Choisissez une catégorie pour naviguer dans la vie du personnage."
+                ].join("\n\n")
             }),
             components: [
-                ...actionRows,
+                new ActionRowBuilder().addComponents(...buttons),
                 new ActionRowBuilder().addComponents(
                     UI.components.navigation.home(),
                     UI.components.navigation.library(),
@@ -167,5 +104,4 @@ class CharacterDashboardPage {
     }
 }
 
-module.exports =
-    new CharacterDashboardPage();
+module.exports = new CharacterDashboardPage();

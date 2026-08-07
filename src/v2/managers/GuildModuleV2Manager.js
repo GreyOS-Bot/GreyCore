@@ -30,9 +30,9 @@ const MODULE_CATALOG = [
     },
     {
         key: "outfit",
-        label: "Tenues",
+        label: "Outfits",
         emoji: "👕",
-        description: "Tenue actuelle et historique visuel du personnage."
+        description: "Outfit actuel et historique visuel du personnage."
     },
     {
         key: "assets",

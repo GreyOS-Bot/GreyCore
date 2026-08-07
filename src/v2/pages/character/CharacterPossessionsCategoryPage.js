@@ -1,67 +1,43 @@
 const { ActionRowBuilder } = require("discord.js");
-
 const UI = require("../../framework");
-
-const characterDashboardManager =
-    require("../../services/dashboard/CharacterDashboardManager");
-
-const characterCategoryPage =
-    require("./CharacterCategoryPage");
-
-const guildModuleManager =
-    require("../../managers/GuildModuleV2Manager");
+const dashboardManager = require("../../services/dashboard/CharacterDashboardManager");
+const moduleManager = require("../../managers/GuildModuleV2Manager");
+const managementPolicy = require("../../core/policies/CharacterManagementPolicy");
+const categoryPage = require("./CharacterCategoryPage");
 
 class CharacterPossessionsCategoryPage {
-
     async execute(interaction, characterId) {
-        const dashboardData =
-            characterDashboardManager.getDashboardData(
-                characterId,
-                {
-                    guildId: interaction.guildId
-                }
-            );
+        const data = dashboardManager.getDashboardData(characterId, {
+            guildId: interaction.guildId
+        });
+        if (!data) return interaction.update({ content: "❌ Ce personnage est introuvable.", embeds: [], components: [] });
 
-        if (!dashboardData) {
-            return interaction.update({
-                content: "❌ Ce personnage est introuvable.",
-                embeds: [],
-                components: []
-            });
+        const owner = managementPolicy.isOwner(interaction, data.character);
+        const buttons = [];
+        if (owner && moduleManager.isEnabled(interaction.guildId, "phone")) {
+            buttons.push(UI.button.primary({
+                id: `v2_phone_open:${characterId}`,
+                label: "Téléphone",
+                emoji: UI.icons.phone
+            }));
+        }
+        if (moduleManager.isEnabled(interaction.guildId, "outfit")) {
+            buttons.push(UI.button.primary({
+                id: `page:character:outfit:${characterId}`,
+                label: "Outfits",
+                emoji: UI.icons.outfit
+            }));
         }
 
-        if (
-            !guildModuleManager.isEnabled(
-                interaction.guildId,
-                "assets"
-            )
-        ) {
-            return interaction.update({
-                content: "ℹ️ Le module Biens est désactivé sur ce serveur.",
-                embeds: [],
-                components: []
-            });
-        }
-
-        const row = new ActionRowBuilder()
-            .addComponents(
-                UI.button.primary({
-                    id: `page:character:assets:${characterId}`,
-                    label: "Gérer les biens",
-                    emoji: UI.icons.inventory
-                })
-            );
-
-        return interaction.update(
-            characterCategoryPage.build({
-                character: dashboardData.character,
-                title: "🎒 Biens",
-                description: "Véhicules, propriétés, entreprises, animaux et tous les autres biens de votre personnage.",
-                rows: [row]
-            })
-        );
+        return interaction.update(categoryPage.build({
+            character: data.character,
+            title: "🎒 Effets personnels",
+            description: buttons.length
+                ? "Téléphone, outfits et futurs documents personnels."
+                : "Aucun effet personnel n’est disponible sur ce serveur.",
+            rows: buttons.length ? [new ActionRowBuilder().addComponents(...buttons)] : []
+        }));
     }
 }
 
-module.exports =
-    new CharacterPossessionsCategoryPage();
+module.exports = new CharacterPossessionsCategoryPage();

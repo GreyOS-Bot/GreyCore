@@ -45,7 +45,7 @@ test(
             ).some(
                 id =>
                     id.startsWith(
-                        "page:character:category:management:"
+                        "page:character:category:universe:"
                     )
             ),
             false
@@ -53,23 +53,15 @@ test(
 
         assert.equal(
             getCustomIds(visitorDashboard).includes(
-                "page:character:profile:character"
+                "page:character:category:character:character"
             ),
             true
         );
         assert.equal(
             getCustomIds(visitorDashboard).includes(
-                "page:character:relationships:character"
+                "page:character:category:life:character"
             ),
             true
-        );
-        assert.equal(
-            getCustomIds(visitorDashboard).some(id =>
-                id.startsWith("page:character:category:character:")
-                || id.startsWith("page:character:category:social:")
-                || id.startsWith("page:character:category:possessions:")
-            ),
-            false
         );
 
         const ownerDashboard =
@@ -87,25 +79,25 @@ test(
                 ownerDashboard
             ).some(
                 id =>
-                    id === "page:character:settings:character"
+                    id === "page:character:category:universe:character"
             ),
             true
         );
         assert.equal(
             getCustomIds(ownerDashboard).includes(
-                "v2_phone_open:character"
+                "page:character:category:effects:character"
             ),
             true
         );
         assert.equal(
             getCustomIds(ownerDashboard).includes(
-                "v2_aliases_open:character"
+                "page:character:category:character:character"
             ),
             true
         );
         assert.equal(
             getCustomIds(ownerDashboard).includes(
-                "v2_character_deploy:character"
+                "page:character:category:heritage:character"
             ),
             true
         );

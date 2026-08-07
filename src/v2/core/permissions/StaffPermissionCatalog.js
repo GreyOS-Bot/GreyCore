@@ -5,6 +5,7 @@ const PERMISSIONS = [
     ["bank", "Banque", "🏦"],
     ["relationships", "Relations", "🎭"],
     ["universe", "Univers", "🌍"],
+    ["entities", "Entités", "✨"],
     ["automations", "Automatisations", "🤖"],
     ["modules", "Modules", "🧩"],
     ["logs", "Logs", "📜"],

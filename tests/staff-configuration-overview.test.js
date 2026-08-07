@@ -29,6 +29,9 @@ test("la vue configuration indique ce qui est actif et où", () => {
         getScopes: () => [{ channel_id: "rp" }],
         getTriggerExpressions: () => [{ expression: "Rattrapage ?" }]
     });
+    stubModule("src/v2/managers/NarrativeEntityV2Manager.js", {
+        getByGuild: () => [{ id: "entity", is_enabled: true }]
+    });
     stubModule("src/v2/core/policies/StaffPermissionPolicy.js", {
         canManagePermissions: () => true
     });
@@ -45,4 +48,5 @@ test("la vue configuration indique ce qui est actif et où", () => {
     assert.match(text, /<@&role>/);
     assert.match(text, /<@user>/);
     assert.match(text, /2 tous les 7 jours/);
+    assert.match(text, /Entités/);
 });

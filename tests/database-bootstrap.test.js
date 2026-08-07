@@ -85,6 +85,9 @@ test(
             ,"GuildStaffRolePermissionsV2"
             ,"GuildStaffUserPermissionsV2"
             ,"GuildStaffPermissionSettingsV2"
+            ,"NarrativeEntitiesV2"
+            ,"NarrativeEntityTriggersV2"
+            ,"NarrativeEntityMessagesV2"
         ];
 
         const tableNames =

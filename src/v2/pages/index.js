@@ -35,19 +35,25 @@ const pageRoutes = [
         )
     ],
     [
-        "page:character:category:social",
+        "page:character:category:life",
         require(
             "./character/CharacterSocialCategoryPage"
         )
     ],
     [
-        "page:character:category:possessions",
+        "page:character:category:effects",
         require(
             "./character/CharacterPossessionsCategoryPage"
         )
     ],
     [
-        "page:character:category:management",
+        "page:character:category:heritage",
+        require(
+            "./character/CharacterHeritageCategoryPage"
+        )
+    ],
+    [
+        "page:character:category:universe",
         require(
             "./character/CharacterManagementCategoryPage"
         )

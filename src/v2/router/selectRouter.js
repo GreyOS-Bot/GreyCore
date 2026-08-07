@@ -1,4 +1,5 @@
 const selectRouters = [
+    require("./selects/StaffEntitySelectRouter"),
     require("./selects/StaffSelectRouter"),
     require("./selects/PlayerSelectRouter"),
     require("./selects/SceneSelectRouter"),

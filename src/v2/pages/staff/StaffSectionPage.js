@@ -14,6 +14,7 @@ const CONTENT = {
     bank: ["Biens", "Transferts", "Historique", "Réglages bancaires"],
     relationships: ["Types de relations", "Demandes", "Arbres familiaux", "Modération"],
     universe: ["États", "Organisations", "Référentiels", "Documentation du serveur"],
+    entities: ["Identité narrative", "Messages", "Déclencheurs", "Activation"],
     automations: ["Accueil après validation", "Limites de création", "Annonces", "Rappels"],
     modules: ["Modules actifs", "Installation des outils", "Disponibilité par serveur"],
     logs: ["Salon des erreurs", "Alertes", "Historique technique"],
@@ -61,6 +62,9 @@ class StaffSectionPage {
         }
         if (sectionKey === "universe") {
             return require("./StaffUniversePage").execute(interaction);
+        }
+        if (sectionKey === "entities") {
+            return require("./StaffEntitiesPage").execute(interaction);
         }
         if (sectionKey === "automations") {
             return require("./StaffAutomationsPage").execute(interaction);
