@@ -202,7 +202,10 @@ module.exports =
                 character.id
         });
 
-        if (v2Installation?.character_id) {
+        if (
+            v2Installation?.character_id
+            && v2Installation.character_type !== "random"
+        ) {
             message.greycoreSceneCharacterId =
                 v2Installation.character_id;
         }

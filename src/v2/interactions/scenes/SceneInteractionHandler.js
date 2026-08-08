@@ -315,6 +315,30 @@ async function keepOpen(interaction, sceneId, cancelled = false) {
     });
 }
 
+async function closeNow(interaction, sceneId) {
+    const scene = manager.getScene(sceneId);
+    if (!scene || scene.guild_id !== interaction.guildId) {
+        return replyError(interaction, "Cette scène est introuvable ou déjà clôturée.");
+    }
+    const isParticipant = manager.isSceneParticipantUser(sceneId, interaction.user.id);
+    const isCreator = String(scene.created_by || "") === String(interaction.user.id);
+    if (!isParticipant && !isCreator) {
+        return replyError(interaction, "Seuls un participant ou la personne ayant créé cette scène peuvent la clôturer.");
+    }
+    manager.closeScene(sceneId);
+    await sendNarrativeOrFallback({
+        channel: interaction.channel,
+        triggerKey: "scene_closed",
+        suffix: `🏁 La scène **${scene.title}** est désormais clôturée.`,
+        fallback: null
+    });
+    return interaction.update({
+        content: `🏁 La scène **${scene.title}** est clôturée.`,
+        embeds: [],
+        components: []
+    });
+}
+
 async function sendNarrativeOrFallback({ channel, triggerKey, suffix, fallback }) {
     try {
         const sent = await narrativeEntityService.send({
@@ -343,5 +367,6 @@ module.exports = {
     selectMoveChannel,
     submitMove,
     voteClose,
+    closeNow,
     keepOpen
 };

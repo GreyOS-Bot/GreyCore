@@ -74,7 +74,7 @@ test(
         );
 
         const first = await service.processMessage(
-            createMessage(channel, "Rattrapage ?")
+            createMessage(channel, "Rattrapage ? Fin de scène")
         );
         const second = await service.processMessage(
             createMessage(channel)
@@ -89,6 +89,7 @@ test(
         );
         assert.equal(first.moveIntentDetected, true);
         assert.equal(second.moveIntentDetected, false);
+        assert.equal(first.closureIntentDetected, true);
         assert.equal(
             second.justReachedThreshold,
             false

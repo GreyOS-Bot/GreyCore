@@ -110,6 +110,9 @@ class SceneAssistantService {
                 guildId,
                 message.content
             );
+        const closureIntentDetected = manager.matchesClosureExpression(
+            message.content
+        );
 
         await this.trackParticipant(
             message,
@@ -133,6 +136,7 @@ class SceneAssistantService {
                 cycle,
                 evaluation,
                 moveIntentDetected,
+                closureIntentDetected,
                 cancelledClosurePrompt,
                 justReachedThreshold: false
             };
@@ -150,6 +154,7 @@ class SceneAssistantService {
             cycle: updatedCycle,
             evaluation,
             moveIntentDetected,
+            closureIntentDetected,
             cancelledClosurePrompt,
             justReachedThreshold
         };
@@ -442,6 +447,27 @@ class SceneAssistantService {
                 new ButtonBuilder()
                     .setCustomId("v2_scene_move_cancel")
                     .setLabel("Annuler")
+                    .setEmoji("❌")
+                    .setStyle(ButtonStyle.Secondary)
+            )]
+        };
+    }
+
+    buildManualClosurePrompt(scene) {
+        return {
+            embeds: [new EmbedBuilder()
+                .setColor(0xFEE75C)
+                .setTitle("🏁 Clôturer cette scène ?")
+                .setDescription("GreyCore a détecté une fin de scène. Un participant peut confirmer sa clôture, ou ignorer cette proposition.")],
+            components: [new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`v2_scene_close_now:${scene.id}`)
+                    .setLabel("Clôturer la scène")
+                    .setEmoji("🏁")
+                    .setStyle(ButtonStyle.Danger),
+                new ButtonBuilder()
+                    .setCustomId("v2_scene_move_cancel")
+                    .setLabel("Ignorer")
                     .setEmoji("❌")
                     .setStyle(ButtonStyle.Secondary)
             )]

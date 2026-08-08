@@ -38,9 +38,17 @@ class StaffScenesPage {
                     {
                         name: "Scènes en cours",
                         value: scenes.length
-                            ? scenes.slice(0, 10).map(scene =>
-                                `• **${scene.title}** · ${scene.rp_message_count} message(s)`
-                            ).join("\n")
+                            ? scenes.slice(0, 10).map(scene => {
+                                const channels = String(scene.channel_ids || "")
+                                    .split(",")
+                                    .filter(Boolean)
+                                    .map(id => `<#${id}>`)
+                                    .join(" → ") || "Lieu indisponible";
+                                const started = Math.floor(
+                                    new Date(scene.started_at).getTime() / 1000
+                                );
+                                return `• **${scene.title}** · ${channels}\n  Depuis <t:${started}:d> · ${scene.rp_message_count} message(s)`;
+                            }).join("\n")
                             : "Aucune scène active.",
                         inline: false
                     }

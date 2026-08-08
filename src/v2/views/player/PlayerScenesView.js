@@ -57,7 +57,12 @@ function build(status, activeScenes = []) {
                 .setCustomId(`v2_scene_move:${status.scene.id}`)
                 .setLabel("Déplacer la scène")
                 .setEmoji("➡️")
-                .setStyle(ButtonStyle.Primary)
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId(`v2_scene_close_now:${status.scene.id}`)
+                .setLabel("Clôturer la scène")
+                .setEmoji("🏁")
+                .setStyle(ButtonStyle.Danger)
         ));
     }
 

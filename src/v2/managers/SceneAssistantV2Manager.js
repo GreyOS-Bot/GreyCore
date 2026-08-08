@@ -66,6 +66,13 @@ class SceneAssistantV2Manager {
         );
     }
 
+    matchesClosureExpression(content) {
+        const normalizedContent = this.normalizeTriggerExpression(content);
+        return ["fin de scene", "retour timeline"].some(expression =>
+            normalizedContent.includes(expression)
+        );
+    }
+
     createScene({
         guildId,
         title,

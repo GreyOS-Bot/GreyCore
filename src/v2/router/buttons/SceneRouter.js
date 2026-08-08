@@ -27,6 +27,10 @@ module.exports = async interaction => {
         await handler.voteClose(interaction, interaction.customId.split(":")[1]);
         return true;
     }
+    if (interaction.customId.startsWith("v2_scene_close_now:")) {
+        await handler.closeNow(interaction, interaction.customId.split(":")[1]);
+        return true;
+    }
     if (interaction.customId.startsWith("v2_scene_keep_open:")) {
         await handler.keepOpen(interaction, interaction.customId.split(":")[1]);
         return true;

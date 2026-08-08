@@ -120,6 +120,10 @@ test(
                             name: "Reya",
                             avatar:
                                 "https://image.test/reya.png"
+                        },
+                        v2Installation: {
+                            character_id: "character",
+                            character_type: "random"
                         }
                     })
             }
@@ -191,7 +195,7 @@ test(
                 () => true
         };
 
-        await handler({
+        const sourceMessage = {
             guild: {
                 id: "guild"
             },
@@ -208,7 +212,9 @@ test(
             attachments: new Map(),
             delete:
                 async () => {}
-        });
+        };
+
+        await handler(sourceMessage);
 
         assert.equal(
             sourceChannel,
@@ -217,6 +223,11 @@ test(
         assert.equal(
             sentPayload.threadId,
             "forum-thread"
+        );
+        assert.equal(
+            sourceMessage.greycoreSceneCharacterId,
+            undefined,
+            "un personnage Random ne doit pas être attaché à un cycle de scène"
         );
         assert.equal(
             sentPayload.content,

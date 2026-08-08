@@ -92,6 +92,13 @@ module.exports =
                 );
             }
 
+
+            if (result?.closureIntentDetected) {
+                await message.channel.send(
+                    sceneAssistantService.buildManualClosurePrompt(result.cycle)
+                );
+            }
+
             if (
                 result?.kind === "no_active_scene"
                 && result.shouldOfferStart

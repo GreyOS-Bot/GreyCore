@@ -40,6 +40,7 @@ test("l’espace joueur affiche la scène du salon et les scènes actives", asyn
     assert.match(description, /42 \/ 100/);
     assert.match(description, /<#channel>/);
     assert.ok(customIds(interaction.payload).includes("v2_scene_move:scene-current"));
+    assert.ok(customIds(interaction.payload).includes("v2_scene_close_now:scene-current"));
 });
 
 test("un salon suivi sans scène propose de commencer ou reprendre", () => {
