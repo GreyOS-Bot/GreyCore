@@ -139,7 +139,7 @@ class StaffScenesPage {
             ));
         }
         components.push(new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId("page:staff:scenes:root")
+            new ButtonBuilder().setCustomId("page:staff:section:scenes")
                 .setLabel("Retour aux scènes").setEmoji("⬅️").setStyle(ButtonStyle.Secondary),
             new ButtonBuilder().setCustomId("staff_close")
                 .setLabel("Fermer").setEmoji("❌").setStyle(ButtonStyle.Secondary)
