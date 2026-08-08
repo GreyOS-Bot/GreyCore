@@ -47,7 +47,10 @@ class StaffScenesPage {
                                 const started = Math.floor(
                                     new Date(scene.started_at).getTime() / 1000
                                 );
-                                return `• **${scene.title}** · ${channels}\n  Depuis <t:${started}:d> · ${scene.rp_message_count} message(s)`;
+                                return [
+                                    `• **${scene.title}** · ${channels}`,
+                                    `  Depuis <t:${started}:d> · ${formatSceneProgress(scene, configuration)}`
+                                ].join("\n");
                             }).join("\n")
                             : "Aucune scène active.",
                         inline: false
@@ -192,3 +195,24 @@ function navigationRow() {
 }
 
 module.exports = new StaffScenesPage();
+
+function formatSceneProgress(scene, configuration, now = new Date()) {
+    const startedAt = new Date(scene.started_at).getTime();
+    const elapsedDays = Number.isFinite(startedAt)
+        ? Math.max(1, Math.floor((now.getTime() - startedAt) / 86_400_000) + 1)
+        : 1;
+    const dayLimit = Number(configuration?.duration_days) || null;
+    const messageCount = Number(scene.rp_message_count || 0);
+    const messageLimit = Number(configuration?.recommended_message_count) || null;
+    const parts = [
+        `Jour **${elapsedDays}${dayLimit ? ` / ${dayLimit}` : ""}**`,
+        `Messages **${messageCount}${messageLimit ? ` / ${messageLimit}` : ""}**`
+    ];
+    const overruns = [];
+    if (dayLimit && elapsedDays > dayLimit) overruns.push(`+${elapsedDays - dayLimit} jour(s)`);
+    if (messageLimit && messageCount > messageLimit) overruns.push(`+${messageCount - messageLimit} message(s)`);
+    if (overruns.length) parts.push(`⚠️ Dépassement : **${overruns.join(" · ")}**`);
+    return parts.join(" · ");
+}
+
+module.exports.formatSceneProgress = formatSceneProgress;
