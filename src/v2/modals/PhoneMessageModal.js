@@ -25,6 +25,9 @@ const {
 } = require(
     "../core/services/InteractionResponseService"
 );
+const fastAcknowledgement = require(
+    "../core/services/FastInteractionAcknowledgementService"
+);
 
 module.exports = {
 
@@ -201,9 +204,7 @@ module.exports = {
                 )
         );
 
-        await interaction.showModal(
-            modal
-        );
+        await fastAcknowledgement.showModal(interaction, modal);
 
     }
 
