@@ -6,6 +6,17 @@ const { replyError } = require(
 );
 
 module.exports = async interaction => {
+    if (interaction.customId === "v2_staff_characters_statistics_user_select") {
+        const userId = interaction.values[0];
+        const roster = require("../../managers/CharacterRosterV2Manager")
+            .getRoster(interaction.guildId, { includeArchived: false })
+            .filter(character => String(character.discord_user_id) === String(userId));
+        await interaction.update(
+            require("../../views/staff/CharacterStatisticsView").buildUser(userId, roster)
+        );
+        return true;
+    }
+
     if (interaction.customId === "v2_staff_characters_cancel_installation_select") {
         if (!policy.canManageCharacters(interaction)) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");

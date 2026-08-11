@@ -440,6 +440,22 @@ module.exports = async interaction => {
         return true;
     }
 
+    if (interaction.customId === "v2_staff_characters_statistics_global") {
+        const roster = require("../../managers/CharacterRosterV2Manager")
+            .getRoster(interaction.guildId, { includeArchived: false });
+        await interaction.update(
+            require("../../views/staff/CharacterStatisticsView").buildGlobal(roster)
+        );
+        return true;
+    }
+
+    if (interaction.customId === "v2_staff_characters_statistics_user") {
+        await interaction.update(
+            require("../../views/staff/CharacterStatisticsView").buildUserSelection()
+        );
+        return true;
+    }
+
     if (interaction.customId === "v2_staff_characters_users") {
         const { ActionRowBuilder, UserSelectMenuBuilder } = require("discord.js");
         await interaction.update({

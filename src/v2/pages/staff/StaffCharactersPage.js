@@ -47,6 +47,18 @@ class StaffCharactersPage {
                 .setEmoji("🧹")
                 .setStyle(ButtonStyle.Danger)
         )];
+        rows.push(new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId("v2_staff_characters_statistics_global")
+                .setLabel("Statistiques globales")
+                .setEmoji("📊")
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId("v2_staff_characters_statistics_user")
+                .setLabel("Statistiques par utilisateur")
+                .setEmoji("👤")
+                .setStyle(ButtonStyle.Secondary)
+        ));
         if (validationChannelId) {
             rows.push(new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
