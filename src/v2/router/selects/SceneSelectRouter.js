@@ -9,5 +9,9 @@ module.exports = async interaction => {
         await handler.selectMoveChannel(interaction, interaction.customId.split(":")[1]);
         return true;
     }
+    if (interaction.isChannelSelectMenu?.() && interaction.customId === "v2_scene_move_new_channel") {
+        await handler.selectNewMoveChannel(interaction);
+        return true;
+    }
     return false;
 };

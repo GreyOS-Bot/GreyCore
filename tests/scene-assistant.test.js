@@ -48,6 +48,17 @@ test(
         assert.equal(withoutScene.kind, "no_active_scene");
         assert.equal(withoutScene.shouldOfferStart, true);
 
+        const untrackedMove = await service.processMessage(
+            createMessage(channel, "Rattrapage ?")
+        );
+        assert.equal(untrackedMove.kind, "no_active_scene");
+        assert.equal(untrackedMove.moveIntentDetected, true);
+        const untrackedPrompt = service.buildNewMoveIntentPrompt();
+        assert.equal(
+            untrackedPrompt.components[0].toJSON().components[0].custom_id,
+            "v2_scene_move_new"
+        );
+
         manager.createScene({
             guildId: "guild",
             channelId: channel.id,

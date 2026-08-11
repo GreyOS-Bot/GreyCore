@@ -231,6 +231,58 @@ function openMove(interaction, sceneId) {
     });
 }
 
+function openNewMove(interaction) {
+    return replyPrivate(interaction, {
+        content: "➡️ Choisis le salon où poursuivre cette scène.",
+        components: [new ActionRowBuilder().addComponents(
+            new ChannelSelectMenuBuilder()
+                .setCustomId("v2_scene_move_new_channel")
+                .setPlaceholder("Salon de destination")
+                .setChannelTypes(ChannelType.GuildText, ChannelType.PublicThread, ChannelType.PrivateThread)
+        )]
+    });
+}
+
+function selectNewMoveChannel(interaction) {
+    const destinationId = interaction.values[0];
+    const title = new TextInputBuilder()
+        .setCustomId("title")
+        .setLabel("Nom de la scène")
+        .setPlaceholder("Ex. Soirée au Steel")
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true)
+        .setMaxLength(100);
+    const message = new TextInputBuilder()
+        .setCustomId("transition_message")
+        .setLabel("Lien ou identifiant du message (facultatif)")
+        .setPlaceholder("Vide = dernier message du salon actuel")
+        .setStyle(TextInputStyle.Short)
+        .setRequired(false);
+
+    return interaction.showModal(
+        new ModalBuilder()
+            .setCustomId(`v2_scene_move_new_submit:${destinationId}`)
+            .setTitle("Poursuivre en rattrapage")
+            .addComponents(
+                new ActionRowBuilder().addComponents(title),
+                new ActionRowBuilder().addComponents(message)
+            )
+    );
+}
+
+async function submitNewMove(interaction, destinationId) {
+    if (manager.getActiveSceneByChannel(interaction.guildId, interaction.channelId)) {
+        return replyError(interaction, "Une scène est déjà active dans ce salon. Relance la demande de rattrapage.");
+    }
+    const scene = manager.createScene({
+        guildId: interaction.guildId,
+        channelId: interaction.channelId,
+        title: interaction.fields.getTextInputValue("title"),
+        createdBy: interaction.user.id
+    });
+    return submitMove(interaction, scene.id, destinationId);
+}
+
 function selectMoveChannel(interaction, sceneId) {
     const destinationId = interaction.values[0];
     const message = new TextInputBuilder()
@@ -364,6 +416,9 @@ module.exports = {
     resume,
     selectResume,
     openMove,
+    openNewMove,
+    selectNewMoveChannel,
+    submitNewMove,
     selectMoveChannel,
     submitMove,
     voteClose,

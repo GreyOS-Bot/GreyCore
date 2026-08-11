@@ -7,6 +7,10 @@ module.exports = async interaction => {
         await handler.submitStart(interaction);
         return true;
     }
+    if (interaction.customId.startsWith("v2_scene_move_new_submit:")) {
+        await handler.submitNewMove(interaction, interaction.customId.split(":")[1]);
+        return true;
+    }
     if (interaction.customId.startsWith("v2_scene_move_submit:")) {
         const [, sceneId, destinationId] = interaction.customId.split(":");
         await handler.submitMove(interaction, sceneId, destinationId);

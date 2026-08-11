@@ -19,6 +19,10 @@ module.exports = async interaction => {
         });
         return true;
     }
+    if (interaction.customId === "v2_scene_move_new") {
+        await handler.openNewMove(interaction);
+        return true;
+    }
     if (interaction.customId.startsWith("v2_scene_move:")) {
         await handler.openMove(interaction, interaction.customId.split(":")[1]);
         return true;

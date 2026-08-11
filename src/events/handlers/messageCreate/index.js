@@ -86,9 +86,9 @@ module.exports =
 
             if (result?.moveIntentDetected) {
                 await message.channel.send(
-                    sceneAssistantService.buildMoveIntentPrompt(
-                        result.cycle
-                    )
+                    result.cycle
+                        ? sceneAssistantService.buildMoveIntentPrompt(result.cycle)
+                        : sceneAssistantService.buildNewMoveIntentPrompt()
                 );
             }
 

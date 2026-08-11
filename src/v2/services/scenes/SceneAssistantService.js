@@ -79,6 +79,12 @@ class SceneAssistantService {
             channelId
         );
 
+        const moveIntentDetected =
+            manager.matchesTriggerExpression(
+                guildId,
+                message.content
+            );
+
         if (!scene) {
             const characterId =
                 message.greycoreSceneCharacterId
@@ -87,7 +93,8 @@ class SceneAssistantService {
             return {
                 kind: "no_active_scene",
                 shouldOfferStart: Boolean(characterId),
-                characterId
+                characterId,
+                moveIntentDetected
             };
         }
 
@@ -105,11 +112,6 @@ class SceneAssistantService {
             scene.id,
             this.getMessageTimestamp(message)
         );
-        const moveIntentDetected =
-            manager.matchesTriggerExpression(
-                guildId,
-                message.content
-            );
         const closureIntentDetected = manager.matchesClosureExpression(
             message.content
         );
@@ -441,6 +443,30 @@ class SceneAssistantService {
             components: [new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId(`v2_scene_move:${scene.id}`)
+                    .setLabel("Continuer la scène")
+                    .setEmoji("➡️")
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId("v2_scene_move_cancel")
+                    .setLabel("Annuler")
+                    .setEmoji("❌")
+                    .setStyle(ButtonStyle.Secondary)
+            )]
+        };
+    }
+
+    buildNewMoveIntentPrompt() {
+        return {
+            embeds: [new EmbedBuilder()
+                .setColor(0x5865F2)
+                .setTitle("🔄 Poursuivre cette scène ?")
+                .setDescription([
+                    "GreyCore a détecté une demande de rattrapage.",
+                    "Aucun cycle n’avait encore été démarré dans ce salon, mais la continuité peut être créée maintenant."
+                ].join("\n\n"))],
+            components: [new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId("v2_scene_move_new")
                     .setLabel("Continuer la scène")
                     .setEmoji("➡️")
                     .setStyle(ButtonStyle.Primary),
