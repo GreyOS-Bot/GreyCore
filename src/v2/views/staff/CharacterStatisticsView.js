@@ -4,6 +4,7 @@ const {
     UserSelectMenuBuilder
 } = require("discord.js");
 const characterTypes = require("../../core/character/CharacterTypeCatalog");
+const firstNameGender = require("../../core/character/FirstNameGenderInference");
 const { navigationRow } = require("../../pages/staff/StaffCharactersPage");
 
 function normalize(value) {
@@ -14,7 +15,7 @@ function normalize(value) {
         .toLocaleLowerCase("fr");
 }
 
-function genderCategory(value) {
+function genderCategory(value, firstname) {
     const normalized = normalize(value);
     if (["f", "femme", "feminin", "female", "woman"].includes(normalized)) {
         return "female";
@@ -22,7 +23,10 @@ function genderCategory(value) {
     if (["m", "homme", "masculin", "male", "man"].includes(normalized)) {
         return "male";
     }
-    return "unspecified";
+    if (normalized) {
+        return "unspecified";
+    }
+    return firstNameGender.infer(firstname);
 }
 
 function statisticsText(characters) {
@@ -38,7 +42,7 @@ function statisticsText(characters) {
             unspecified: 0
         };
         current.total += 1;
-        current[genderCategory(character.gender)] += 1;
+        current[genderCategory(character.gender, character.firstname)] += 1;
         counts.set(type, current);
     }
 
@@ -83,6 +87,7 @@ function buildGlobal(characters) {
             .setTitle("📊 Statistiques globales des personnages")
             .setDescription([
                 "Personnages validés, installés et actifs sur ce serveur.",
+                "Le genre renseigné sur la fiche est prioritaire ; sinon GreyCore fait une estimation prudente depuis le prénom.",
                 "",
                 statisticsText(characters)
             ].join("\n"))],
@@ -116,6 +121,7 @@ function buildUser(userId, characters) {
             .setDescription([
                 `Utilisateur : <@${userId}>`,
                 "Personnages validés, installés et actifs sur ce serveur.",
+                "Le genre renseigné sur la fiche est prioritaire ; sinon GreyCore fait une estimation prudente depuis le prénom.",
                 "",
                 statisticsText(characters)
             ].join("\n"))],

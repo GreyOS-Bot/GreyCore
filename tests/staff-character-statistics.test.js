@@ -20,6 +20,16 @@ test("les statistiques staff détaillent les types, genres et l’équilibre des
     assert.match(text, /Équilibre des PJ : parfait/);
 });
 
+test("un genre absent est estimé seulement pour un prénom non ambigu reconnu", () => {
+    const view = require("../src/v2/views/staff/CharacterStatisticsView");
+
+    assert.equal(view.genderCategory(null, "Freyja"), "female");
+    assert.equal(view.genderCategory(null, "Camille"), "unspecified");
+    assert.equal(view.genderCategory(null, "PrénomInconnuDuBot"), "unspecified");
+    assert.equal(view.genderCategory("Homme", "Freyja"), "male");
+    assert.equal(view.genderCategory("Non binaire", "Freyja"), "unspecified");
+});
+
 test("la sélection staff limite les statistiques au seul utilisateur choisi", async () => {
     const roster = [
         character("Alba", "owner-a", "personnage_joue", "Femme"),
