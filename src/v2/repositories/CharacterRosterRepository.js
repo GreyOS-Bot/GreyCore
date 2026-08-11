@@ -16,7 +16,8 @@ const ROSTER_SELECT = `
             NULLIF(continuity.firstname, ''),
             NULLIF(character.base_firstname, ''),
             character.proxy_name
-        ) AS firstname
+        ) AS firstname,
+        profile.gender
 
     FROM CharacterGuildInstallationsV2 AS installation
 

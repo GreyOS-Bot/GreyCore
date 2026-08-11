@@ -2,6 +2,40 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { stubModule } = require("./helpers/moduleStub");
 
+test("l’annuaire affiche les effectifs par type, genre et l’équilibre des PJ", () => {
+    const view = require("../src/v2/views/player/PlayerDirectoryView");
+    const characters = [
+        { ...character("Alba", "owner-a"), gender: "Femme" },
+        { ...character("Icaro", "owner-i"), gender: "Masculin" },
+        {
+            ...character("Narratrice", "owner-n"),
+            character_type: "pnj",
+            gender: "féminin"
+        },
+        {
+            ...character("Sans genre", "owner-s"),
+            character_type: "pnj",
+            gender: null
+        },
+        {
+            ...character("Archive", "owner-x"),
+            gender: "Homme",
+            is_archived: 1
+        }
+    ];
+
+    const payload = view.build(characters, { letter: "a" });
+    const statistics = payload.embeds[0].toJSON().fields[0].value;
+
+    assert.match(statistics, /Total : 4 personnage/);
+    assert.match(statistics, /PJ — 2/);
+    assert.match(statistics, /Femmes : 1 · ♂️ Hommes : 1/);
+    assert.match(statistics, /PNJ — 2/);
+    assert.match(statistics, /Non renseigné : 1/);
+    assert.match(statistics, /Équilibre des PJ : parfait/);
+    assert.doesNotMatch(statistics, /5 personnage/);
+});
+
 test("l’annuaire joueur trie, filtre et pagine les personnages validés", () => {
     const view = require("../src/v2/views/player/PlayerDirectoryView");
     const characters = [
