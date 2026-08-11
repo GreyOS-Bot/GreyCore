@@ -13,6 +13,18 @@ const PhoneCallSessionManager =
 
 class PhoneNotificationService {
 
+    getCharacterDisplayName(
+        character
+    ) {
+        return String(
+            character?.display_name
+            || character?.displayName
+            || character?.proxy_name
+            || character?.name
+            || "Personnage"
+        ).trim();
+    }
+
     async getCharacterUser(
         client,
         characterId
@@ -120,7 +132,7 @@ class PhoneNotificationService {
                             : "📱"
                 } **Nouveau ${label}**`,
                 "",
-                `**${senderCharacter.proxy_name}** vous a envoyé un message${
+                `**${this.getCharacterDisplayName(senderCharacter)}** vous a envoyé un message${
                     conversationName
                         ? ` dans **${conversationName}**`
                         : ""
@@ -193,7 +205,7 @@ class PhoneNotificationService {
         content: [
             "📞 **Appel entrant**",
             "",
-            `**${senderCharacter.proxy_name}** vous appelle.`,
+            `**${this.getCharacterDisplayName(senderCharacter)}** vous appelle.`,
             "",
             "Que souhaitez-vous faire ?"
         ].join("\n"),

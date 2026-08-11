@@ -182,7 +182,8 @@ module.exports =
                 channel:
                     interaction.channel,
                 senderCharacter:
-                    character,
+                    dashboardData
+                        .character,
                 senderPhone:
                     phone,
                 conversationId,

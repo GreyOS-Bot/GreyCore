@@ -24,6 +24,18 @@ const logger =
 
 class PhoneCallService {
 
+    getCharacterDisplayName(
+        character
+    ) {
+        return String(
+            character?.display_name
+            || character?.displayName
+            || character?.proxy_name
+            || character?.name
+            || "Personnage"
+        ).trim();
+    }
+
     formatCallContent(
         contactName,
         content
@@ -155,7 +167,9 @@ class PhoneCallService {
                 ),
 
             username:
-                character.proxy_name,
+                this.getCharacterDisplayName(
+                    character
+                ),
 
             avatarURL:
                 character.avatar_url
@@ -231,7 +245,9 @@ class PhoneCallService {
                             ),
 
                         username:
-                            character.proxy_name,
+                            this.getCharacterDisplayName(
+                                character
+                            ),
 
                         avatar_url:
                             character.avatar_url

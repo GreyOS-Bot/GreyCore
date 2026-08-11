@@ -30,6 +30,11 @@ const PhoneCallServiceV2 =
         "../../services/phone/PhoneCallService"
     );
 
+const CharacterDashboardManager =
+    require(
+        "../../services/dashboard/CharacterDashboardManager"
+    );
+
 const {
     privatePayload,
     editOrReplyError
@@ -189,11 +194,41 @@ class PhoneCallSpeakV2 {
 
         }
 
+        const characterDashboard =
+            CharacterDashboardManager
+                .getPlayableDashboardData(
+                    character.id,
+                    {
+                        guildId:
+                            interaction.guildId,
+                        continuityId:
+                            phone.continuity_id
+                    }
+                );
+
+        const otherDashboard =
+            CharacterDashboardManager
+                .getPlayableDashboardData(
+                    otherCharacter.id,
+                    {
+                        guildId:
+                            interaction.guildId,
+                        continuityId:
+                            otherContinuity.id
+                    }
+                );
+
         return {
-            character,
+            character:
+                characterDashboard
+                    ?.character
+                || character,
             phone,
             otherPhone,
-            otherCharacter
+            otherCharacter:
+                otherDashboard
+                    ?.character
+                || otherCharacter
         };
 
     }
@@ -203,7 +238,8 @@ class PhoneCallSpeakV2 {
     ) {
 
         return (
-            otherCharacter.proxy_name
+            otherCharacter.display_name
+            || otherCharacter.proxy_name
             ||
             otherCharacter.name
             ||

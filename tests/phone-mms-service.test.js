@@ -140,6 +140,7 @@ test(
                     () => true
             },
             senderCharacter: {
+                display_name: "Vega affichée",
                 proxy_name: "Vega",
                 avatar_url: null
             },
@@ -166,6 +167,11 @@ test(
         assert.match(
             webhookPayload.content,
             /MMS à Alba/
+        );
+
+        assert.equal(
+            webhookPayload.username,
+            "Vega affichée"
         );
 
         assert.deepEqual(

@@ -344,8 +344,24 @@ class CharacterPhoneCallPage {
                 )
             : null;
 
+    const otherDashboard =
+        otherCharacter
+            ? CharacterDashboardManager
+                .getPlayableDashboardData(
+                    otherCharacter.id,
+                    {
+                        guildId:
+                            interaction.guildId,
+                        continuityId:
+                            otherContinuity?.id
+                    }
+                )
+            : null;
+
     const contactName =
-        otherCharacter?.proxy_name
+        otherDashboard?.character
+            ?.display_name
+        || otherCharacter?.proxy_name
         ||
         otherCharacter?.name
         ||

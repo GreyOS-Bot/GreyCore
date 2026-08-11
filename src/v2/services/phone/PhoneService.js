@@ -26,6 +26,18 @@ const logger =
 
 class PhoneService {
 
+    getCharacterDisplayName(
+        character
+    ) {
+        return String(
+            character?.display_name
+            || character?.displayName
+            || character?.proxy_name
+            || character?.name
+            || "Personnage"
+        ).trim();
+    }
+
     formatSmsContent(
         receiverName,
         content,
@@ -261,8 +273,9 @@ class PhoneService {
                         ),
 
                     username:
-                        senderCharacter
-                            .proxy_name,
+                        this.getCharacterDisplayName(
+                            senderCharacter
+                        ),
 
                     avatarURL:
                         senderCharacter

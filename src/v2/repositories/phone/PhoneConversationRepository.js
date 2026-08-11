@@ -35,8 +35,12 @@ function getParticipants(
                 AS continuity_id,
             character.id
                 AS character_id,
-            character.proxy_name
-                AS character_name,
+            COALESCE(
+                NULLIF(profile.alias, ''),
+                NULLIF(profile.firstname, ''),
+                NULLIF(continuity.firstname, ''),
+                character.proxy_name
+            ) AS character_name,
             character.avatar_url
                 AS character_avatar_url
 
@@ -55,6 +59,10 @@ function getParticipants(
         LEFT JOIN CharactersV2 character
             ON character.id =
                 continuity.character_id
+
+        LEFT JOIN CharacterProfilesV2 profile
+            ON profile.continuity_id =
+                continuity.id
 
         WHERE participant.conversation_id = ?
         AND participant.has_left = 0
