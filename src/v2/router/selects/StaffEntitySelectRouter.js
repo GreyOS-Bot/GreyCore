@@ -1,5 +1,6 @@
 const policy = require("../../core/policies/StaffPermissionPolicy");
 const manager = require("../../managers/NarrativeEntityV2Manager");
+const eventManager = require("../../managers/NarrativeEntityEventManager");
 const page = require("../../pages/staff/StaffEntitiesPage");
 const { replyError } = require("../../core/services/InteractionResponseService");
 
@@ -11,6 +12,22 @@ module.exports = async interaction => {
     }
     if (interaction.customId === "v2_staff_entities_select") {
         await interaction.update(page.buildDetail(interaction, interaction.values[0]));
+        return true;
+    }
+    if (interaction.customId.startsWith("v2_staff_entities_event_select:")) {
+        await interaction.update(page.buildEventDetail(interaction, interaction.values[0]));
+        return true;
+    }
+    if (interaction.customId.startsWith("v2_staff_entities_event_scopes:")) {
+        if (!policy.canAccess(interaction, "entities", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
+            return true;
+        }
+        const eventId = interaction.customId.slice("v2_staff_entities_event_scopes:".length);
+        try {
+            eventManager.setScopes(interaction.guildId, eventId, interaction.values);
+            await interaction.update(page.buildEventDetail(interaction, eventId));
+        } catch (error) { await replyError(interaction, error); }
         return true;
     }
     if (interaction.customId.startsWith("v2_staff_entities_triggers:")) {

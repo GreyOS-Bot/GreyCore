@@ -14,6 +14,9 @@ const relationshipManager =
 const sceneInactivityService =
     require("../v2/services/scenes/SceneInactivityService");
 
+const narrativeEntityEventScheduler =
+    require("../v2/services/entities/NarrativeEntityEventScheduler");
+
 module.exports = {
     name: "clientReady",
     once: true,
@@ -41,6 +44,7 @@ module.exports = {
         databaseBackupService.start();
         staffErrorLogService.initialize(client);
         sceneInactivityService.start(client);
+        narrativeEntityEventScheduler.start(client);
 
         console.log(
             `✅ Greycore connecté en tant que ${client.user.tag}`

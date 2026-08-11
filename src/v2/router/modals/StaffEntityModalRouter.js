@@ -1,5 +1,6 @@
 const policy = require("../../core/policies/StaffPermissionPolicy");
 const manager = require("../../managers/NarrativeEntityV2Manager");
+const eventManager = require("../../managers/NarrativeEntityEventManager");
 const page = require("../../pages/staff/StaffEntitiesPage");
 const { replyError } = require("../../core/services/InteractionResponseService");
 
@@ -7,6 +8,21 @@ module.exports = async interaction => {
     if (!interaction.isModalSubmit?.() || !interaction.customId?.startsWith("v2_staff_entities_")) return false;
     if (!policy.canAccess(interaction, "entities", { write: true })) {
         await replyError(interaction, "Tu ne peux pas modifier les Entités.");
+        return true;
+    }
+    if (interaction.customId.startsWith("v2_staff_entities_event_create_submit:")) {
+        const entityId = interaction.customId.slice("v2_staff_entities_event_create_submit:".length);
+        try {
+            const event = eventManager.create({
+                guildId: interaction.guildId, entityId, createdBy: interaction.user.id,
+                name: interaction.fields.getTextInputValue("name"),
+                calendarRule: interaction.fields.getTextInputValue("calendar"),
+                weekdayRule: interaction.fields.getTextInputValue("weekdays"),
+                timeRule: interaction.fields.getTextInputValue("time"),
+                timezone: interaction.fields.getTextInputValue("timezone")
+            });
+            await interaction.update(page.buildEventDetail(interaction, event.id));
+        } catch (error) { await replyError(interaction, error); }
         return true;
     }
     if (interaction.customId.startsWith("v2_staff_entities_expressions_submit:")) {

@@ -35,6 +35,29 @@ class NarrativeEntityService {
         }));
     }
 
+    async sendEntity({ channel, entityId, content = null, suffix = null, variables = {}, threadName = null }) {
+        const entity = manager.getById(channel.guildId, entityId);
+        if (!entity || !entity.is_enabled) return null;
+        const messages = entity.messages.filter(message => Number(message.is_enabled) === 1);
+        const fallback = messages[Math.floor(Math.random() * messages.length)];
+        const source = String(content || fallback?.content || "").trim();
+        if (!source) return null;
+        const rendered = Object.entries(variables).reduce(
+            (text, [key, value]) => text.replaceAll(`{${key}}`, String(value)), source
+        );
+        const webhook = await webhookManager.getOrCreateWebhook(channel);
+        const payload = {
+            username: entity.name,
+            avatarURL: entity.avatar_url || undefined,
+            embeds: [new EmbedBuilder().setColor(entity.embed_color).setDescription(
+                [rendered, suffix].filter(Boolean).join("\n\n")
+            )],
+            allowedMentions: { parse: [] }
+        };
+        if (threadName) payload.threadName = threadName.slice(0, 100);
+        return webhook.send(withThreadId(channel, payload));
+    }
+
     async processInvocation(message) {
         if (
             !message?.guildId

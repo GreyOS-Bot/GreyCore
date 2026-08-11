@@ -4,6 +4,7 @@ const {
 } = require("discord.js");
 const manager = require("../../managers/NarrativeEntityV2Manager");
 const triggerCatalog = require("../../core/catalogs/NarrativeEntityTriggerCatalog");
+const eventManager = require("../../managers/NarrativeEntityEventManager");
 const policy = require("../../core/policies/StaffPermissionPolicy");
 const { navigationRow } = require("./StaffCharactersPage");
 
@@ -112,6 +113,8 @@ class StaffEntitiesPage {
                     .setEmoji(entity.is_enabled ? "⏸️" : "▶️").setStyle(ButtonStyle.Secondary).setDisabled(!writable),
                 new ButtonBuilder().setCustomId(`v2_staff_entities_expressions:${entity.id}`)
                     .setLabel("Mots d’appel").setEmoji("💬").setStyle(ButtonStyle.Secondary).setDisabled(!writable),
+                new ButtonBuilder().setCustomId(`v2_staff_entities_events:${entity.id}`)
+                    .setLabel("Programmations").setEmoji("📅").setStyle(ButtonStyle.Secondary),
                 new ButtonBuilder().setCustomId(`v2_staff_entities_delete:${entity.id}`)
                     .setLabel("Supprimer").setEmoji("🗑️").setStyle(ButtonStyle.Danger).setDisabled(!writable)
             ];
@@ -149,7 +152,83 @@ class StaffEntitiesPage {
         };
     }
 
+    buildEvents(interaction, entityId) {
+        const entity = manager.getById(interaction.guildId, entityId);
+        if (!entity) return this.build(interaction);
+        const events = eventManager.getByEntity(interaction.guildId, entityId);
+        const writable = policy.canAccess(interaction, "entities", { write: true });
+        const components = [];
+        if (events.length) components.push(new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder().setCustomId(`v2_staff_entities_event_select:${entity.id}`)
+                .setPlaceholder("Ouvrir une programmation")
+                .addOptions(events.slice(0, 25).map(event => ({
+                    label: event.name.slice(0, 100), value: event.id,
+                    description: `${event.calendar_rule} · ${event.time_rule}`.slice(0, 100),
+                    emoji: event.is_enabled ? "⏰" : "⏸️"
+                })))
+        ));
+        components.push(new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId(`v2_staff_entities_event_create:${entity.id}`)
+                .setLabel("Programmer une apparition").setEmoji("➕")
+                .setStyle(ButtonStyle.Primary).setDisabled(!writable),
+            new ButtonBuilder().setCustomId(`v2_staff_entities_open:${entity.id}`)
+                .setLabel("Entité").setEmoji("⬅️").setStyle(ButtonStyle.Secondary)
+        ));
+        return {
+            embeds: [new EmbedBuilder().setColor(entity.embed_color)
+                .setTitle(`📅 Programmations de ${entity.name}`)
+                .setDescription([
+                    "Planifiez des apparitions automatiques sans intervention du staff.",
+                    "Les dates, jours et heures peuvent être combinés librement.", "",
+                    ...(events.length ? events.map(event =>
+                        `${event.is_enabled ? "✅" : "⏸️"} **${event.name}** · ${formatSchedule(event)} · ${event.scopes.length} lieu(x)`
+                    ) : ["Aucune apparition programmée."])
+                ].join("\n"))],
+            components
+        };
+    }
+
+    buildEventDetail(interaction, eventId) {
+        const event = eventManager.getById(interaction.guildId, eventId);
+        if (!event) return this.build(interaction);
+        const writable = policy.canAccess(interaction, "entities", { write: true });
+        const scopeSelect = new ChannelSelectMenuBuilder()
+            .setCustomId(`v2_staff_entities_event_scopes:${event.id}`)
+            .setPlaceholder("Salons, catégories et forums d’apparition")
+            .setChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement, ChannelType.GuildForum, ChannelType.GuildCategory)
+            .setMinValues(1).setMaxValues(25)
+            .setDefaultChannels(...event.scopes.slice(0, 25)).setDisabled(!writable);
+        return {
+            embeds: [new EmbedBuilder().setColor(event.embed_color)
+                .setTitle(`${event.is_enabled ? "⏰" : "⏸️"} ${event.name}`)
+                .setDescription([
+                    `**Entité :** ${event.entity_name}`,
+                    `**Calendrier :** ${formatSchedule(event)}`,
+                    `**Fuseau :** ${event.timezone}`,
+                    `**Lieux :** ${event.scopes.map(id => `<#${id}>`).join(", ") || "Aucun"}`,
+                    `**Message :** ${event.message_content || "Message aléatoire de l’Entité"}`,
+                    `**Dernière exécution :** ${event.last_run_key || "Jamais"}`
+                ].join("\n"))],
+            components: [
+                new ActionRowBuilder().addComponents(scopeSelect),
+                new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId(`v2_staff_entities_event_toggle:${event.id}`)
+                        .setLabel(event.is_enabled ? "Désactiver" : "Activer").setStyle(ButtonStyle.Secondary).setDisabled(!writable),
+                    new ButtonBuilder().setCustomId(`v2_staff_entities_event_delete:${event.id}`)
+                        .setLabel("Supprimer").setStyle(ButtonStyle.Danger).setDisabled(!writable),
+                    new ButtonBuilder().setCustomId(`v2_staff_entities_events:${event.entity_id}`)
+                        .setLabel("Programmations").setStyle(ButtonStyle.Secondary)
+                )
+            ]
+        };
+    }
+
     execute(interaction) { return interaction.update(this.build(interaction)); }
 }
 
 module.exports = new StaffEntitiesPage();
+
+function formatSchedule(event) {
+    const days = event.weekday_rule === "*" ? "tous les jours" : `jours ${event.weekday_rule}`;
+    return `${event.calendar_rule} · ${days} · ${event.time_rule}`;
+}

@@ -7,6 +7,7 @@ const {
 } = require("discord.js");
 const policy = require("../../core/policies/StaffPermissionPolicy");
 const manager = require("../../managers/NarrativeEntityV2Manager");
+const eventManager = require("../../managers/NarrativeEntityEventManager");
 const page = require("../../pages/staff/StaffEntitiesPage");
 const { replyError } = require("../../core/services/InteractionResponseService");
 
@@ -21,6 +22,14 @@ module.exports = async interaction => {
         await interaction.update(page.buildDetail(interaction, entityId));
         return true;
     }
+    if (action === "events") {
+        await interaction.update(page.buildEvents(interaction, entityId));
+        return true;
+    }
+    if (action === "event_open") {
+        await interaction.update(page.buildEventDetail(interaction, entityId));
+        return true;
+    }
     if (!policy.canAccess(interaction, "entities", { write: true })) {
         await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
         return true;
@@ -28,6 +37,16 @@ module.exports = async interaction => {
     try {
         if (action === "create") {
             await interaction.showModal(buildModal());
+        } else if (action === "event_create") {
+            await interaction.showModal(buildEventModal(entityId));
+        } else if (action === "event_toggle") {
+            const event = eventManager.toggle(interaction.guildId, entityId);
+            await interaction.update(page.buildEventDetail(interaction, event.id));
+        } else if (action === "event_delete") {
+            const event = eventManager.getById(interaction.guildId, entityId);
+            if (!event) throw new Error("Cette programmation est introuvable.");
+            eventManager.delete(interaction.guildId, entityId);
+            await interaction.update(page.buildEvents(interaction, event.entity_id));
         } else if (action === "edit") {
             const entity = manager.getById(interaction.guildId, entityId);
             if (!entity) throw new Error("Cette Entité est introuvable.");
@@ -53,6 +72,25 @@ function parse(customId) {
     const value = customId.slice("v2_staff_entities_".length);
     const separator = value.indexOf(":");
     return separator === -1 ? [value, null] : [value.slice(0, separator), value.slice(separator + 1)];
+}
+
+function buildEventModal(entityId) {
+    const field = (id, label, value, description) => {
+        const input = new TextInputBuilder().setCustomId(id).setStyle(TextInputStyle.Short)
+            .setMaxLength(100).setRequired(true).setValue(value);
+        const item = new LabelBuilder().setLabel(label).setTextInputComponent(input);
+        if (description) item.setDescription(description);
+        return item;
+    };
+    return new ModalBuilder().setCustomId(`v2_staff_entities_event_create_submit:${entityId}`)
+        .setTitle("Programmer une apparition")
+        .addLabelComponents(
+            field("name", "Nom de la programmation", "Apparition programmée"),
+            field("calendar", "Date ou période", "toujours", "toujours · 2026-10-31 · 10-31 · 2026-10-01..2026-10-31"),
+            field("weekdays", "Jours", "tous", "tous ou lundi, vendredi, samedi"),
+            field("time", "Heure ou plage horaire", "21:00", "21:00 ou 18:00-23:59"),
+            field("timezone", "Fuseau horaire", "Europe/Paris")
+        );
 }
 
 function buildModal(entity = null) {
