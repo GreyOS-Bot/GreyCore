@@ -53,7 +53,8 @@ module.exports =
         const mode =
             [
                 "call",
-                "group"
+                "group",
+                "email"
             ].includes(modeValue)
                 ? modeValue
                 : "sms";
@@ -255,6 +256,25 @@ module.exports =
                 interaction,
                 conversation.id,
                 characterId
+            );
+        }
+
+        if (
+            mode === "email"
+        ) {
+            const PhoneMessageModal =
+                require(
+                    "../../modals/PhoneMessageModal"
+                );
+
+            return PhoneMessageModal.show(
+                interaction,
+                conversation.id,
+                characterId,
+                {
+                    source: "phone_home",
+                    kind: "email"
+                }
             );
         }
 

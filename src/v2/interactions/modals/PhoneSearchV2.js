@@ -37,7 +37,8 @@ module.exports =
         const mode =
             [
                 "call",
-                "group"
+                "group",
+                "email"
             ].includes(modeValue)
                 ? modeValue
                 : "sms";
@@ -168,6 +169,8 @@ module.exports =
                         ? "Choisir le personnage à appeler"
                         : mode === "group"
                             ? "Choisir le membre à ajouter"
+                        : mode === "email"
+                            ? "Choisir le destinataire de l’e-mail"
                         : selectableResults.length === 1
                             ? "Sélectionner le résultat"
                             : "Choisir parmi les résultats"
@@ -213,6 +216,8 @@ module.exports =
                                             ? "📞"
                                             : mode === "group"
                                                 ? "👥"
+                                                : mode === "email"
+                                                    ? "📧"
                                                 : "💬"
                                 };
                             }

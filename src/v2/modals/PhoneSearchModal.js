@@ -16,7 +16,8 @@ module.exports = {
         const searchMode =
             [
                 "call",
-                "group"
+                "group",
+                "email"
             ].includes(mode)
                 ? mode
                 : "sms";
@@ -31,6 +32,8 @@ module.exports = {
                         ? "Lancer un appel"
                         : searchMode === "group"
                             ? "Ajouter un membre"
+                            : searchMode === "email"
+                                ? "Envoyer un e-mail"
                             : "Rechercher un contact"
                 );
 
@@ -41,7 +44,9 @@ module.exports = {
                 .setPlaceholder(
                     searchMode === "group"
                         ? "Rechercher le personnage à ajouter"
-                        : "Ex : Alba ou 555-1234"
+                        : searchMode === "email"
+                            ? "Ex : Alba, son alias ou son prénom"
+                            : "Ex : Alba ou 555-1234"
                 )
                 .setRequired(true)
                 .setStyle(

@@ -177,6 +177,23 @@ module.exports =
 
         if (
             id.startsWith(
+                "v2_phone_email_new_contact:"
+            )
+        ) {
+            const characterId =
+                id.split(":")[1];
+
+            await PhoneSearchModal.show(
+                interaction,
+                characterId,
+                "email"
+            );
+
+            return true;
+        }
+
+        if (
+            id.startsWith(
                 "v2_phone_new:"
             )
         ) {

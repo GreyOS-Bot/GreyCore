@@ -203,6 +203,19 @@ const dashboardData =
 
             }),
 
+            UI.button.primary({
+
+                id:
+                    `v2_phone_email_new_contact:${characterId}`,
+
+                label:
+                    "Nouvel e-mail",
+
+                emoji:
+                    "📧"
+
+            }),
+
             UI.button.secondary({
 
                 id:
