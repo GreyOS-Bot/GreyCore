@@ -285,7 +285,13 @@ module.exports =
 
             await replyPrivate(
                 interaction,
-                "🖼️ Envoie maintenant l’image du personnage dans ce salon. Tu disposes de 5 minutes."
+                [
+                    "🖼️ Envoie maintenant l’image du personnage dans ce salon. Tu disposes de 5 minutes.",
+                    "",
+                    "**Choisis le cadrage en écrivant avec l’image :**",
+                    "`haut gauche`, `haut`, `haut droite`, `gauche`, `centre`, `droite`, `bas gauche`, `bas` ou `bas droite`.",
+                    "Sans indication, GreyCore choisira automatiquement la zone importante."
+                ].join("\n")
             );
 
             return true;
@@ -392,6 +398,9 @@ module.exports =
                 interaction,
                 [
                     "🖼️ Envoie maintenant l’image à utiliser sur ce serveur.",
+                    "",
+                    "**Cadrage carré :** écris avec l’image `haut`, `centre`, `bas`, `gauche`, `droite` ou une combinaison comme `haut droite`.",
+                    "Sans indication, GreyCore choisira automatiquement la zone importante.",
                     "",
                     "Ce changement sera propre à cette installation et ne modifiera pas les autres serveurs."
                 ].join("\n")

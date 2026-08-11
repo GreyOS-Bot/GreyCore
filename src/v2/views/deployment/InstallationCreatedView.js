@@ -181,7 +181,7 @@ class InstallationCreatedView {
             return [
                 "### Prochaine étape",
                 "1. Clique sur **Ajouter l’avatar**.",
-                "2. Envoie l’image dans ce salon.",
+                "2. Envoie l’image dans ce salon et indique si besoin le cadrage : `haut`, `centre`, `bas`, `gauche`, `droite` ou une combinaison.",
                 "3. Clique ensuite sur **Envoyer en validation**.",
                 "",
                 "🔒 Le proxy reste désactivé pendant toute la préparation."

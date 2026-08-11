@@ -7,15 +7,49 @@ const logger = require(
 const OUTPUT_SIZE = 512;
 const MAX_SOURCE_BYTES = 15 * 1024 * 1024;
 
+const POSITIONS = new Map([
+    ["auto", "attention"],
+    ["haut gauche", "northwest"],
+    ["haut", "north"],
+    ["haut droite", "northeast"],
+    ["gauche", "west"],
+    ["centre", "centre"],
+    ["droite", "east"],
+    ["bas gauche", "southwest"],
+    ["bas", "south"],
+    ["bas droite", "southeast"]
+]);
+
+const POSITION_LABELS = new Map([
+    ["attention", "automatique"],
+    ["northwest", "haut gauche"],
+    ["north", "haut"],
+    ["northeast", "haut droite"],
+    ["west", "gauche"],
+    ["centre", "centre"],
+    ["east", "droite"],
+    ["southwest", "bas gauche"],
+    ["south", "bas"],
+    ["southeast", "bas droite"]
+]);
+
 class AvatarCropService {
     async cropAndStore(
         message,
-        attachment
+        attachment,
+        requestedPosition = null
     ) {
+        const position =
+            requestedPosition
+            || this.getPositionFromMessage(
+                message
+            );
+
         try {
             return await this.processAndStore(
                 message,
-                attachment
+                attachment,
+                position
             );
         } catch (error) {
             /*
@@ -34,7 +68,8 @@ class AvatarCropService {
 
     async processAndStore(
         message,
-        attachment
+        attachment,
+        position = "attention"
     ) {
         const response = await fetch(
             attachment.url,
@@ -69,7 +104,7 @@ class AvatarCropService {
                 OUTPUT_SIZE,
                 {
                     fit: "cover",
-                    position: "attention"
+                    position
                 }
             )
             .webp({
@@ -81,7 +116,10 @@ class AvatarCropService {
         const storedMessage =
             await message.channel.send({
                 content:
-                    "🖼️ Avatar recadré automatiquement au format carré.",
+                    `🖼️ Avatar recadré au format carré — cadrage **${
+                        POSITION_LABELS.get(position)
+                        || "automatique"
+                    }**.`,
                 files: [
                     {
                         attachment: cropped,
@@ -104,6 +142,27 @@ class AvatarCropService {
         }
 
         return storedAttachment.url;
+    }
+
+    getPositionFromMessage(message) {
+        return this.resolvePosition(
+            message?.content
+        );
+    }
+
+    resolvePosition(value) {
+        const normalized = String(
+            value || "auto"
+        )
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim()
+            .toLowerCase()
+            .replace(/[\-_]+/g, " ")
+            .replace(/\s+/g, " ");
+
+        return POSITIONS.get(normalized)
+            || "attention";
     }
 }
 
