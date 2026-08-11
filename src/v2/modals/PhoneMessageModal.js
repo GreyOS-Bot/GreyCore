@@ -170,14 +170,26 @@ module.exports = {
             } ${receiverName}`
                 .slice(0, 45);
 
+        const isEmail = options.kind === "email";
         const modal =
             new ModalBuilder()
                 .setCustomId(
-                    `v2_phone_message_modal:${conversationId}:${characterId}:${options.source || "panel"}`
+                    `${isEmail ? "v2_phone_email_modal" : "v2_phone_message_modal"}:${conversationId}:${characterId}:${options.source || "panel"}`
                 )
                 .setTitle(
-                    modalTitle
+                    isEmail ? `E-mail à ${receiverName}`.slice(0, 45) : modalTitle
                 );
+
+        if (isEmail) {
+            modal.addComponents(new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId("subject")
+                    .setLabel("Objet")
+                    .setStyle(TextInputStyle.Short)
+                    .setMaxLength(150)
+                    .setRequired(true)
+            ));
+        }
 
         const contentInput =
             new TextInputBuilder()
@@ -186,8 +198,8 @@ module.exports = {
                 .setPlaceholder(
                     `${
                         conversation.conversation_type === "group"
-                            ? "Écrivez votre SMS dans"
-                            : "Écrivez votre SMS à"
+                            ? "Écrivez votre message dans"
+                            : isEmail ? "Écrivez votre e-mail à" : "Écrivez votre SMS à"
                     } ${receiverName}...`
                         .slice(0, 100)
                 )

@@ -32,6 +32,11 @@ const {
     getImageAttachment
 } = require("./ImageAttachment");
 
+const avatarCropService =
+    require(
+        "../../../../v2/services/media/AvatarCropService"
+    );
+
 module.exports =
     async function characterAvatarUploadHandler(
         message,
@@ -94,7 +99,11 @@ module.exports =
                     character.id,
                     {
                         avatarUrl:
-                            attachment.url
+                            await avatarCropService
+                                .cropAndStore(
+                                    message,
+                                    attachment
+                                )
                     }
                 );
 
@@ -102,7 +111,8 @@ module.exports =
                 installationManager
                     .setLocalAvatar(
                         installation.id,
-                        attachment.url
+                        updatedCharacter
+                            .avatar_url
                     );
 
             pendingActionManager.delete(

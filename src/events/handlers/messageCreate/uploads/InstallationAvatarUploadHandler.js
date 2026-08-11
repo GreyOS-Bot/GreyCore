@@ -42,6 +42,11 @@ const {
     getImageAttachment
 } = require("./ImageAttachment");
 
+const avatarCropService =
+    require(
+        "../../../../v2/services/media/AvatarCropService"
+    );
+
 module.exports =
     async function installationAvatarUploadHandler(
         message,
@@ -108,6 +113,13 @@ module.exports =
                 return;
             }
 
+            const croppedAvatarUrl =
+                await avatarCropService
+                    .cropAndStore(
+                        message,
+                        attachment
+                    );
+
             if (installation.status === "approved") {
                 const result =
                     await changeRequestSubmissionService
@@ -121,7 +133,7 @@ module.exports =
                                     .AVATAR,
                             changes: {
                                 avatarUrl:
-                                    attachment.url
+                                    croppedAvatarUrl
                             },
                             submittedBy:
                                 message.author.id,
@@ -148,7 +160,7 @@ module.exports =
                 installationManager
                     .setLocalAvatar(
                         installation.id,
-                        attachment.url
+                        croppedAvatarUrl
                     );
 
             pendingActionManager.delete(

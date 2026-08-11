@@ -501,6 +501,7 @@ function createPhoneMessageTables(
             sender_phone_id INTEGER,
             content TEXT
                 NOT NULL,
+            subject TEXT,
             message_type TEXT
                 NOT NULL DEFAULT 'text',
             media_url TEXT,

@@ -116,6 +116,8 @@ function createPhoneMessagesTable() {
 
             content TEXT NOT NULL,
 
+            subject TEXT,
+
             message_type TEXT
                 NOT NULL
                 DEFAULT 'text',
@@ -142,6 +144,9 @@ function createPhoneMessagesTable() {
 }
 
 function ensurePhoneMessageColumns() {
+    if (!hasColumn("PhoneMessagesV2", "subject")) {
+        db.prepare(`ALTER TABLE PhoneMessagesV2 ADD COLUMN subject TEXT`).run();
+    }
     if (
         !hasColumn(
             "PhoneMessagesV2",

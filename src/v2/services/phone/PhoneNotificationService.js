@@ -96,15 +96,29 @@ class PhoneNotificationService {
 
         const isMms =
             messageType === "mms";
+        const isEmail =
+            messageType === "email";
+        const isVoicemail =
+            messageType === "voicemail";
 
         const label =
             isMms
                 ? "MMS"
-                : "SMS";
+                : isEmail
+                    ? "e-mail"
+                    : isVoicemail
+                        ? "message vocal"
+                        : "SMS";
 
         return target.user.send({
             content: [
-                `📱 **Nouveau ${label}**`,
+                `${
+                    isEmail
+                        ? "📧"
+                        : isVoicemail
+                            ? "📼"
+                            : "📱"
+                } **Nouveau ${label}**`,
                 "",
                 `**${senderCharacter.proxy_name}** vous a envoyé un message${
                     conversationName

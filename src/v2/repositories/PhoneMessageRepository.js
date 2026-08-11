@@ -26,16 +26,18 @@ class PhoneMessageRepository {
                     conversation_id,
                     sender_phone_id,
                     content,
+                    subject,
                     message_type,
                     media_url,
                     media_content_type,
                     created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `).run(
                 data.conversationId,
                 data.senderPhoneId,
                 data.content,
+                data.subject || null,
                 data.messageType,
                 data.mediaUrl || null,
                 data.mediaContentType || null,
@@ -103,6 +105,7 @@ class PhoneMessageRepository {
                     conversation_id,
                     sender_phone_id,
                     content,
+                    subject,
                     message_type,
                     media_url,
                     media_content_type,
@@ -111,11 +114,12 @@ class PhoneMessageRepository {
                     webhook_message_id,
                     created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(
                 data.conversationId,
                 data.senderPhoneId,
                 data.content,
+                data.subject || null,
                 data.messageType || "text",
                 data.mediaUrl || null,
                 data.mediaContentType || null,

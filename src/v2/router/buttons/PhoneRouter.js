@@ -78,6 +78,11 @@ const PhoneCallSpeakModal =
         "../../modals/PhoneCallSpeakModal"
     );
 
+const PhoneVoicemailModal =
+    require(
+        "../../modals/PhoneVoicemailModal"
+    );
+
 const CharacterPhoneCallPage =
     require(
         "../../pages/character/CharacterPhoneCallPage"
@@ -430,6 +435,17 @@ module.exports =
             return true;
         }
 
+        if (id.startsWith("v2_phone_email_new:")) {
+            const [, conversationId, characterId] = id.split(":");
+            await PhoneMessageModal.show(
+                interaction,
+                conversationId,
+                characterId,
+                { source: "email", kind: "email" }
+            );
+            return true;
+        }
+
         if (
             id.startsWith(
                 "v2_phone_quick_reply:"
@@ -593,6 +609,26 @@ if (
 
             return true;
 
+        }
+
+        if (
+            id.startsWith(
+                "v2_phone_call_voicemail:"
+            )
+        ) {
+            const [
+                ,
+                callId,
+                characterId
+            ] = id.split(":");
+
+            await PhoneVoicemailModal.show(
+                interaction,
+                Number(callId),
+                characterId
+            );
+
+            return true;
         }
 
         if (

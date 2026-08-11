@@ -56,7 +56,8 @@ class CharacterPhoneCallPage {
         const {
             character,
             call,
-            contactName
+            contactName,
+            canLeaveVoicemail = false
         } = options;
 
         const embed =
@@ -110,7 +111,22 @@ class CharacterPhoneCallPage {
                             emoji:
                                 "📵"
 
-                        })
+                        }),
+
+                        ...(
+                            canLeaveVoicemail
+                                ? [
+                                    UI.button.secondary({
+                                        id:
+                                            `v2_phone_call_voicemail:${call.id}:${character.id}`,
+                                        label:
+                                            "Laisser un message",
+                                        emoji:
+                                            "📼"
+                                    })
+                                ]
+                                : []
+                        )
 
                     )
 
@@ -340,7 +356,10 @@ class CharacterPhoneCallPage {
         this.build({
             character,
             call,
-            contactName
+            contactName,
+            canLeaveVoicemail:
+                Number(call.caller_phone_id)
+                === Number(phone.id)
         })
 
     );

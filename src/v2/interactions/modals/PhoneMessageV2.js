@@ -34,11 +34,12 @@ const {
 
 async function closeConversationPanel(
     interaction,
-    preserveSource
+    preserveSource,
+    sentLabel = "SMS"
 ) {
     if (preserveSource) {
         return interaction.editReply({
-            content: "✅ SMS envoyé."
+            content: `✅ ${sentLabel} envoyé.`
         });
     }
 
@@ -57,7 +58,7 @@ async function closeConversationPanel(
     }
 
     return interaction.editReply({
-        content: "✅ SMS envoyé."
+        content: `✅ ${sentLabel} envoyé.`
     });
 }
 
@@ -82,6 +83,16 @@ module.exports =
             interaction.fields
                 .getTextInputValue("content")
                 .trim();
+        const isEmail =
+            interaction.customId.startsWith(
+                "v2_phone_email_modal:"
+            );
+
+        const subject = isEmail
+            ? interaction.fields
+                .getTextInputValue("subject")
+                .trim()
+            : null;
 
         await deferPrivate(interaction);
 
@@ -156,30 +167,34 @@ module.exports =
 
         try {
 
-    await PhoneServiceV2.sendSms({
-    client:
-        interaction.client,
+            const send =
+                isEmail
+                    ? PhoneServiceV2.sendEmail
+                        .bind(PhoneServiceV2)
+                    : PhoneServiceV2.sendSms
+                        .bind(PhoneServiceV2);
 
-    guildId:
-        interaction.guildId,
+            await send({
+                client:
+                    interaction.client,
+                guildId:
+                    interaction.guildId,
+                channel:
+                    interaction.channel,
+                senderCharacter:
+                    character,
+                senderPhone:
+                    phone,
+                conversationId,
+                content,
+                subject
+            });
 
-    channel:
-        interaction.channel,
-
-    senderCharacter:
-        character,
-
-    senderPhone:
-        phone,
-
-    conversationId,
-    content
-});
-
-    return closeConversationPanel(
-        interaction,
-        source === "quick_reply"
-    );
+            return closeConversationPanel(
+                interaction,
+                source === "quick_reply",
+                isEmail ? "E-mail" : "SMS"
+            );
 
 } catch (error) {
 

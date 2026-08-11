@@ -18,6 +18,11 @@ const phoneGroupName =
         "../../interactions/modals/PhoneGroupNameV2"
     );
 
+const phoneVoicemail =
+    require(
+        "../../interactions/modals/PhoneVoicemailV2"
+    );
+
 module.exports =
     async function phoneModalRouter(
         interaction
@@ -43,8 +48,21 @@ module.exports =
 
         if (
             customId.startsWith(
+                "v2_phone_voicemail_modal:"
+            )
+        ) {
+            await phoneVoicemail(
+                interaction
+            );
+
+            return true;
+        }
+
+        if (
+            customId.startsWith(
                 "v2_phone_message_modal:"
             )
+            || customId.startsWith("v2_phone_email_modal:")
         ) {
             await phoneMessage(
                 interaction

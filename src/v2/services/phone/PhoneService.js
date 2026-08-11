@@ -30,16 +30,31 @@ class PhoneService {
         receiverName,
         content,
         isGroup = false,
-        isMms = false
+        isMms = false,
+        isEmail = false,
+        subject = null,
+        isVoicemail = false
     ) {
+        if (isEmail) {
+            return [
+                `📧 **E-mail à ${receiverName}**`,
+                `**Objet :** ${subject}`,
+                "",
+                content
+            ].join("\n");
+        }
         return [
             `${
                 isMms
                     ? "🖼️"
+                    : isVoicemail
+                        ? "📼"
                     : "📱"
             } **${
                 isMms
                     ? "MMS"
+                    : isVoicemail
+                        ? "Message vocal"
                     : "SMS"
             } ${
                 isGroup
@@ -64,7 +79,8 @@ class PhoneService {
             messageType = "text",
             mediaUrl = null,
             mediaContentType = null,
-            mediaName = null
+            mediaName = null,
+            subject = null
         } = data;
 
         if (
@@ -82,6 +98,14 @@ class PhoneService {
 
         const isMms =
             messageType === "mms";
+        const isEmail =
+            messageType === "email";
+
+        const isVoicemail =
+            messageType === "voicemail";
+
+        const cleanSubject =
+            String(subject || "").trim();
 
         const cleanMediaUrl =
             String(mediaUrl || "")
@@ -91,6 +115,9 @@ class PhoneService {
             throw new Error(
                 "Le SMS ne peut pas être vide."
             );
+        }
+        if (isEmail && !cleanSubject) {
+            throw new Error("L’objet de l’e-mail ne peut pas être vide.");
         }
 
         if (
@@ -193,7 +220,12 @@ class PhoneService {
                     messageType:
                         isMms
                             ? "mms"
-                            : "text",
+                            : isEmail
+                                ? "email"
+                                : isVoicemail
+                                    ? "voicemail"
+                                    : "text",
+                    subject: isEmail ? cleanSubject : null,
                     mediaUrl:
                         isMms
                             ? cleanMediaUrl
@@ -222,7 +254,10 @@ class PhoneService {
                             receiverName,
                             cleanContent,
                             isGroup,
-                            isMms
+                            isMms,
+                            isEmail,
+                            cleanSubject,
+                            isVoicemail
                         ),
 
                     username:
@@ -317,7 +352,11 @@ class PhoneService {
                             messageType:
                                 isMms
                                     ? "mms"
-                                    : "text",
+                                    : isEmail
+                                        ? "email"
+                                        : isVoicemail
+                                            ? "voicemail"
+                                            : "text",
                             conversationName:
                                 isGroup
                                     ? receiverName
@@ -378,6 +417,20 @@ class PhoneService {
             ...data,
             messageType:
                 "mms"
+        });
+    }
+
+    async sendEmail(data) {
+        return this.sendSms({
+            ...data,
+            messageType: "email"
+        });
+    }
+
+    async sendVoicemail(data) {
+        return this.sendSms({
+            ...data,
+            messageType: "voicemail"
         });
     }
 

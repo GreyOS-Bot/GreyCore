@@ -10,8 +10,12 @@ const SELECT_GREYCORE_PHONES = `
         phone.phone_number,
         phone.continuity_id,
         continuity.character_id,
-        character.proxy_name
-            AS character_name,
+        COALESCE(
+            NULLIF(profile.alias, ''),
+            NULLIF(profile.firstname, ''),
+            NULLIF(continuity.firstname, ''),
+            character.proxy_name
+        ) AS character_name,
         character.avatar_url
             AS character_avatar_url
 
@@ -24,6 +28,9 @@ const SELECT_GREYCORE_PHONES = `
     JOIN CharactersV2 character
         ON character.id =
             continuity.character_id
+
+    LEFT JOIN CharacterProfilesV2 profile
+        ON profile.continuity_id = continuity.id
 
     JOIN CharacterGuildInstallationsV2
         AS installation
@@ -67,30 +74,36 @@ class PhoneSearchRepository {
                 LOWER(
                     character.proxy_name
                 ) LIKE LOWER(?)
+                OR LOWER(COALESCE(profile.alias, '')) LIKE LOWER(?)
+                OR LOWER(COALESCE(profile.firstname, '')) LIKE LOWER(?)
+                OR LOWER(COALESCE(continuity.firstname, '')) LIKE LOWER(?)
                 OR phone.phone_number LIKE ?
             )
 
             ORDER BY
                 CASE
                     WHEN LOWER(
-                        character.proxy_name
+                        COALESCE(NULLIF(profile.alias, ''), NULLIF(profile.firstname, ''), NULLIF(continuity.firstname, ''), character.proxy_name)
                     ) = LOWER(?)
                     THEN 1
 
                     WHEN LOWER(
-                        character.proxy_name
+                        COALESCE(NULLIF(profile.alias, ''), NULLIF(profile.firstname, ''), NULLIF(continuity.firstname, ''), character.proxy_name)
                     ) LIKE LOWER(?)
                     THEN 2
 
                     ELSE 3
                 END,
-                character.proxy_name
+                character_name
                     COLLATE NOCASE ASC
 
             LIMIT 50
         `).all(
             viewerPhoneId,
             guildId,
+            searchValue,
+            searchValue,
+            searchValue,
             searchValue,
             searchValue,
             query,
@@ -112,7 +125,7 @@ class PhoneSearchRepository {
             AND installation.proxy_enabled = 1
 
             ORDER BY
-                character.proxy_name
+                character_name
                     COLLATE NOCASE ASC
 
             LIMIT 25

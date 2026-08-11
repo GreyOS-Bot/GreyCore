@@ -107,6 +107,8 @@ function createMessage(
             senderPhoneId:
                 data.senderPhoneId,
             content,
+            subject:
+                String(data.subject || "").trim() || null,
             messageType:
                 data.messageType || "text",
             mediaUrl,

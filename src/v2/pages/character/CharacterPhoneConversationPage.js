@@ -209,6 +209,9 @@ for (const message of messages) {
     const isMms =
         message.message_type === "mms"
         && Boolean(message.media_url);
+    const isEmail = message.message_type === "email";
+    const isVoicemail =
+        message.message_type === "voicemail";
 
     const content =
         isMms
@@ -221,6 +224,10 @@ for (const message of messages) {
                         : "l’image"
                 }](${message.media_url})`
             ].join("\n")
+            : isEmail
+                ? `📧 **${message.subject || "Sans objet"}**\n${message.content?.trim() || "Message vide"}`
+            : isVoicemail
+                ? `📼 **Message vocal**\n${message.content?.trim() || "Message vide"}`
             : message.content?.trim()
             || "Message vide";
 
@@ -315,6 +322,17 @@ messageLines.push(
 
                 emoji:
                     "🖼️"
+            }),
+
+            UI.button.secondary({
+                id:
+                    `v2_phone_email_new:${conversation.id}:${characterId}`,
+
+                label:
+                    "Envoyer un e-mail",
+
+                emoji:
+                    "📧"
             })
         ];
 
