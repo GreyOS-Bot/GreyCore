@@ -57,7 +57,12 @@ class StaffCharactersPage {
                 .setCustomId("v2_staff_characters_statistics_user")
                 .setLabel("Statistiques par utilisateur")
                 .setEmoji("👤")
-                .setStyle(ButtonStyle.Secondary)
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId("v2_staff_characters_genders")
+                .setLabel("Renseigner les genres")
+                .setEmoji("☑️")
+                .setStyle(ButtonStyle.Primary)
         ));
         if (validationChannelId) {
             rows.push(new ActionRowBuilder().addComponents(

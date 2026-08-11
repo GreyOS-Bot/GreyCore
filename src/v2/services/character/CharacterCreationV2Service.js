@@ -229,6 +229,22 @@ class CharacterCreationV2Service {
             )
             || null;
 
+        const allowedGenders = new Map([
+            ["femme", "Femme"],
+            ["homme", "Homme"],
+            ["non genré", "Non genré"],
+            ["non genre", "Non genré"]
+        ]);
+        const rawGender = this.normalizeDisplayText(data.gender);
+        const gender = rawGender
+            ? allowedGenders.get(
+                rawGender.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("fr")
+            )
+            : null;
+        if (rawGender && !gender) {
+            throw new Error("Choisis Femme, Homme ou Non genré pour terminer la création.");
+        }
+
         return {
             discordUserId:
                 String(
@@ -262,6 +278,7 @@ class CharacterCreationV2Service {
                 || null,
             occupation,
             creationDate,
+            gender,
             alias,
             story
         };
@@ -308,6 +325,8 @@ class CharacterCreationV2Service {
                     data.lastname,
                 age:
                     data.age,
+                gender:
+                    data.gender,
                 gang:
                     data.gang,
                 story:

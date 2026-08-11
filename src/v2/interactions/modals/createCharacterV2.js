@@ -62,9 +62,14 @@ async function startCharacterCreation(
             characterTypeCatalog
                 .usesSimpleCreation(type)
         ) {
-            return await createCharacter(
-                interaction,
-                {
+            pendingActionManager.create({
+                userId: interaction.user.id,
+                type: "character_creation_gender",
+                guildId: interaction.guild.id,
+                guildName: interaction.guild.name,
+                channelId: interaction.channelId,
+                characterType: type,
+                data: {
                     type,
                     proxyName:
                         readField(
@@ -77,7 +82,8 @@ async function startCharacterCreation(
                             "profile_fullname"
                         )
                 }
-            );
+            });
+            return replyPrivate(interaction, buildGenderPrompt(type));
         }
 
         pendingActionManager.create({
@@ -153,9 +159,14 @@ async function completeCharacterCreation(
                 type
             );
 
-        return await createCharacter(
-            interaction,
-            {
+        pendingActionManager.create({
+            userId: interaction.user.id,
+            type: "character_creation_gender",
+            guildId: interaction.guild.id,
+            guildName: interaction.guild.name,
+            channelId: interaction.channelId,
+            characterType: type,
+            data: {
                 ...pending.data,
                 type,
                 gang:
@@ -184,7 +195,9 @@ async function completeCharacterCreation(
                         "profile_story"
                     )
             }
-        );
+        });
+
+        return replyPrivate(interaction, buildGenderPrompt(type));
     } catch (error) {
         logger.error(
             "Erreur cr\u00e9ation personnage V2 :",
@@ -196,6 +209,37 @@ async function completeCharacterCreation(
             error.message
             || "Impossible de cr\u00e9er le personnage."
         );
+    }
+}
+
+async function selectCharacterGender(interaction, type, selectedGender) {
+    try {
+        ensureGuild(interaction);
+        const pending = pendingActionManager.get(interaction.user.id);
+        if (
+            !pending
+            || pending.type !== "character_creation_gender"
+            || pending.characterType !== type
+            || String(pending.guildId) !== String(interaction.guild.id)
+        ) {
+            throw new Error("La création a expiré. Recommence simplement la création du personnage.");
+        }
+        const genders = {
+            female: "Femme",
+            male: "Homme",
+            neutral: "Non genré"
+        };
+        if (!genders[selectedGender]) {
+            throw new Error("Ce choix de genre est invalide.");
+        }
+        return await createCharacter(interaction, {
+            ...pending.data,
+            type,
+            gender: genders[selectedGender]
+        });
+    } catch (error) {
+        logger.error("Erreur choix du genre à la création V2 :", error);
+        return editOrReplyError(interaction, error.message || "Impossible de terminer la création.");
     }
 }
 
@@ -392,6 +436,32 @@ function buildDetailsPrompt(type) {
     };
 }
 
+function buildGenderPrompt(type) {
+    return {
+        content: [
+            "Dernière étape avant la création du personnage.",
+            "Choisis le genre utilisé sur sa fiche et dans les statistiques du serveur."
+        ].join("\n"),
+        components: [new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`v2_character_create_gender:${type}:female`)
+                .setLabel("Femme")
+                .setEmoji("♀️")
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId(`v2_character_create_gender:${type}:male`)
+                .setLabel("Homme")
+                .setEmoji("♂️")
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId(`v2_character_create_gender:${type}:neutral`)
+                .setLabel("Non genré")
+                .setEmoji("⚪")
+                .setStyle(ButtonStyle.Secondary)
+        )]
+    };
+}
+
 function getType(interaction) {
     return interaction.customId
         .split(":")[1];
@@ -417,3 +487,6 @@ module.exports.complete =
 
 module.exports.openDetails =
     openCharacterCreationDetails;
+
+module.exports.selectGender =
+    selectCharacterGender;

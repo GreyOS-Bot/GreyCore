@@ -89,6 +89,27 @@ test(
                     "profile_story"
                 ]
             );
+
+            const detailsInteraction = createInteraction({
+                customId: "v2_character_create_details_submit:personnage_joue",
+                userId,
+                values: {
+                    profile_gang: "Sans",
+                    profile_story: "Une histoire complète."
+                }
+            });
+            await createCharacter.complete(detailsInteraction);
+            assert.match(detailsInteraction.replyPayload.content, /genre/i);
+            assert.deepEqual(
+                detailsInteraction.replyPayload.components[0].toJSON().components.map(
+                    button => button.custom_id
+                ),
+                [
+                    "v2_character_create_gender:personnage_joue:female",
+                    "v2_character_create_gender:personnage_joue:male",
+                    "v2_character_create_gender:personnage_joue:neutral"
+                ]
+            );
         } finally {
             pendingActionManager.delete(userId);
         }

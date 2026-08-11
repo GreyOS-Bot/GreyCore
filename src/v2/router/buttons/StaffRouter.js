@@ -456,6 +456,56 @@ module.exports = async interaction => {
         return true;
     }
 
+    if (
+        interaction.customId === "v2_staff_characters_genders"
+        || interaction.customId.startsWith("v2_staff_character_genders_page:")
+    ) {
+        const page = interaction.customId.includes(":")
+            ? Number(interaction.customId.split(":")[1]) || 0
+            : 0;
+        const roster = require("../../managers/CharacterRosterV2Manager")
+            .getRoster(interaction.guildId, { includeArchived: false });
+        await interaction.update(
+            require("../../views/staff/StaffCharacterGenderView").build(roster, page)
+        );
+        return true;
+    }
+
+    if (interaction.customId.startsWith("v2_staff_character_gender_set:")) {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canManageCharacters(interaction)) {
+            await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
+            return true;
+        }
+        const [, characterId, selectedGender, rawPage] = interaction.customId.split(":");
+        const rosterManager = require("../../managers/CharacterRosterV2Manager");
+        const roster = rosterManager.getRoster(interaction.guildId, { includeArchived: false });
+        const character = roster.find(item => String(item.id) === String(characterId));
+        if (!character?.continuity_id) {
+            await replyError(interaction, "Ce personnage validé est introuvable sur ce serveur.");
+            return true;
+        }
+        const values = {
+            female: "Femme",
+            male: "Homme",
+            neutral: "Non genré"
+        };
+        if (!values[selectedGender]) {
+            await replyError(interaction, "Ce choix de genre est invalide.");
+            return true;
+        }
+        require("../../managers/ProfileV2Manager").update(
+            character.continuity_id,
+            { gender: values[selectedGender] }
+        );
+        const updatedRoster = rosterManager.getRoster(interaction.guildId, { includeArchived: false });
+        await interaction.update(
+            require("../../views/staff/StaffCharacterGenderView").build(updatedRoster, Number(rawPage) || 0)
+        );
+        return true;
+    }
+
     if (interaction.customId === "v2_staff_characters_users") {
         const { ActionRowBuilder, UserSelectMenuBuilder } = require("discord.js");
         await interaction.update({

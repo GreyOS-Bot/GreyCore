@@ -33,7 +33,7 @@ test(
             {
                 get: () => ({
                     type:
-                        "character_creation_details",
+                        "character_creation_gender",
                     characterType:
                         "personnage_joue",
                     guildId:
@@ -74,7 +74,7 @@ test(
         const interaction =
             createInteraction(calls);
 
-        await handler.complete(interaction);
+        await handler.selectGender(interaction, "personnage_joue", "female");
 
         assert.deepEqual(
             calls,
@@ -114,7 +114,7 @@ test(
             {
                 get: () => ({
                     type:
-                        "character_creation_details",
+                        "character_creation_gender",
                     characterType:
                         "personnage_joue",
                     guildId:
@@ -137,7 +137,7 @@ test(
         const interaction =
             createInteraction(calls);
 
-        await handler.complete(interaction);
+        await handler.selectGender(interaction, "personnage_joue", "female");
 
         assert.deepEqual(
             calls,

@@ -9,6 +9,7 @@ const ROSTER_SELECT = `
         character.proxy_name,
         character.character_type,
         character.is_archived,
+        continuity.id AS continuity_id,
         user.discord_user_id,
         COALESCE(
             NULLIF(profile.alias, ''),

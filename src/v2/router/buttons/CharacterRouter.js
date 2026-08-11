@@ -146,6 +146,21 @@ module.exports =
             interaction.isButton()
             && interaction.customId
                 .startsWith(
+                    "v2_character_create_gender:"
+                )
+        ) {
+            const [, type, selectedGender] = interaction.customId.split(":");
+            const createCharacter = require(
+                "../../interactions/modals/createCharacterV2"
+            );
+            await createCharacter.selectGender(interaction, type, selectedGender);
+            return true;
+        }
+
+        if (
+            interaction.isButton()
+            && interaction.customId
+                .startsWith(
                     "v2_character_create_type:"
                 )
         ) {

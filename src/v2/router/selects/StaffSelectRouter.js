@@ -6,6 +6,21 @@ const { replyError } = require(
 );
 
 module.exports = async interaction => {
+    if (interaction.customId?.startsWith("v2_staff_character_gender_select:")) {
+        const pageNumber = Number(interaction.customId.split(":")[1]) || 0;
+        const character = require("../../managers/CharacterRosterV2Manager")
+            .getRoster(interaction.guildId, { includeArchived: false })
+            .find(item => String(item.id) === String(interaction.values[0]));
+        if (!character) {
+            await replyError(interaction, "Ce personnage validé est introuvable sur ce serveur.");
+            return true;
+        }
+        await interaction.update(
+            require("../../views/staff/StaffCharacterGenderView").buildChoice(character, pageNumber)
+        );
+        return true;
+    }
+
     if (interaction.customId === "v2_staff_characters_statistics_user_select") {
         const userId = interaction.values[0];
         const roster = require("../../managers/CharacterRosterV2Manager")
