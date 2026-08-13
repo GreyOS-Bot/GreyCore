@@ -305,7 +305,10 @@ class PhoneService {
                                     .smsButtons(
                                         conversation.id,
                                         receiverParticipant
-                                            .character_id
+                                            .character_id,
+                                        isEmail
+                                            ? "email"
+                                            : "text"
                                     )
                             ]
                             : [],

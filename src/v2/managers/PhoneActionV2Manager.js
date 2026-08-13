@@ -8,14 +8,15 @@ class PhoneActionV2Manager {
 
     smsButtons(
         conversationId,
-        receiverCharacterId
+        receiverCharacterId,
+        messageType = "text"
     ) {
         return new ActionRowBuilder()
             .addComponents(
 
                 new ButtonBuilder()
                     .setCustomId(
-                        `v2_phone_quick_reply:${conversationId}:${receiverCharacterId}`
+                        `v2_phone_quick_reply:${conversationId}:${receiverCharacterId}:${messageType === "email" ? "email" : "sms"}`
                     )
                     .setLabel("Répondre")
                     .setEmoji("💬")

@@ -192,6 +192,12 @@ module.exports =
             return true;
         }
 
+        if (id.startsWith("v2_phone_mms_new_contact:")) {
+            const characterId = id.split(":")[1];
+            await PhoneSearchModal.show(interaction, characterId, "mms");
+            return true;
+        }
+
         if (
             id.startsWith(
                 "v2_phone_new:"
@@ -440,7 +446,8 @@ module.exports =
             const [
                 ,
                 conversationId,
-                characterId
+                characterId,
+                messageType
             ] = id.split(":");
 
             await phoneMmsUploadRequest.start(
@@ -481,7 +488,11 @@ module.exports =
                 characterId,
                 {
                     source:
-                        "quick_reply"
+                        "quick_reply",
+                    kind:
+                        messageType === "email"
+                            ? "email"
+                            : "sms"
                 }
             );
 

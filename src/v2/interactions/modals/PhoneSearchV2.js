@@ -38,7 +38,8 @@ module.exports =
             [
                 "call",
                 "group",
-                "email"
+                "email",
+                "mms"
             ].includes(modeValue)
                 ? modeValue
                 : "sms";
@@ -171,6 +172,8 @@ module.exports =
                             ? "Choisir le membre à ajouter"
                         : mode === "email"
                             ? "Choisir le destinataire de l’e-mail"
+                        : mode === "mms"
+                            ? "Choisir le destinataire du MMS"
                         : selectableResults.length === 1
                             ? "Sélectionner le résultat"
                             : "Choisir parmi les résultats"
@@ -218,6 +221,8 @@ module.exports =
                                                 ? "👥"
                                                 : mode === "email"
                                                     ? "📧"
+                                                : mode === "mms"
+                                                    ? "🖼️"
                                                 : "💬"
                                 };
                             }

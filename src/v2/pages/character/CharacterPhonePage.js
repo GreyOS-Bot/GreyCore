@@ -206,13 +206,13 @@ const dashboardData =
             UI.button.primary({
 
                 id:
-                    `v2_phone_email_new_contact:${characterId}`,
+                    `v2_phone_mms_new_contact:${characterId}`,
 
                 label:
-                    "Nouvel e-mail",
+                    "Nouveau MMS",
 
                 emoji:
-                    "📧"
+                    "🖼️"
 
             }),
 
@@ -226,6 +226,25 @@ const dashboardData =
 
                 emoji:
                     "📞"
+
+            })
+
+        );
+
+        const row2 =
+    new ActionRowBuilder()
+        .addComponents(
+
+            UI.button.primary({
+
+                id:
+                    `v2_phone_email_new_contact:${characterId}`,
+
+                label:
+                    "Nouvel e-mail",
+
+                emoji:
+                    "📧"
 
             }),
 
@@ -250,7 +269,8 @@ const dashboardData =
                 embed,
 
                 components: [
-                    row1
+                    row1,
+                    row2
                 ]
 
                 

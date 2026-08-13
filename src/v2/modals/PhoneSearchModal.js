@@ -17,7 +17,8 @@ module.exports = {
             [
                 "call",
                 "group",
-                "email"
+                "email",
+                "mms"
             ].includes(mode)
                 ? mode
                 : "sms";
@@ -34,6 +35,8 @@ module.exports = {
                             ? "Ajouter un membre"
                             : searchMode === "email"
                                 ? "Envoyer un e-mail"
+                            : searchMode === "mms"
+                                ? "Envoyer un MMS"
                             : "Rechercher un contact"
                 );
 
@@ -45,6 +48,8 @@ module.exports = {
                     searchMode === "group"
                         ? "Rechercher le personnage à ajouter"
                         : searchMode === "email"
+                            ? "Ex : Alba, son alias ou son prénom"
+                        : searchMode === "mms"
                             ? "Ex : Alba, son alias ou son prénom"
                             : "Ex : Alba ou 555-1234"
                 )

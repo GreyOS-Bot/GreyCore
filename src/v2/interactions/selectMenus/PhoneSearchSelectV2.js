@@ -54,7 +54,8 @@ module.exports =
             [
                 "call",
                 "group",
-                "email"
+                "email",
+                "mms"
             ].includes(modeValue)
                 ? modeValue
                 : "sms";
@@ -275,6 +276,14 @@ module.exports =
                     source: "phone_home",
                     kind: "email"
                 }
+            );
+        }
+
+        if (mode === "mms") {
+            return require("../phone/PhoneMmsUploadRequest").start(
+                interaction,
+                conversation.id,
+                characterId
             );
         }
 
