@@ -401,7 +401,8 @@ module.exports =
             const [
                 ,
                 conversationId,
-                characterId
+                characterId,
+                messageType
             ] = id.split(":");
 
             await CharacterPhoneConversationPage.execute(
@@ -479,7 +480,8 @@ module.exports =
             const [
                 ,
                 conversationId,
-                characterId
+                characterId,
+                messageType
             ] = id.split(":");
 
             await PhoneMessageModal.show(

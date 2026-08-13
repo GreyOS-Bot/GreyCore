@@ -38,7 +38,7 @@ class StaffScenesPage {
                     {
                         name: "Scènes en cours",
                         value: scenes.length
-                            ? scenes.slice(0, 10).map(scene => {
+                            ? truncateField(scenes.slice(0, 10).map(scene => {
                                 const channels = String(scene.channel_ids || "")
                                     .split(",")
                                     .filter(Boolean)
@@ -51,7 +51,7 @@ class StaffScenesPage {
                                     `• **${scene.title}** · ${channels}`,
                                     `  Depuis <t:${started}:d> · ${formatSceneProgress(scene, configuration)}`
                                 ].join("\n");
-                            }).join("\n")
+                            }).join("\n"))
                             : "Aucune scène active.",
                         inline: false
                     }
@@ -194,6 +194,12 @@ function navigationRow() {
     );
 }
 
+function truncateField(value, maximum = 1024) {
+    const text = String(value || "");
+    if (text.length <= maximum) return text;
+    return `${text.slice(0, maximum - 18).trimEnd()}\n… liste abrégée`;
+}
+
 module.exports = new StaffScenesPage();
 
 function formatSceneProgress(scene, configuration, now = new Date()) {
@@ -216,3 +222,4 @@ function formatSceneProgress(scene, configuration, now = new Date()) {
 }
 
 module.exports.formatSceneProgress = formatSceneProgress;
+module.exports.truncateField = truncateField;
