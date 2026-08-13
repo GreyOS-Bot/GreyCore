@@ -37,6 +37,13 @@ class SceneAssistantRepository {
         `).get(messageId) || null;
     }
 
+    getPendingStartProposal(guildId, channelId) {
+        return db.prepare(`
+            SELECT * FROM SceneStartProposalsV2
+            WHERE guild_id = ? AND channel_id = ? AND status = 'pending'
+        `).get(guildId, channelId) || null;
+    }
+
     resolveStartProposal(guildId, channelId, status) {
         return db.prepare(`
             UPDATE SceneStartProposalsV2

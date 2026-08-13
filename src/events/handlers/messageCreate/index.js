@@ -13,6 +13,11 @@ const sceneAssistantService =
         "../../../v2/services/scenes/SceneAssistantService"
     );
 
+const sceneAssistantManager =
+    require(
+        "../../../v2/managers/SceneAssistantV2Manager"
+    );
+
 const guildSettingsManager =
     require(
         "../../../v2/managers/GuildSettingsV2Manager"
@@ -27,6 +32,76 @@ const logger =
     require(
         "../../../v2/core/services/TechnicalLogger"
     ).create("MessageCreateRouter");
+
+async function offerSceneStart(message, result) {
+    const targetMessage =
+        message.greycoreProxyWebhookMessage
+        || message;
+    const proposal = {
+        message: targetMessage,
+        guildId: message.guildId,
+        channelId: message.channelId,
+        characterId: result.characterId
+    };
+
+    let proposed = sceneAssistantService
+        .proposeStartFromMessage(proposal);
+
+    if (!proposed) {
+        const pending = sceneAssistantManager
+            .getPendingStartProposal(
+                message.guildId,
+                message.channelId
+            );
+
+        if (!pending) {
+            return false;
+        }
+
+        const previousMessage = await message.channel.messages
+            .fetch(pending.message_id)
+            .catch(() => null);
+
+        const previousReaction = previousMessage
+            ?.reactions
+            ?.cache
+            ?.find?.(
+                reaction => reaction.emoji?.name === "🎬"
+            );
+
+        if (previousReaction) {
+            return false;
+        }
+
+        sceneAssistantManager.resolveStartProposal(
+            message.guildId,
+            message.channelId,
+            "obsolete"
+        );
+        proposed = sceneAssistantService
+            .proposeStartFromMessage(proposal);
+    }
+
+    if (!proposed) {
+        return false;
+    }
+
+    try {
+        await targetMessage.react("🎬");
+        return true;
+    } catch (error) {
+        sceneAssistantManager.resolveStartProposal(
+            message.guildId,
+            message.channelId,
+            "reaction_failed"
+        );
+        logger.warn(
+            "Impossible d'ajouter la proposition de début de scène :",
+            error
+        );
+        return false;
+    }
+}
 
 module.exports =
     async function messageCreateRouter(
@@ -103,20 +178,7 @@ module.exports =
                 result?.kind === "no_active_scene"
                 && result.shouldOfferStart
             ) {
-                const targetMessage =
-                    message.greycoreProxyWebhookMessage
-                    || message;
-                const proposed = sceneAssistantService
-                    .proposeStartFromMessage({
-                        message: targetMessage,
-                        guildId: message.guildId,
-                        channelId: message.channelId,
-                        characterId: result.characterId
-                    });
-
-                if (proposed) {
-                    await targetMessage.react("🎬");
-                }
+                await offerSceneStart(message, result);
             }
 
             if (result?.cancelledClosurePrompt) {
@@ -127,11 +189,13 @@ module.exports =
                 await promptMessage?.delete?.().catch(() => null);
             }
         } catch (error) {
-            console.error(
-                "[SceneAssistant] Impossible de suivre le cycle :",
+            logger.error(
+                "Impossible de suivre le cycle :",
                 error
             );
         }
 
         return proxyHandled || entityHandled;
     };
+
+module.exports.offerSceneStart = offerSceneStart;

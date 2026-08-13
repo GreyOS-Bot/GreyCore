@@ -131,6 +131,10 @@ class SceneAssistantV2Manager {
         return repository.getStartProposalByMessage(messageId);
     }
 
+    getPendingStartProposal(guildId, channelId) {
+        return repository.getPendingStartProposal(guildId, channelId);
+    }
+
     resolveStartProposal(guildId, channelId, status = "started") {
         return repository.resolveStartProposal(guildId, channelId, status);
     }
