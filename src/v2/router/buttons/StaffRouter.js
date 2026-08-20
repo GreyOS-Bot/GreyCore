@@ -420,23 +420,20 @@ module.exports = async interaction => {
         return true;
     }
 
-    if (interaction.customId === "v2_staff_characters_roster") {
-        const { EmbedBuilder } = require("discord.js");
+    if (
+        interaction.customId === "v2_staff_characters_roster"
+        || interaction.customId.startsWith("v2_staff_characters_roster_page:")
+    ) {
         const manager = require("../../managers/CharacterRosterV2Manager");
         const roster = manager.getRoster(interaction.guildId, {
             includeArchived: true
         });
-        const lines = roster.slice(0, 60).map(character =>
-            `${character.is_archived ? "📦" : "✅"} **${character.firstname || character.proxy_name}** — <@${character.discord_user_id}>`
+        const page = interaction.customId.includes(":")
+            ? Number(interaction.customId.split(":")[1]) || 0
+            : 0;
+        await interaction.update(
+            require("../../views/staff/StaffCharacterRosterView").build(roster, page)
         );
-        await interaction.update({
-            embeds: [new EmbedBuilder()
-                .setColor(0x5865F2)
-                .setTitle("👥 Personnages du serveur")
-                .setDescription(lines.join("\n").slice(0, 3900) || "Aucun personnage installé.")
-                .setFooter({ text: `${roster.length} personnage(s) au total` })],
-            components: [require("../../pages/staff/StaffCharactersPage").navigationRow()]
-        });
         return true;
     }
 
@@ -505,7 +502,9 @@ module.exports = async interaction => {
             await replyError(interaction, "Ce choix de genre est invalide.");
             return true;
         }
-        require("../../managers/ProfileV2Manager").update(
+        const profileManager = require("../../managers/ProfileV2Manager");
+        profileManager.getOrCreate(character.continuity_id);
+        profileManager.update(
             character.continuity_id,
             { gender: values[selectedGender] }
         );

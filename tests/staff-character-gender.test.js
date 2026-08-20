@@ -51,6 +51,9 @@ test("le staff enregistre manuellement le genre sur le profil du serveur", async
         getRoster: () => roster
     });
     stubModule("src/v2/managers/ProfileV2Manager.js", {
+        getOrCreate: continuityId => {
+            updates.push([continuityId, "getOrCreate"]);
+        },
         update: (continuityId, data) => {
             updates.push([continuityId, data]);
             roster[0].gender = data.gender;
@@ -69,7 +72,10 @@ test("le staff enregistre manuellement le genre sur le profil du serveur", async
     };
 
     assert.equal(await router(interaction), true);
-    assert.deepEqual(updates, [["continuity", { gender: "Femme" }]]);
+    assert.deepEqual(updates, [
+        ["continuity", "getOrCreate"],
+        ["continuity", { gender: "Femme" }]
+    ]);
     assert.match(interaction.payload.embeds[0].toJSON().description, /Femme/);
 });
 
