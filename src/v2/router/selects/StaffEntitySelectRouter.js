@@ -14,6 +14,22 @@ module.exports = async interaction => {
         await interaction.update(page.buildDetail(interaction, interaction.values[0]));
         return true;
     }
+    if (
+        interaction.customId === "v2_staff_entities_broadcast_entities"
+        || interaction.customId === "v2_staff_entities_broadcast_channels"
+    ) {
+        if (!policy.canAccess(interaction, "entities", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
+            return true;
+        }
+        const drafts = require("../../services/entities/NarrativeEntityBroadcastDraftService");
+        const values = interaction.customId.endsWith("_entities")
+            ? { entityIds: interaction.values }
+            : { channelIds: interaction.values };
+        const draft = drafts.update(interaction.guildId, interaction.user.id, values);
+        await interaction.update(page.buildBroadcast(interaction, draft));
+        return true;
+    }
     if (interaction.customId.startsWith("v2_staff_entities_event_select:")) {
         await interaction.update(page.buildEventDetail(interaction, interaction.values[0]));
         return true;

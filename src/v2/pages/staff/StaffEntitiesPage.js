@@ -41,6 +41,13 @@ class StaffEntitiesPage {
                 .setEmoji("➕")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!writable)
+                ,
+            new ButtonBuilder()
+                .setCustomId("v2_staff_entities_broadcast")
+                .setLabel("Diffusion manuelle")
+                .setEmoji("📣")
+                .setStyle(ButtonStyle.Success)
+                .setDisabled(!writable || !entities.some(entity => entity.is_enabled))
         ));
         components.push(new ActionRowBuilder().addComponents(
             new ButtonBuilder()
@@ -69,6 +76,66 @@ class StaffEntitiesPage {
                     writable ? "Vous pouvez créer et gérer les Entités de ce serveur." : "👁️ Accès en lecture seule."
                 ].join("\n"))],
             components
+        };
+    }
+
+    buildBroadcast(interaction, draft) {
+        const entities = manager.getByGuild(interaction.guildId)
+            .filter(entity => entity.is_enabled);
+        const selectedEntities = entities.filter(entity => draft.entityIds.includes(entity.id));
+        const entitySelect = new StringSelectMenuBuilder()
+            .setCustomId("v2_staff_entities_broadcast_entities")
+            .setPlaceholder("Choisir jusqu’à 5 Entités")
+            .setMinValues(1)
+            .setMaxValues(Math.min(5, entities.length))
+            .addOptions(entities.slice(0, 25).map(entity => ({
+                label: entity.name.slice(0, 100),
+                value: entity.id,
+                emoji: "✨",
+                default: draft.entityIds.includes(entity.id)
+            })));
+        const channelSelect = new ChannelSelectMenuBuilder()
+            .setCustomId("v2_staff_entities_broadcast_channels")
+            .setPlaceholder("Choisir jusqu’à 10 salons ou forums")
+            .setChannelTypes(
+                ChannelType.GuildText,
+                ChannelType.GuildAnnouncement,
+                ChannelType.GuildForum
+            )
+            .setMinValues(1)
+            .setMaxValues(10)
+            .setDefaultChannels(...draft.channelIds.slice(0, 10));
+        const sendCount = selectedEntities.length * draft.channelIds.length;
+
+        return {
+            embeds: [new EmbedBuilder()
+                .setColor(0x5865F2)
+                .setTitle("📣 Diffusion manuelle des Entités")
+                .setDescription([
+                    "Envoyez le même message avec une ou plusieurs Entités dans plusieurs lieux simultanément.",
+                    "Dans un forum, GreyCore créera une nouvelle publication.",
+                    "",
+                    `**Entités :** ${selectedEntities.map(entity => entity.name).join(", ") || "aucune"}`,
+                    `**Destinations :** ${draft.channelIds.map(id => `<#${id}>`).join(", ") || "aucune"}`,
+                    `**Envois prévus :** ${sendCount}`
+                ].join("\n"))],
+            components: [
+                new ActionRowBuilder().addComponents(entitySelect),
+                new ActionRowBuilder().addComponents(channelSelect),
+                new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId("v2_staff_entities_broadcast_compose")
+                        .setLabel("Rédiger et envoyer")
+                        .setEmoji("✍️")
+                        .setStyle(ButtonStyle.Primary)
+                        .setDisabled(!selectedEntities.length || !draft.channelIds.length),
+                    new ButtonBuilder()
+                        .setCustomId("v2_staff_entities_broadcast_cancel")
+                        .setLabel("Annuler")
+                        .setStyle(ButtonStyle.Secondary)
+                ),
+                navigationRow()
+            ]
         };
     }
 

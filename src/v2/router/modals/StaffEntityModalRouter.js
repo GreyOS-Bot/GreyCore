@@ -10,6 +10,59 @@ module.exports = async interaction => {
         await replyError(interaction, "Tu ne peux pas modifier les Entités.");
         return true;
     }
+    if (interaction.customId === "v2_staff_entities_broadcast_submit") {
+        const { deferPrivate, editOrReplyError } = require("../../core/services/InteractionResponseService");
+        const drafts = require("../../services/entities/NarrativeEntityBroadcastDraftService");
+        const draft = drafts.get(interaction.guildId, interaction.user.id);
+        const content = interaction.fields.getTextInputValue("content").trim();
+        const threadName = interaction.fields.getTextInputValue("thread_name").trim()
+            || "Message d’une Entité";
+        if (!draft.entityIds.length || !draft.channelIds.length || !content) {
+            await replyError(interaction, "Cette diffusion a expiré ou son message est vide.");
+            return true;
+        }
+
+        await deferPrivate(interaction);
+        const entityService = require("../../services/entities/NarrativeEntityService");
+        const results = [];
+        for (const channelId of draft.channelIds) {
+            let channel;
+            try {
+                channel = await interaction.guild.channels.fetch(channelId);
+            } catch (error) {
+                results.push({ channelId, error });
+                continue;
+            }
+            for (const entityId of draft.entityIds) {
+                try {
+                    const isForum = channel?.type === require("discord.js").ChannelType.GuildForum;
+                    const sent = await entityService.sendEntity({
+                        channel,
+                        entityId,
+                        content,
+                        threadName: isForum ? threadName : null
+                    });
+                    results.push({ channelId, entityId, sent: Boolean(sent) });
+                } catch (error) {
+                    results.push({ channelId, entityId, error });
+                }
+            }
+        }
+        drafts.clear(interaction.guildId, interaction.user.id);
+        const sentCount = results.filter(result => result.sent).length;
+        const failedCount = results.filter(result => !result.sent).length;
+        if (!sentCount) {
+            await editOrReplyError(interaction, "Aucun message n’a pu être envoyé. Vérifiez les permissions des salons et forums choisis.");
+            return true;
+        }
+        await interaction.editReply({
+            content: [
+                `✅ **${sentCount} message(s) d’Entité envoyé(s).**`,
+                failedCount ? `⚠️ ${failedCount} envoi(s) impossible(s).` : "Toutes les destinations ont été traitées."
+            ].join("\n")
+        });
+        return true;
+    }
     if (interaction.customId.startsWith("v2_staff_entities_event_create_submit:")) {
         const entityId = interaction.customId.slice("v2_staff_entities_event_create_submit:".length);
         try {

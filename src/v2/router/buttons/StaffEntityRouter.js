@@ -37,6 +37,24 @@ module.exports = async interaction => {
     try {
         if (action === "create") {
             await interaction.showModal(buildModal());
+        } else if (action === "broadcast") {
+            const drafts = require("../../services/entities/NarrativeEntityBroadcastDraftService");
+            drafts.clear(interaction.guildId, interaction.user.id);
+            await interaction.update(page.buildBroadcast(
+                interaction,
+                drafts.get(interaction.guildId, interaction.user.id)
+            ));
+        } else if (action === "broadcast_cancel") {
+            require("../../services/entities/NarrativeEntityBroadcastDraftService")
+                .clear(interaction.guildId, interaction.user.id);
+            await interaction.update(page.build(interaction));
+        } else if (action === "broadcast_compose") {
+            const draft = require("../../services/entities/NarrativeEntityBroadcastDraftService")
+                .get(interaction.guildId, interaction.user.id);
+            if (!draft.entityIds.length || !draft.channelIds.length) {
+                throw new Error("Choisissez au moins une Entité et une destination.");
+            }
+            await interaction.showModal(buildBroadcastModal());
         } else if (action === "event_create") {
             await interaction.showModal(buildEventModal(entityId));
         } else if (action === "event_toggle") {
@@ -72,6 +90,30 @@ function parse(customId) {
     const value = customId.slice("v2_staff_entities_".length);
     const separator = value.indexOf(":");
     return separator === -1 ? [value, null] : [value.slice(0, separator), value.slice(separator + 1)];
+}
+
+function buildBroadcastModal() {
+    return new ModalBuilder()
+        .setCustomId("v2_staff_entities_broadcast_submit")
+        .setTitle("Diffusion manuelle")
+        .addLabelComponents(
+            new LabelBuilder()
+                .setLabel("Titre des publications forum")
+                .setDescription("Utilisé uniquement pour créer une publication dans un forum.")
+                .setTextInputComponent(new TextInputBuilder()
+                    .setCustomId("thread_name")
+                    .setStyle(TextInputStyle.Short)
+                    .setMaxLength(100)
+                    .setRequired(false)
+                    .setPlaceholder("Annonce de l’Entité")),
+            new LabelBuilder()
+                .setLabel("Message")
+                .setTextInputComponent(new TextInputBuilder()
+                    .setCustomId("content")
+                    .setStyle(TextInputStyle.Paragraph)
+                    .setMaxLength(4000)
+                    .setRequired(true))
+        );
 }
 
 function buildEventModal(entityId) {
