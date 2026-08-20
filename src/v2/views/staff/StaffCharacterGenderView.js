@@ -29,6 +29,9 @@ function build(roster, page = 0) {
     const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
     const currentPage = Math.min(Math.max(Number(page) || 0, 0), pageCount - 1);
     const visible = sorted.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+    const missingCount = sorted.filter(
+        character => genderLabel(character.gender) === "Non défini"
+    ).length;
 
     return {
         content: "",
@@ -45,11 +48,11 @@ function build(roster, page = 0) {
                 : "Aucun personnage validé et installé sur ce serveur.")
             .setFooter({ text: `Page ${currentPage + 1}/${pageCount} · ${sorted.length} personnage(s)` })],
         components: [
-            ...(visible.some(character => genderLabel(character.gender) === "Non défini")
+            ...(missingCount > 0
                 ? [new ActionRowBuilder().addComponents(
                     new ButtonBuilder()
                         .setCustomId(`v2_staff_character_gender_quick:${currentPage}`)
-                        .setLabel("Saisie rapide des genres manquants")
+                        .setLabel(`Saisie rapide · ${missingCount} restant(s)`)
                         .setEmoji("⚡")
                         .setStyle(ButtonStyle.Success)
                 )]

@@ -64,7 +64,12 @@ class StaffCharactersPage {
                 .setCustomId("v2_staff_characters_genders")
                 .setLabel("Genres des personnages")
                 .setEmoji("👥")
-                .setStyle(ButtonStyle.Primary)
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId("v2_staff_character_gender_quick:0")
+                .setLabel("Saisie rapide des genres")
+                .setEmoji("⚡")
+                .setStyle(ButtonStyle.Success)
         ));
         if (validationChannelId) {
             rows.push(new ActionRowBuilder().addComponents(

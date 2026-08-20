@@ -41,6 +41,20 @@ test("la saisie rapide ouvre le prochain personnage sans genre", () => {
     assert.ok(ids.every(id => !id?.startsWith("v2_staff_character_gender_set:") || id.endsWith(":quick")));
 });
 
+test("la saisie rapide reste visible si le genre manquant est sur une autre page", () => {
+    const view = require("../src/v2/views/staff/StaffCharacterGenderView");
+    const roster = Array.from({ length: 21 }, (_, index) => ({
+        ...character(index),
+        gender: index === 20 ? null : "Femme"
+    }));
+    const payload = view.build(roster, 0);
+    const ids = payload.components
+        .flatMap(row => row.toJSON().components)
+        .map(component => component.custom_id);
+
+    assert.ok(ids.includes("v2_staff_character_gender_quick:0"));
+});
+
 test("le staff enregistre manuellement le genre sur le profil du serveur", async () => {
     const updates = [];
     const roster = [{ ...character(1), id: "character", continuity_id: "continuity" }];

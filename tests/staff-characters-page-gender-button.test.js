@@ -22,8 +22,9 @@ test("la page personnages du staff affiche un accès visible à la gestion des g
         ));
 
         assert.equal(genderRows.length, 1);
-        assert.equal(genderRows[0].components.length, 1);
+        assert.equal(genderRows[0].components.length, 2);
         assert.equal(genderRows[0].components[0].label, "Genres des personnages");
+        assert.equal(genderRows[0].components[1].label, "Saisie rapide des genres");
     } finally {
         rosterManager.getRoster = originals.roster;
         validationManager.getPendingForGuild = originals.pending;
