@@ -58,6 +58,22 @@ test("la sélection staff limite les statistiques au seul utilisateur choisi", a
     assert.doesNotMatch(description, /Total : 3 personnage/);
 });
 
+test("la sélection des statistiques pagine tous les propriétaires GreyCore", () => {
+    const view = require("../src/v2/views/staff/CharacterStatisticsView");
+    const roster = Array.from({ length: 27 }, (_, index) => ({
+        discord_user_id: `owner-${String(index).padStart(2, "0")}`
+    }));
+    const first = view.buildUserSelection(roster, null, 0);
+    const second = view.buildUserSelection(roster, null, 1);
+    const firstMenu = first.components[0].toJSON().components[0];
+    const secondMenu = second.components[0].toJSON().components[0];
+
+    assert.equal(firstMenu.options.length, 20);
+    assert.equal(secondMenu.options.length, 7);
+    assert.match(second.embeds[0].toJSON().description, /27 utilisateur/);
+    assert.match(second.embeds[0].toJSON().description, /Page 2\/2/);
+});
+
 function character(firstname, owner, type, gender) {
     return {
         id: `character-${firstname}`,

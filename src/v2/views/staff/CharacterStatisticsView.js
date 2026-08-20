@@ -1,7 +1,9 @@
 const {
     EmbedBuilder,
     ActionRowBuilder,
-    UserSelectMenuBuilder
+    ButtonBuilder,
+    ButtonStyle,
+    StringSelectMenuBuilder
 } = require("discord.js");
 const characterTypes = require("../../core/character/CharacterTypeCatalog");
 const firstNameGender = require("../../core/character/FirstNameGenderInference");
@@ -95,17 +97,68 @@ function buildGlobal(characters) {
     };
 }
 
-function buildUserSelection() {
+const USER_PAGE_SIZE = 20;
+
+function buildUserSelection(characters, guild, requestedPage = 0) {
+    const owners = Array.from(new Set(
+        characters
+            .map(character => String(character.discord_user_id || "").trim())
+            .filter(Boolean)
+    )).map(userId => {
+        const member = guild?.members?.cache?.get(userId);
+        return {
+            userId,
+            label: String(
+                member?.displayName
+                || member?.user?.globalName
+                || member?.user?.username
+                || `Utilisateur ${userId}`
+            ).trim()
+        };
+    }).sort((left, right) => left.label.localeCompare(
+        right.label,
+        "fr",
+        { sensitivity: "base" }
+    ));
+    const pageCount = Math.max(1, Math.ceil(owners.length / USER_PAGE_SIZE));
+    const page = Math.min(Math.max(Number(requestedPage) || 0, 0), pageCount - 1);
+    const visible = owners.slice(page * USER_PAGE_SIZE, (page + 1) * USER_PAGE_SIZE);
+
     return {
-        content: "Choisis l’utilisateur dont tu souhaites consulter les statistiques.",
-        embeds: [],
+        content: "",
+        embeds: [new EmbedBuilder()
+            .setColor(0x5865F2)
+            .setTitle("👤 Statistiques par utilisateur")
+            .setDescription([
+                "Cette liste contient tous les propriétaires de personnages installés dans GreyCore, y compris ceux que Discord ne propose pas spontanément.",
+                "",
+                `**${owners.length} utilisateur(s) · Page ${page + 1}/${pageCount}**`
+            ].join("\n"))],
         components: [
-            new ActionRowBuilder().addComponents(
-                new UserSelectMenuBuilder()
+            ...(visible.length ? [new ActionRowBuilder().addComponents(
+                new StringSelectMenuBuilder()
                     .setCustomId("v2_staff_characters_statistics_user_select")
                     .setPlaceholder("Choisir un utilisateur")
-                    .setMinValues(1)
-                    .setMaxValues(1)
+                    .addOptions(visible.map(owner => ({
+                        label: owner.label.slice(0, 100),
+                        value: owner.userId,
+                        description: `Identifiant ${owner.userId}`.slice(0, 100),
+                        emoji: "👤"
+                    })))
+            )] : []),
+            new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`v2_staff_characters_statistics_users_page:${page - 1}`)
+                    .setLabel("Précédent")
+                    .setEmoji("◀️")
+                    .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(page === 0),
+                new ButtonBuilder()
+                    .setCustomId(`v2_staff_characters_statistics_users_page:${page + 1}`)
+                    .setLabel("Suivant")
+                    .setEmoji("▶️")
+                    .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(page >= pageCount - 1)
             ),
             navigationRow()
         ]
@@ -134,5 +187,6 @@ module.exports = {
     buildUserSelection,
     buildUser,
     statisticsText,
-    genderCategory
+    genderCategory,
+    USER_PAGE_SIZE
 };

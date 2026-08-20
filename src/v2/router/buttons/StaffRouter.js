@@ -446,9 +446,18 @@ module.exports = async interaction => {
         return true;
     }
 
-    if (interaction.customId === "v2_staff_characters_statistics_user") {
+    if (
+        interaction.customId === "v2_staff_characters_statistics_user"
+        || interaction.customId.startsWith("v2_staff_characters_statistics_users_page:")
+    ) {
+        const roster = require("../../managers/CharacterRosterV2Manager")
+            .getRoster(interaction.guildId, { includeArchived: false });
+        const page = interaction.customId.includes(":")
+            ? Number(interaction.customId.split(":")[1]) || 0
+            : 0;
         await interaction.update(
-            require("../../views/staff/CharacterStatisticsView").buildUserSelection()
+            require("../../views/staff/CharacterStatisticsView")
+                .buildUserSelection(roster, interaction.guild, page)
         );
         return true;
     }
