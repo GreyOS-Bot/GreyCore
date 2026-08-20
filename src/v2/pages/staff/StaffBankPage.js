@@ -20,7 +20,7 @@ class StaffBankPage {
                     { name: "Types de biens", value: String(stats.types), inline: true },
                     { name: "Catégories disponibles", value: types.map(type => `${type.emoji || "🎒"} ${type.label}`).join(" · ") || "Aucune catégorie configurée." }
                 )],
-            components: [actionRow(enabled, stats.types === 0), navigationRow()]
+            components: [actionRow(enabled, stats.types === 0), helpRow(), navigationRow()]
         };
     }
 
@@ -39,6 +39,16 @@ function actionRow(enabled, needsDefaults) {
         .setEmoji("📦")
         .setStyle(ButtonStyle.Primary));
     return row;
+}
+
+function helpRow() {
+    return new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId("v2_help:staff_bank")
+            .setLabel("Aide")
+            .setEmoji("❓")
+            .setStyle(ButtonStyle.Secondary)
+    );
 }
 
 module.exports = new StaffBankPage();

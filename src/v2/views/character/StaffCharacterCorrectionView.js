@@ -57,6 +57,13 @@ class StaffCharacterCorrectionView {
                     .setEmoji("📝")
                     .setStyle(ButtonStyle.Secondary),
                 new ButtonBuilder()
+                    .setCustomId(
+                        `v2_validation_request_change:${character.installation_id}`
+                    )
+                    .setLabel("Demander une modification")
+                    .setEmoji("📨")
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
                     .setCustomId(`v2_staff_character_delete:${character.id}`)
                     .setLabel("Supprimer")
                     .setEmoji("🗑️")

@@ -16,8 +16,10 @@ const SELECT_GREYCORE_PHONES = `
             NULLIF(continuity.firstname, ''),
             character.proxy_name
         ) AS character_name,
-        character.avatar_url
-            AS character_avatar_url
+        COALESCE(
+            installation.local_avatar_url,
+            character.avatar_url
+        ) AS character_avatar_url
 
     FROM ContinuityPhonesV2 phone
 

@@ -30,7 +30,18 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId !== "v2_player_help_topic") return false;
-    const guide = require("../../views/help/GettingStartedGuideView").build(interaction.values[0]);
+    const value = String(interaction.values[0]).toLowerCase();
+    const legacy = {
+        personnages: "player_character",
+        relations: "player_relations",
+        etats: "player_states",
+        telephone: "player_phone",
+        biens: "player_bank",
+        scenes: "player_scenes",
+        confidentialite: "docs_privacy"
+    };
+    const topic = legacy[value] || value;
+    const guide = require("../../views/help/GettingStartedGuideView").build(topic);
     await interaction.update({
         ...guide,
         components: [require("../../views/player/PlayerHelpView").navigationRow()]

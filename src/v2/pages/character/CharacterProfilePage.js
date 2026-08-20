@@ -512,9 +512,7 @@ class CharacterProfilePage {
         const navigationRow =
             new ActionRowBuilder()
                 .addComponents(
-
                     UI.button.secondary({
-
                         id:
                             `page:character:home:${characterId}`,
 
@@ -531,8 +529,13 @@ class CharacterProfilePage {
 
                     UI.components
                         .navigation
-                        .close()
+                        .close(),
 
+                    UI.button.secondary({
+                        id: "v2_help:player_character",
+                        label: "Aide",
+                        emoji: "❓"
+                    })
                 );
 
         const actionRows =

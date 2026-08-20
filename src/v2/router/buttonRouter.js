@@ -1,4 +1,5 @@
 const buttonRouters = [
+    require("./buttons/GreyFateRouter"),
     require("./buttons/StaffEntityRouter"),
     require("./buttons/StaffRouter"),
     require("./buttons/PlayerRouter"),
@@ -8,6 +9,9 @@ const buttonRouters = [
     ),
     require(
         "./buttons/EncounterRouter"
+    ),
+    require(
+        "./buttons/ContextualHelpRouter"
     ),
     require(
         "./buttons/RelationshipRouter"

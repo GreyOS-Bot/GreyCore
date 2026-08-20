@@ -45,6 +45,15 @@ function build(roster, page = 0) {
                 : "Aucun personnage validé et installé sur ce serveur.")
             .setFooter({ text: `Page ${currentPage + 1}/${pageCount} · ${sorted.length} personnage(s)` })],
         components: [
+            ...(visible.some(character => genderLabel(character.gender) === "Non défini")
+                ? [new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`v2_staff_character_gender_quick:${currentPage}`)
+                        .setLabel("Saisie rapide des genres manquants")
+                        .setEmoji("⚡")
+                        .setStyle(ButtonStyle.Success)
+                )]
+                : []),
             ...(visible.length ? [new ActionRowBuilder().addComponents(
                 new StringSelectMenuBuilder()
                     .setCustomId(`v2_staff_character_gender_select:${currentPage}`)
@@ -72,7 +81,7 @@ function build(roster, page = 0) {
     };
 }
 
-function buildChoice(character, page = 0) {
+function buildChoice(character, page = 0, quick = false) {
     const name = character.firstname || character.proxy_name;
     return {
         content: "",
@@ -88,21 +97,30 @@ function buildChoice(character, page = 0) {
             ].join("\n"))],
         components: [
             new ActionRowBuilder().addComponents(
-                genderButton(character.id, "female", "Femme", "♀️", page),
-                genderButton(character.id, "male", "Homme", "♂️", page),
-                genderButton(character.id, "neutral", "Non genré", "⚪", page)
+                genderButton(character.id, "female", "Femme", "♀️", page, quick),
+                genderButton(character.id, "male", "Homme", "♂️", page, quick),
+                genderButton(character.id, "neutral", "Non genré", "⚪", page, quick)
             ),
             navigationRow()
         ]
     };
 }
 
-function genderButton(characterId, value, label, emoji, page) {
+function genderButton(characterId, value, label, emoji, page, quick = false) {
     return new ButtonBuilder()
-        .setCustomId(`v2_staff_character_gender_set:${characterId}:${value}:${page}`)
+        .setCustomId(`v2_staff_character_gender_set:${characterId}:${value}:${page}:${quick ? "quick" : "list"}`)
         .setLabel(label)
         .setEmoji(emoji)
         .setStyle(ButtonStyle.Primary);
 }
 
-module.exports = { build, buildChoice, genderLabel, PAGE_SIZE };
+function buildQuick(roster, page = 0) {
+    const missing = [...roster]
+        .sort((left, right) => String(left.firstname || left.proxy_name).localeCompare(
+            String(right.firstname || right.proxy_name), "fr", { sensitivity: "base" }
+        ))
+        .find(character => genderLabel(character.gender) === "Non défini");
+    return missing ? buildChoice(missing, page, true) : build(roster, page);
+}
+
+module.exports = { build, buildChoice, buildQuick, genderLabel, PAGE_SIZE };

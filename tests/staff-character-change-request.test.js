@@ -34,6 +34,25 @@ test(
     }
 );
 
+test("la fiche de correction staff permet de relancer une modification", () => {
+    const view = require("../src/v2/views/character/StaffCharacterCorrectionView");
+    const payload = view.build({
+        id: "character",
+        installation_id: 77,
+        discord_user_id: "owner",
+        status: "approved",
+        character_type: "personnage_joue",
+        proxy_name: "Reya",
+        alias: "Reya"
+    });
+    const ids = payload.components
+        .flatMap(row => row.toJSON().components)
+        .map(component => component.custom_id);
+
+    assert.ok(ids.includes("v2_validation_request_change:77"));
+    assert.ok(ids.includes("v2_staff_character_type:character"));
+});
+
 test(
     "la demande staff suspend le personnage et prévient son propriétaire",
     async () => {

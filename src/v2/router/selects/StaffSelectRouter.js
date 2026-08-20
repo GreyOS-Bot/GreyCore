@@ -6,6 +6,48 @@ const { replyError } = require(
 );
 
 module.exports = async interaction => {
+    if (interaction.customId === "v2_staff_scenes_public_forum_select") {
+        if (!policy.canAccess(interaction, "scenes", { write: false })) {
+            await replyError(interaction, "Tu n’as pas accès aux cycles de scènes.");
+            return true;
+        }
+        await interaction.deferUpdate();
+        const forum = await interaction.guild.channels.fetch(interaction.values[0]);
+        if (!forum?.threads) {
+            await replyError(interaction, "Ce forum est introuvable.");
+            return true;
+        }
+        const active = await forum.threads.fetchActive();
+        const archived = await forum.threads.fetchArchived({ limit: 100 });
+        const threads = [...active.threads.values(), ...archived.threads.values()]
+            .filter((thread, index, all) => all.findIndex(item => item.id === thread.id) === index)
+            .sort((left, right) => left.name.localeCompare(right.name, "fr", { sensitivity: "base" }));
+        const lines = threads.map(thread =>
+            `• [${thread.name}](https://discord.com/channels/${interaction.guildId}/${thread.id})`
+        );
+        const chunks = [];
+        let current = "";
+        for (const line of lines) {
+            if (`${current}\n${line}`.length > 3900) {
+                chunks.push(current);
+                current = line;
+            } else {
+                current = current ? `${current}\n${line}` : line;
+            }
+        }
+        if (current || !chunks.length) chunks.push(current || "Aucun lieu trouvé dans ce forum.");
+        await interaction.editReply({
+            content: "",
+            embeds: chunks.slice(0, 10).map((description, index) => ({
+                color: 0x5865F2,
+                title: index ? `🗺️ ${forum.name} · suite` : `🗺️ Lieux publics · ${forum.name}`,
+                description
+            })),
+            components: [require("../../pages/staff/StaffScenesPage").build(interaction).components.at(-1)]
+        });
+        return true;
+    }
+
     if (interaction.customId?.startsWith("v2_staff_character_gender_select:")) {
         const pageNumber = Number(interaction.customId.split(":")[1]) || 0;
         const character = require("../../managers/CharacterRosterV2Manager")

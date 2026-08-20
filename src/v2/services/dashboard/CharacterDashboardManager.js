@@ -214,9 +214,23 @@ class CharacterDashboardManager {
                 continuity.id
             );
 
+        const guildInstallation = options.guildId
+            ? installationManager
+                .getByCharacter(character.id)
+                .find(installation =>
+                    String(installation.guild_id) === String(options.guildId)
+                    && installation.continuity_id === continuity.id
+                )
+            : null;
+
         const dashboardCharacter = {
 
             ...character,
+
+            avatar_url:
+                guildInstallation?.local_avatar_url
+                || character.avatar_url
+                || null,
 
             display_name:
                 profile?.alias ??

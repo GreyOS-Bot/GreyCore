@@ -118,6 +118,11 @@ function navigationRow() {
             .setEmoji("🏠")
             .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
+            .setCustomId("v2_help:staff")
+            .setLabel("Aide")
+            .setEmoji("❓")
+            .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
             .setCustomId("staff_close")
             .setLabel("Fermer")
             .setEmoji("❌")

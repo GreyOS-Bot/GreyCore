@@ -1,0 +1,107 @@
+const http = require("node:http");
+const crypto = require("node:crypto");
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require("discord.js");
+const repository = require("../../repositories/GreyFateRepository");
+const entityManager = require("../../managers/NarrativeEntityV2Manager");
+const webhookManager = require("../../../webhooks/webhookManager");
+const { withThreadId } = require("../../core/services/ProxyThreadContext");
+const logger = require("../../core/services/TechnicalLogger").create("GreyFateIntegrationService");
+
+class GreyFateIntegrationService {
+    constructor() { this.client = null; this.server = null; this.available = false; }
+    enabled() { return String(process.env.GREYFATE_INTEGRATION_ENABLED || "false").toLowerCase() === "true"; }
+    initializeSchema() { repository.initializeSchema(); }
+    start(client) {
+        this.client = client;
+        if (!this.enabled()) { logger.info("GreyFate integration disabled by feature flag."); return; }
+        try {
+            this.initializeSchema();
+            if (!process.env.GREYFATE_SHARED_SECRET) throw new Error("GREYFATE_SHARED_SECRET absent");
+            const host = process.env.GREYCORE_FATE_HOST || "127.0.0.1", port = Number(process.env.GREYCORE_FATE_PORT || 8790);
+            if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("GREYCORE_FATE_PORT invalide");
+            this.server = http.createServer((req, res) => this.handleHttp(req, res));
+            this.server.on("error", error => { this.available = false; logger.error("GreyFate receiver isolated error:", error); });
+            this.server.listen(port, host, () => { this.available = true; logger.info(`GreyFate receiver active on ${host}:${port}`); });
+        } catch (error) { this.available = false; logger.error("GreyFate integration isolated; GreyCore remains available:", error); }
+    }
+    authenticate(req) { const a = Buffer.from(String(req.headers.authorization || "")), b = Buffer.from(`Bearer ${process.env.GREYFATE_SHARED_SECRET || ""}`); return a.length === b.length && crypto.timingSafeEqual(a, b); }
+    read(req) { return new Promise((resolve, reject) => { let body = ""; req.on("data", c => { body += c; if (body.length > 262144) { reject(new Error("Payload trop volumineux")); req.destroy(); } }); req.on("end", () => { try { resolve(JSON.parse(body || "{}")); } catch { reject(new Error("JSON invalide")); } }); req.on("error", reject); }); }
+    respond(res, status, body) { res.writeHead(status, { "content-type": "application/json; charset=utf-8" }); res.end(JSON.stringify(body)); }
+    async handleHttp(req, res) { if (req.method !== "POST" || req.url !== "/integrations/greyfate/events") return this.respond(res, 404, { error: "NOT_FOUND" }); if (!this.authenticate(req)) return this.respond(res, 401, { error: "UNAUTHORIZED" }); try { const payload = await this.read(req); if (!payload.operationKey) throw new Error("operationKey requis"); if (repository.hasOperation(payload.operationKey)) return this.respond(res, 200, { ok: true, duplicate: true }); await this.process(payload); repository.storeOperation(payload.operationKey, payload.type, new Date().toISOString()); return this.respond(res, 200, { ok: true }); } catch (error) { logger.error("GreyFate event rejected without impacting GreyCore:", error); return this.respond(res, 400, { error: error.message }); } }
+    async process(payload) { if (payload.type === "GREYFATE_EVENT_STARTED") return this.eventStarted(payload); if (payload.type === "GREYFATE_DUO_CLOSURE_DUE") return this.closureDue(payload); if (payload.type === "GREYFATE_EVENT_COMPLETED" || payload.type === "GREYFATE_EVENT_CONTINUED") return; throw new Error(`Événement inconnu : ${payload.type}`); }
+    entity(guildId) { return entityManager.getByGuild(guildId).find(e => e.name.toLowerCase() === "the weaver of fate" && e.is_enabled) || null; }
+    async sendAsWeaver(channel, content, components = []) { const entity = this.entity(channel.guildId); if (!entity) throw new Error("The Weaver of Fate doit être active dans GreyCore"); const webhook = await webhookManager.getOrCreateWebhook(channel); return webhook.send(withThreadId(channel, { username: entity.name, avatarURL: entity.avatar_url || undefined, embeds: [new EmbedBuilder().setColor(entity.embed_color).setDescription(content)], components, allowedMentions: { parse: [] } })); }
+    upsertDuo(payload, duo, now) { repository.upsertDuo(payload, duo, now); }
+    async eventStarted(payload) { const now = new Date().toISOString(); this.initializeSchema(); repository.upsertEvent(payload, now); const failures = []; for (const duo of payload.duos || []) { if (!duo.threadId) continue; this.upsertDuo(payload, duo, now); const saved = this.duo(duo.duoId); if (saved.welcome_sent_at) continue; try { const channel = await this.client.channels.fetch(duo.threadId); await this.sendAsWeaver(channel, `Les fils du destin se sont croisés. **${duo.maleCharacter}** et **${duo.femaleCharacter}**, votre histoire peut commencer.`, [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`greyfate_scene_start:${duo.duoId}`).setLabel("Commencer la scène").setEmoji("🧵").setStyle(ButtonStyle.Primary))]); repository.markWelcome(duo.duoId, now); } catch (error) { repository.markError(duo.duoId, error.message, now); failures.push(`${duo.duoId}: ${error.message}`); } } if (failures.length) throw new Error(`Accueil incomplet : ${failures.join(" | ")}`); }
+    async closureDue(payload) { const duo = this.duo(payload.duoId); if (!duo || duo.closed_at || duo.closure_prompt_sent_at) return; const now = new Date().toISOString(); try { const channel = await this.client.channels.fetch(duo.thread_id); await this.sendAsWeaver(channel, "Le fil de cette scène approche-t-il de son terme ?", [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`greyfate_duo_continue:${duo.duo_id}`).setLabel("Continuer").setEmoji("▶️").setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId(`greyfate_duo_close:${duo.duo_id}`).setLabel("Clôturer").setEmoji("🏁").setStyle(ButtonStyle.Danger))]); repository.markClosurePrompt(duo.duo_id, now); } catch (error) { repository.markError(duo.duo_id, error.message, now); throw error; } }
+    async sendToFate(payload) { const url = process.env.GREYFATE_CALLBACK_URL, secret = process.env.GREYFATE_SHARED_SECRET; if (!url || !secret) throw new Error("Retour GreyFate non configuré"); const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 5000); try { const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${secret}` }, body: JSON.stringify(payload), signal: controller.signal }); if (!response.ok) throw new Error(`GreyFate HTTP ${response.status}`); return response.json(); } finally { clearTimeout(timeout); } }
+    async sceneStart(duo, actorId) { if (duo.scene_started_at) return { duplicate: true }; await this.sendToFate({ type: "GREYCORE_SCENE_STARTED", operationKey: `${duo.event_id}:${duo.duo_id}:START`, eventId: duo.event_id, guildId: duo.guild_id, duoId: duo.duo_id, threadId: duo.thread_id, actorId }); const now = new Date().toISOString(); repository.markStarted(duo.duo_id, now); return { duplicate: false }; }
+    async continueDuo(duo, actorId, hours = 48) { await this.sendToFate({ type: "GREYCORE_DUO_CONTINUE", operationKey: `${duo.event_id}:${duo.duo_id}:CONTINUE:${Date.now()}`, eventId: duo.event_id, guildId: duo.guild_id, duoId: duo.duo_id, threadId: duo.thread_id, hours, actorId }); repository.markContinued(duo.duo_id, new Date().toISOString()); }
+    async closeDuo(duo, actorId) { await this.sendToFate({ type: "GREYCORE_DUO_CLOSE", operationKey: `${duo.event_id}:${duo.duo_id}:CLOSE`, eventId: duo.event_id, guildId: duo.guild_id, duoId: duo.duo_id, threadId: duo.thread_id, actorId }); const now = new Date().toISOString(); repository.markClosed(duo.duo_id, now); }
+    duo(id) { return repository.getDuo(id); }
+
+    async buildLatestEventReport(guildId) {
+        this.initializeSchema();
+        const event = repository.getLatestEvent(guildId);
+        if (!event) throw new Error("Aucune soirée duo GreyFate n’est enregistrée sur ce serveur.");
+        const duos = repository.getDuosByEvent(event.event_id);
+        const statistics = [];
+        for (const duo of duos) {
+            try {
+                const channel = await this.client.channels.fetch(duo.thread_id);
+                const messages = await this.fetchChannelMessages(channel, 1000);
+                const rp = messages.filter(message =>
+                    String(message.content || "").trim()
+                    && (!message.author?.bot || Boolean(message.webhookId))
+                );
+                const sorted = rp.sort((left, right) => left.createdTimestamp - right.createdTimestamp);
+                const durationHours = sorted.length > 1
+                    ? Math.max(1 / 60, (sorted.at(-1).createdTimestamp - sorted[0].createdTimestamp) / 3_600_000)
+                    : 0;
+                const gaps = sorted.slice(1).map((message, index) =>
+                    (message.createdTimestamp - sorted[index].createdTimestamp) / 60_000
+                );
+                statistics.push({
+                    duo,
+                    count: sorted.length,
+                    durationHours,
+                    perHour: durationHours ? sorted.length / durationHours : sorted.length,
+                    averageGap: gaps.length ? gaps.reduce((sum, value) => sum + value, 0) / gaps.length : null,
+                    opening: this.preview(sorted[0]?.content),
+                    closing: this.preview(sorted.at(-1)?.content)
+                });
+            } catch {
+                statistics.push({ duo, count: 0, durationHours: 0, perHour: 0, averageGap: null });
+            }
+        }
+        const byVolume = [...statistics].sort((a, b) => b.count - a.count)[0];
+        const byRhythm = [...statistics].filter(item => item.count >= 2).sort((a, b) => b.perHour - a.perHour)[0];
+        const lines = statistics.sort((a, b) => b.count - a.count).map((item, index) => [
+            `**${index + 1}. ${item.duo.male_character || "Personnage"} × ${item.duo.female_character || "Personnage"}**`,
+            `💬 ${item.count} dialogue(s) · ⚡ ${item.perHour.toFixed(1)}/h${item.averageGap !== null ? ` · attente moyenne ${Math.round(item.averageGap)} min` : ""}`,
+            item.opening || item.closing ? `Résumé factuel : ${item.opening || "…"}${item.closing && item.closing !== item.opening ? ` → ${item.closing}` : ""}` : "Résumé factuel indisponible."
+        ].join("\n"));
+        if (byVolume) lines.unshift(`🏆 **Plus de dialogues :** ${byVolume.duo.male_character} × ${byVolume.duo.female_character} (${byVolume.count})`);
+        if (byRhythm) lines.unshift(`⚡ **Meilleur rythme :** ${byRhythm.duo.male_character} × ${byRhythm.duo.female_character} (${byRhythm.perHour.toFixed(1)} dialogues/h)`);
+        return { eventId: event.event_id, duoCount: statistics.length, lines };
+    }
+
+    async fetchChannelMessages(channel, maximum = 1000) {
+        const collected = [];
+        let before;
+        while (collected.length < maximum) {
+            const batch = await channel.messages.fetch({ limit: Math.min(100, maximum - collected.length), ...(before ? { before } : {}) });
+            if (!batch.size) break;
+            collected.push(...batch.values());
+            before = batch.last().id;
+            if (batch.size < 100) break;
+        }
+        return collected;
+    }
+
+    preview(content) {
+        const text = String(content || "").replace(/\s+/g, " ").trim();
+        return text ? `« ${text.slice(0, 160)}${text.length > 160 ? "…" : ""} »` : null;
+    }
+}
+module.exports = new GreyFateIntegrationService();

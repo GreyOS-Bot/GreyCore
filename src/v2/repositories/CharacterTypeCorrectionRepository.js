@@ -60,6 +60,7 @@ class CharacterTypeCorrectionRepository {
                 character.base_firstname,
                 character.base_lastname,
                 user.discord_user_id,
+                installation.id AS installation_id,
                 installation.continuity_id,
                 installation.status,
                 profile.alias,

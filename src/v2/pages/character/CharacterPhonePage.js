@@ -259,6 +259,19 @@ const dashboardData =
                 emoji:
                     "⬅️"
 
+            }),
+
+            UI.button.secondary({
+
+                id:
+                    "v2_help:player_phone",
+
+                label:
+                    "Aide",
+
+                emoji:
+                    "❓"
+
             })
 
         );

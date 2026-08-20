@@ -471,6 +471,16 @@ module.exports = async interaction => {
         return true;
     }
 
+    if (interaction.customId.startsWith("v2_staff_character_gender_quick:")) {
+        const page = Number(interaction.customId.split(":")[1]) || 0;
+        const roster = require("../../managers/CharacterRosterV2Manager")
+            .getRoster(interaction.guildId, { includeArchived: false });
+        await interaction.update(
+            require("../../views/staff/StaffCharacterGenderView").buildQuick(roster, page)
+        );
+        return true;
+    }
+
     if (interaction.customId.startsWith("v2_staff_character_gender_set:")) {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
@@ -478,7 +488,7 @@ module.exports = async interaction => {
             await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }
-        const [, characterId, selectedGender, rawPage] = interaction.customId.split(":");
+        const [, characterId, selectedGender, rawPage, returnMode] = interaction.customId.split(":");
         const rosterManager = require("../../managers/CharacterRosterV2Manager");
         const roster = rosterManager.getRoster(interaction.guildId, { includeArchived: false });
         const character = roster.find(item => String(item.id) === String(characterId));
@@ -501,7 +511,9 @@ module.exports = async interaction => {
         );
         const updatedRoster = rosterManager.getRoster(interaction.guildId, { includeArchived: false });
         await interaction.update(
-            require("../../views/staff/StaffCharacterGenderView").build(updatedRoster, Number(rawPage) || 0)
+            returnMode === "quick"
+                ? require("../../views/staff/StaffCharacterGenderView").buildQuick(updatedRoster, Number(rawPage) || 0)
+                : require("../../views/staff/StaffCharacterGenderView").build(updatedRoster, Number(rawPage) || 0)
         );
         return true;
     }
@@ -698,7 +710,7 @@ module.exports = async interaction => {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
         const action = interaction.customId.slice("v2_staff_scenes_".length);
-        const readOnlyActions = ["manage", "diagnostic"].includes(action);
+        const readOnlyActions = ["manage", "diagnostic", "public_places", "duo_report"].includes(action);
         if (!policy.canAccess(interaction, "scenes", { write: !readOnlyActions })) {
             await replyError(
                 interaction,
@@ -733,6 +745,36 @@ module.exports = async interaction => {
 
         if (action === "diagnostic") {
             await interaction.update(page.buildDiagnostic(interaction));
+            return true;
+        }
+
+        if (action === "public_places") {
+            const { ActionRowBuilder, ChannelSelectMenuBuilder, ChannelType } = require("discord.js");
+            await interaction.update({
+                content: "Choisis le forum Discord dont tu veux générer la liste des lieux publics.",
+                embeds: [],
+                components: [
+                    new ActionRowBuilder().addComponents(
+                        new ChannelSelectMenuBuilder()
+                            .setCustomId("v2_staff_scenes_public_forum_select")
+                            .setPlaceholder("Choisir le forum des lieux publics")
+                            .setChannelTypes(ChannelType.GuildForum)
+                    ),
+                    page.build(interaction).components.at(-1)
+                ]
+            });
+            return true;
+        }
+
+        if (action === "duo_report") {
+            try {
+                await interaction.deferUpdate();
+                const report = await require("../../services/greyfate/GreyFateIntegrationService")
+                    .buildLatestEventReport(interaction.guildId);
+                await interaction.editReply(page.buildDuoReport(interaction, report));
+            } catch (error) {
+                await replyError(interaction, error);
+            }
             return true;
         }
 

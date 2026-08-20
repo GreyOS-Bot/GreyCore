@@ -148,6 +148,7 @@ test(
         assert.deepEqual(componentIds, [
             "v2_staff_character_identity:character",
             "v2_staff_character_info:character",
+            "v2_validation_request_change:1",
             "v2_staff_character_delete:character",
             "v2_staff_character_type:character",
             "page:staff:characters:root",

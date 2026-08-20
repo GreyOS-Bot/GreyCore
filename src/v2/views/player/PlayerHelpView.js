@@ -1,13 +1,13 @@
 const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 
 const TOPICS = [
-    ["personnages", "Personnages", "Création, validation et installations", "👤"],
-    ["relations", "Relations", "Liens et arbre familial", "❤️"],
-    ["etats", "États", "États RP du personnage", "🩹"],
-    ["telephone", "Téléphone", "SMS, MMS, appels et groupes", "📱"],
-    ["biens", "Biens", "Inventaire, propriétés et véhicules", "🎒"],
-    ["scenes", "Scènes", "Cycles et rattrapages", "🎬"],
-    ["confidentialite", "Confidentialité", "Données personnelles et oubli", "🔐"]
+    ["player_character", "Personnage", "Créer, valider, compléter", "👤"],
+    ["player_relations", "Relations", "Relations et généalogie", "❤️"],
+    ["player_states", "États", "États RP, statistiques et effets", "🩹"],
+    ["player_phone", "Téléphone", "SMS, MMS, appels, e-mails", "📱"],
+    ["player_bank", "Biens", "Inventaire, patrimoine et effets", "🎒"],
+    ["player_scenes", "Scènes", "Cycles, rattrapage, continuité", "🎬"],
+    ["docs_privacy", "Confidentialité", "Données et droit à l’oubli", "🔐"]
 ];
 
 function build() {
@@ -16,8 +16,8 @@ function build() {
             .setColor(0x5865F2)
             .setTitle("❓ Aide GreyCore")
             .setDescription([
-                "Choisis ce que tu souhaites comprendre.",
-                "Tu peux revenir à ton espace personnel sans utiliser une nouvelle commande.",
+                "⚡ Choisis une rubrique pour voir l’aide détaillée.",
+                "Navigation pensée comme une vraie application : peu de commandes, beaucoup d’actions depuis les boutons.",
                 "",
                 "**Pour commencer :** ouvre **Mes personnages**, sélectionne ton personnage, puis navigue dans ses pages."
             ].join("\n"))],

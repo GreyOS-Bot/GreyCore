@@ -42,6 +42,13 @@ class StaffEntitiesPage {
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!writable)
         ));
+        components.push(new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId("v2_help:staff_entities")
+                .setLabel("Aide")
+                .setEmoji("❓")
+                .setStyle(ButtonStyle.Secondary)
+        ));
         components.push(navigationRow());
 
         return {
@@ -143,6 +150,8 @@ class StaffEntitiesPage {
                 new ActionRowBuilder().addComponents(
                     new ButtonBuilder().setCustomId("page:staff:section:entities")
                         .setLabel("Entités").setEmoji("⬅️").setStyle(ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId("v2_help:staff_entities")
+                        .setLabel("Aide").setEmoji("❓").setStyle(ButtonStyle.Secondary),
                     new ButtonBuilder().setCustomId("page:staff:home:root")
                         .setLabel("Accueil").setEmoji("🏠").setStyle(ButtonStyle.Secondary),
                     new ButtonBuilder().setCustomId("staff_close")
@@ -172,7 +181,9 @@ class StaffEntitiesPage {
                 .setLabel("Programmer une apparition").setEmoji("➕")
                 .setStyle(ButtonStyle.Primary).setDisabled(!writable),
             new ButtonBuilder().setCustomId(`v2_staff_entities_open:${entity.id}`)
-                .setLabel("Entité").setEmoji("⬅️").setStyle(ButtonStyle.Secondary)
+                .setLabel("Entité").setEmoji("⬅️").setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId("v2_help:staff_entities")
+                .setLabel("Aide").setEmoji("❓").setStyle(ButtonStyle.Secondary)
         ));
         return {
             embeds: [new EmbedBuilder().setColor(entity.embed_color)
@@ -212,6 +223,8 @@ class StaffEntitiesPage {
             components: [
                 new ActionRowBuilder().addComponents(scopeSelect),
                 new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId("v2_help:staff_entities")
+                        .setLabel("Aide").setEmoji("❓").setStyle(ButtonStyle.Secondary),
                     new ButtonBuilder().setCustomId(`v2_staff_entities_event_toggle:${event.id}`)
                         .setLabel(event.is_enabled ? "Désactiver" : "Activer").setStyle(ButtonStyle.Secondary).setDisabled(!writable),
                     new ButtonBuilder().setCustomId(`v2_staff_entities_event_delete:${event.id}`)

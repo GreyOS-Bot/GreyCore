@@ -296,7 +296,7 @@ Dernière mise à jour : juillet 2026
 
 ### Avant d’inviter les joueurs
 
-- ✅ Les parcours principaux sont couverts par 131 tests automatisés.
+- ✅ Les parcours principaux sont couverts par 135 tests automatisés.
 - ⬜ Redéployer les commandes Discord, puis redémarrer le bot avec la dernière version.
 - ⬜ Effectuer une recette complète sur un serveur de test : création et validation d’un personnage, continuité, relations, états, téléphone, groupe, MMS, biens et permissions staff.
 - ⬜ Vérifier les deux parcours de configuration : choisir un salon de validation existant ou en créer un privé avec un rôle staff.

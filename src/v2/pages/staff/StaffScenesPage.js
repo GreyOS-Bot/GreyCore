@@ -101,7 +101,24 @@ class StaffScenesPage {
                         .setCustomId("v2_staff_scenes_new_cycle")
                         .setLabel("Nouveau cycle ici")
                         .setEmoji("🔄")
-                        .setStyle(ButtonStyle.Primary)
+                        .setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder()
+                        .setCustomId("v2_staff_scenes_public_places")
+                        .setLabel("Liste des lieux publics")
+                        .setEmoji("🗺️")
+                        .setStyle(ButtonStyle.Secondary),
+                    new ButtonBuilder()
+                        .setCustomId("v2_staff_scenes_duo_report")
+                        .setLabel("Bilan soirées duos")
+                        .setEmoji("🏆")
+                        .setStyle(ButtonStyle.Secondary)
+                ),
+                new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId("v2_help:staff_scenes")
+                        .setLabel("Aide")
+                        .setEmoji("❓")
+                        .setStyle(ButtonStyle.Secondary)
                 ),
                 navigationRow()
             ]
@@ -144,6 +161,11 @@ class StaffScenesPage {
         components.push(new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId("page:staff:section:scenes")
                 .setLabel("Retour aux scènes").setEmoji("⬅️").setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId("v2_help:staff_scenes")
+                .setLabel("Aide")
+                .setEmoji("❓")
+                .setStyle(ButtonStyle.Secondary),
             new ButtonBuilder().setCustomId("staff_close")
                 .setLabel("Fermer").setEmoji("❌").setStyle(ButtonStyle.Secondary)
         ));
@@ -180,6 +202,29 @@ class StaffScenesPage {
                     { name: "Scène active ici", value: activeScene ? `**${activeScene.title}** · ${activeScene.rp_message_count} message(s)` : "Aucune" },
                     { name: "Zones configurées", value: scopes.map(scope => `<#${scope.channel_id}>`).join(", ") || "Aucune" }
                 )],
+            components: [
+                navigationRow(),
+                new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId("v2_help:staff_scenes")
+                        .setLabel("Aide")
+                        .setEmoji("❓")
+                        .setStyle(ButtonStyle.Secondary)
+                )
+            ]
+        };
+    }
+
+    buildDuoReport(interaction, report) {
+        return {
+            embeds: [new EmbedBuilder()
+                .setColor(0x5865F2)
+                .setTitle("🏆 Bilan de la dernière soirée duos")
+                .setDescription(truncateField(
+                    report.lines.join("\n\n") || "Aucune scène duo exploitable.",
+                    4096
+                ))
+                .setFooter({ text: `${report.duoCount} duo(s) analysé(s) · sans analyse IA` })],
             components: [navigationRow()]
         };
     }

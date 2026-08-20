@@ -29,36 +29,22 @@ test(
 
         assert.match(
             welcomeContent,
-            /config validation/
+            /\/staff/
         );
 
         assert.match(
             welcomeContent,
-            /installer-relations/
+            /\/greycore/
         );
 
         assert.match(
             welcomeContent,
-            /installer-etats/
+            /\/personnage/
         );
 
         assert.match(
             welcomeContent,
-            /etattype creer/
-        );
-
-        assert.equal(
-            welcomeContent.indexOf(
-                "/installer-etats"
-            ) < welcomeContent.indexOf(
-                "/etattype creer"
-            ),
-            true
-        );
-
-        assert.match(
-            welcomeContent,
-            /relationtype creer.*etattype creer/
+            /boutons, menus et formulaires/
         );
 
         const characterGuide =
@@ -68,12 +54,12 @@ test(
 
         assert.match(
             characterGuide.fields[0].value,
-            /personnages liste/
+            /\/personnage creer/
         );
 
         assert.match(
-            characterGuide.fields[0].value,
-            /modification de fiche ou d’avatar/
+            characterGuide.fields[1].value,
+            /validation.*staff/i
         );
 
         const relationshipGuide =

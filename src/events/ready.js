@@ -16,6 +16,8 @@ const sceneInactivityService =
 
 const narrativeEntityEventScheduler =
     require("../v2/services/entities/NarrativeEntityEventScheduler");
+const greyFateIntegrationService =
+    require("../v2/services/greyfate/GreyFateIntegrationService");
 
 module.exports = {
     name: "clientReady",
@@ -45,6 +47,7 @@ module.exports = {
         staffErrorLogService.initialize(client);
         sceneInactivityService.start(client);
         narrativeEntityEventScheduler.start(client);
+        greyFateIntegrationService.start(client);
 
         console.log(
             `✅ Greycore connecté en tant que ${client.user.tag}`
