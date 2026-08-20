@@ -1,5 +1,14 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const {
+    createIsolatedDatabase
+} = require("./helpers/isolatedDatabase");
+
+const isolated = createIsolatedDatabase({
+    initializeSchema: true
+});
+
+test.after(() => isolated.cleanup());
 
 test("le retour de la gestion des scenes utilise la route staff enregistree", () => {
     const page = require("../src/v2/pages/staff/StaffScenesPage");
