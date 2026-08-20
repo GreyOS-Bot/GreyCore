@@ -10,6 +10,14 @@ test("les réponses rapides conservent le type e-mail", () => {
     assert.equal(sms.components[0].custom_id, "v2_phone_quick_reply:12:character:sms");
 });
 
+test("un message de groupe expose un bouton de réponse commun", () => {
+    const manager = require("../src/v2/managers/PhoneActionV2Manager");
+    const payload = manager.groupReplyButtons(42).toJSON();
+
+    assert.equal(payload.components[0].custom_id, "v2_phone_group_quick_reply:42");
+    assert.equal(payload.components[0].label, "Répondre au groupe");
+});
+
 test("l’accueil du téléphone expose directement SMS, MMS et e-mail", () => {
     const source = require("node:fs").readFileSync(
         require("node:path").resolve("src/v2/pages/character/CharacterPhonePage.js"),

@@ -297,9 +297,9 @@ class PhoneService {
                             ]
                             : [],
 
-                    components:
-                        !isGroup
-                        && receiverParticipant.character_id
+                    components: isGroup
+                        ? [PhoneActionV2Manager.groupReplyButtons(conversation.id)]
+                        : receiverParticipant.character_id
                             ? [
                                 PhoneActionV2Manager
                                     .smsButtons(

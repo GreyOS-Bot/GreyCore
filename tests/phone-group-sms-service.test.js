@@ -76,12 +76,11 @@ test(
         stubModule(
             "src/v2/managers/PhoneActionV2Manager.js",
             {
-                smsButtons:
-                    () => {
-                        throw new Error(
-                            "Un groupe ne doit pas recevoir un bouton privé unique."
-                        );
-                    }
+                groupReplyButtons:
+                    conversationId => ({
+                        kind: "group-reply",
+                        conversationId
+                    })
             }
         );
 
@@ -141,10 +140,10 @@ test(
             /SMS dans La bande/
         );
 
-        assert.deepEqual(
-            webhookPayload.components,
-            []
-        );
+        assert.deepEqual(webhookPayload.components, [{
+            kind: "group-reply",
+            conversationId: 40
+        }]);
 
         assert.equal(
             notifications.length,

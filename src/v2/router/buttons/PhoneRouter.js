@@ -502,6 +502,48 @@ module.exports =
 
         }
 
+        if (id.startsWith("v2_phone_group_quick_reply:")) {
+            const conversationId = Number(id.split(":")[1]);
+            const participants = PhoneConversationV2Manager.getParticipants(conversationId);
+            const characterManager = require("../../managers/CharacterV2Manager");
+            const ownedCharacters = participants
+                .filter(participant => participant.character_id)
+                .map(participant => characterManager.getById(participant.character_id))
+                .filter(character => character
+                    && String(character.discord_user_id) === String(interaction.user.id));
+
+            if (!ownedCharacters.length) {
+                const { replyError } = require("../../core/services/InteractionResponseService");
+                await replyError(interaction, "Aucun de tes personnages ne participe à cette conversation.");
+                return true;
+            }
+
+            if (ownedCharacters.length === 1) {
+                await PhoneMessageModal.show(interaction, conversationId, ownedCharacters[0].id, {
+                    source: "quick_reply",
+                    kind: "sms"
+                });
+                return true;
+            }
+
+            const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
+            const { replyPrivate } = require("../../core/services/InteractionResponseService");
+            await replyPrivate(interaction, {
+                content: "Avec quel personnage veux-tu répondre au groupe ?",
+                components: [new ActionRowBuilder().addComponents(
+                    new StringSelectMenuBuilder()
+                        .setCustomId(`v2_phone_group_reply_character:${conversationId}`)
+                        .setPlaceholder("Choisir un personnage")
+                        .addOptions(ownedCharacters.slice(0, 25).map(character => ({
+                            label: String(character.firstname || character.proxy_name).slice(0, 100),
+                            value: String(character.id),
+                            emoji: "📱"
+                        })))
+                )]
+            });
+            return true;
+        }
+
         if (
     id.startsWith(
         "v2_phone_call_open:"

@@ -27,6 +27,16 @@ class PhoneActionV2Manager {
             );
     }
 
+    groupReplyButtons(conversationId) {
+        return new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`v2_phone_group_quick_reply:${conversationId}`)
+                .setLabel("Répondre au groupe")
+                .setEmoji("💬")
+                .setStyle(ButtonStyle.Primary)
+        );
+    }
+
     incomingCallButtons(
     callId,
     receiverCharacterId
