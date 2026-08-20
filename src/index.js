@@ -60,7 +60,7 @@ const startProjectionPublisher = () => {
 if (client.isReady()) {
     startProjectionPublisher();
 } else {
-    client.once("ready", startProjectionPublisher);
+    client.once("clientReady", startProjectionPublisher);
 }
 
 for (const signal of ["SIGINT", "SIGTERM"]) {
