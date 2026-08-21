@@ -900,6 +900,21 @@ module.exports = async interaction => {
         return true;
     }
 
+    if (interaction.customId.startsWith("v2_staff_public_places_page:")) {
+        if (!require("../../core/policies/StaffPermissionPolicy").canAccess(interaction, "scenes", { write: false })) {
+            await require("../../core/services/InteractionResponseService").replyError(interaction, "Tu n’as pas accès aux cycles de scènes.");
+            return true;
+        }
+        const [, forumId, rawPage] = interaction.customId.split(":");
+        const forum = await interaction.guild.channels.fetch(forumId);
+        const places = require("../../services/publicPlaces/PublicPlaceForumService")
+            .get(interaction.guildId, forumId);
+        await interaction.update(
+            require("../../views/staff/StaffPublicPlacesView").build(interaction, forum, places, null, Number(rawPage) || 0)
+        );
+        return true;
+    }
+
     if (interaction.customId !== "staff_close") return false;
 
     await interaction.update({

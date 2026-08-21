@@ -8,7 +8,7 @@ const CATEGORIES = Object.freeze([
     ["hebergement", "Hébergement", "🏨"], ["autre", "Autre", "📍"]
 ]);
 
-function build(interaction, forum, places, focusChannelId = null) {
+function build(interaction, forum, places, focusChannelId = null, requestedPage = 0) {
     const grouped = new Map();
     for (const place of places) {
         const key = place.category || "non_classe";
@@ -30,6 +30,7 @@ function build(interaction, forum, places, focusChannelId = null) {
         } else chunk = chunk ? `${chunk}\n${line}` : line;
     }
     if (chunk || !chunks.length) chunks.push(chunk || "Aucun lieu trouvé.");
+    const page = Math.max(0, Math.min(Number(requestedPage) || 0, chunks.length - 1));
     const focus = places.find(place => String(place.channel_id) === String(focusChannelId))
         || places.find(place => !place.category);
     const components = [];
@@ -39,6 +40,16 @@ function build(interaction, forum, places, focusChannelId = null) {
             .setPlaceholder(`Classer : ${focus.name}`)
             .addOptions(CATEGORIES.map(([value, label, emoji]) => ({ value, label, emoji })))
     ));
+    if (chunks.length > 1) components.push(new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`v2_staff_public_places_page:${forum.id}:${page - 1}`)
+            .setLabel("Précédent").setEmoji("⬅️").setStyle(ButtonStyle.Secondary)
+            .setDisabled(page === 0),
+        new ButtonBuilder()
+            .setCustomId(`v2_staff_public_places_page:${forum.id}:${page + 1}`)
+            .setLabel("Suivant").setEmoji("➡️").setStyle(ButtonStyle.Secondary)
+            .setDisabled(page === chunks.length - 1)
+    ));
     components.push(new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId(`v2_staff_public_places_refresh:${forum.id}`).setLabel("Actualiser le forum").setEmoji("🔄").setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId("v2_staff_scenes_public_places").setLabel("Changer de forum").setEmoji("🗺️").setStyle(ButtonStyle.Secondary),
@@ -46,16 +57,14 @@ function build(interaction, forum, places, focusChannelId = null) {
     ));
     return {
         content: "",
-        embeds: chunks.slice(0, 10).map((description, index) => {
-            const embed = new EmbedBuilder()
-                .setColor(0x5865F2)
-                .setTitle(index ? `🗺️ ${forum.name} · suite` : `🗺️ Lieux professionnels/publics · ${forum.name}`)
-                .setDescription(description);
-            if (!index) embed.setFooter({
-                text: focus ? `Saisie rapide : classe maintenant « ${focus.name} »` : "Tous les lieux sont classés."
-            });
-            return embed;
-        }),
+        embeds: [new EmbedBuilder()
+            .setColor(0x5865F2)
+            .setTitle(`🗺️ Lieux professionnels/publics · ${forum.name}`)
+            .setDescription(chunks[page])
+            .setFooter({ text: [
+                `Page ${page + 1}/${chunks.length}`,
+                focus ? `Saisie rapide : « ${focus.name} »` : "Tous les lieux sont classés."
+            ].join(" · ") })],
         components
     };
 }

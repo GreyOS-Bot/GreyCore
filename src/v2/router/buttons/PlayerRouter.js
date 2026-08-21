@@ -77,11 +77,15 @@ module.exports = async interaction => {
         );
         return true;
     }
-    if (interaction.customId === "v2_player_public_places") {
+    if (interaction.customId === "v2_player_public_places"
+        || interaction.customId.startsWith("v2_player_public_places_page:")) {
+        const page = interaction.customId.startsWith("v2_player_public_places_page:")
+            ? Number(interaction.customId.split(":")[1]) || 0
+            : 0;
         const places = require("../../services/publicPlaces/PublicPlaceForumService")
             .getPublished(interaction.guildId);
         await interaction.update(
-            require("../../views/player/PlayerPublicPlacesView").build(interaction.guildId, places)
+            require("../../views/player/PlayerPublicPlacesView").build(interaction.guildId, places, page)
         );
         return true;
     }

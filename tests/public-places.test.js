@@ -25,3 +25,17 @@ test("les lieux d’un forum sont synchronisés puis classés rapidement", () =>
         isolated.cleanup();
     }
 });
+
+test("les annuaires volumineux utilisent un seul embed paginé", () => {
+    const places = Array.from({ length: 180 }, (_, index) => ({
+        channel_id: String(100000000000000000n + BigInt(index)),
+        name: `Lieu professionnel ${index.toString().padStart(3, "0")} avec un nom détaillé`,
+        category: "restaurant"
+    }));
+    const playerView = require("../src/v2/views/player/PlayerPublicPlacesView")
+        .build("guild", places);
+    assert.equal(playerView.embeds.length, 1);
+    assert.ok(playerView.components.some(row => row.components.some(component =>
+        component.data.custom_id?.startsWith("v2_player_public_places_page:")
+    )));
+});
