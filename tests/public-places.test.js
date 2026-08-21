@@ -17,6 +17,10 @@ test("les lieux d’un forum sont synchronisés puis classés rapidement", () =>
             repository.getByForum("guild", "forum").find(place => place.channel_id === "restaurant").category,
             "restaurant"
         );
+        assert.deepEqual(
+            repository.getPublishedForGuild("guild").map(place => place.channel_id),
+            ["restaurant"]
+        );
     } finally {
         isolated.cleanup();
     }

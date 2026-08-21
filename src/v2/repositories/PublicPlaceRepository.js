@@ -30,6 +30,14 @@ class PublicPlaceRepository {
         `).all(guildId, forumId);
     }
 
+    getPublishedForGuild(guildId) {
+        return db.prepare(`
+            SELECT * FROM GuildPublicPlacesV2
+            WHERE guild_id = ? AND category IS NOT NULL
+            ORDER BY category ASC, name COLLATE NOCASE ASC
+        `).all(guildId);
+    }
+
     setCategory(guildId, channelId, category) {
         return db.prepare(`
             UPDATE GuildPublicPlacesV2 SET category = ?, updated_at = ?

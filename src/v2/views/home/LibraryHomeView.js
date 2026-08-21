@@ -136,6 +136,11 @@ class LibraryHomeView {
                 .setCustomId("v2_player_scenes")
                 .setLabel("Scènes RP")
                 .setEmoji("🎬")
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId("v2_player_public_places")
+                .setLabel("Lieux publics")
+                .setEmoji("🗺️")
                 .setStyle(ButtonStyle.Secondary)
         );
 

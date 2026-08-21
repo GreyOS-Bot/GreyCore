@@ -131,6 +131,21 @@ test("l’arbre propage les liens familiaux à tous les personnages concernés",
     assert.ok(groups.extended.some(member => member.name === "Célia" && member.label === "Cousin·e de"));
 });
 
+test("un même lien direct affiche automatiquement son inverse sur l’autre personnage", () => {
+    const relation = {
+        id: "family",
+        key: "godparent",
+        continuity_a_id: "parrain",
+        continuity_b_id: "filleul",
+        otherCharacterId: "character-parrain",
+        otherContinuityId: "parrain",
+        otherCharacterName: "Elio",
+        displayLabel: "Parrain/Marraine de"
+    };
+    const tree = familyTreeService.build({ continuityId: "filleul", relationships: [relation] });
+    assert.equal(tree[0].members[0].label, "Parrain/Marraine de");
+});
+
 function relationship({
     id,
     key,

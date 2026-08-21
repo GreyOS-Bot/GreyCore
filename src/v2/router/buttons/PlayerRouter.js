@@ -77,6 +77,14 @@ module.exports = async interaction => {
         );
         return true;
     }
+    if (interaction.customId === "v2_player_public_places") {
+        const places = require("../../services/publicPlaces/PublicPlaceForumService")
+            .getPublished(interaction.guildId);
+        await interaction.update(
+            require("../../views/player/PlayerPublicPlacesView").build(interaction.guildId, places)
+        );
+        return true;
+    }
     if (interaction.customId === "v2_player_privacy") {
         await interaction.update(require("../../views/player/PlayerPrivacyView").build());
         return true;
