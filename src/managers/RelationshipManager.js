@@ -337,6 +337,24 @@ installDefaultRelationshipTypes(guildId) {
             isSymmetric: 0
         },
         {
+            key: "nephew_niece",
+            labelAToB: "Neveu/Nièce de",
+            labelBToA: "Oncle/Tante de",
+            isSymmetric: 0
+        },
+        {
+            key: "godparent",
+            labelAToB: "Parrain/Marraine de",
+            labelBToA: "Filleul/Filleule de",
+            isSymmetric: 0
+        },
+        {
+            key: "godchild",
+            labelAToB: "Filleul/Filleule de",
+            labelBToA: "Parrain/Marraine de",
+            isSymmetric: 0
+        },
+        {
             key: "grandparent",
             labelAToB: "Grand-parent de",
             labelBToA: "Petit-enfant de",

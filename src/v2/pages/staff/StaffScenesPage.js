@@ -104,7 +104,7 @@ class StaffScenesPage {
                         .setStyle(ButtonStyle.Primary),
                     new ButtonBuilder()
                         .setCustomId("v2_staff_scenes_public_places")
-                        .setLabel("Liste des lieux publics")
+                        .setLabel("Lieux pro/publics")
                         .setEmoji("🗺️")
                         .setStyle(ButtonStyle.Secondary),
                     new ButtonBuilder()

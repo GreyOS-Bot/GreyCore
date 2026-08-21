@@ -81,14 +81,15 @@ class RelationshipV2Manager {
     }
 
     getFamilyTree(
-        continuityId
+        continuityId,
+        guildId = null
     ) {
-        return familyTreeService.build({
+        const directRelationships = this.getDisplayRelationships(continuityId);
+        if (!guildId) return familyTreeService.build({ continuityId, relationships: directRelationships });
+        return familyTreeService.buildNetwork({
             continuityId,
-            relationships:
-                this.getDisplayRelationships(
-                    continuityId
-                )
+            directRelationships,
+            allRelationships: relationshipRepository.getForGuild(guildId)
         });
     }
 

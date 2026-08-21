@@ -17,34 +17,27 @@ module.exports = async interaction => {
             await replyError(interaction, "Ce forum est introuvable.");
             return true;
         }
-        const active = await forum.threads.fetchActive();
-        const archived = await forum.threads.fetchArchived({ limit: 100 });
-        const threads = [...active.threads.values(), ...archived.threads.values()]
-            .filter((thread, index, all) => all.findIndex(item => item.id === thread.id) === index)
-            .sort((left, right) => left.name.localeCompare(right.name, "fr", { sensitivity: "base" }));
-        const lines = threads.map(thread =>
-            `• [${thread.name}](https://discord.com/channels/${interaction.guildId}/${thread.id})`
+        const places = await require("../../services/publicPlaces/PublicPlaceForumService")
+            .synchronize(interaction.guildId, forum);
+        await interaction.editReply(
+            require("../../views/staff/StaffPublicPlacesView").build(interaction, forum, places)
         );
-        const chunks = [];
-        let current = "";
-        for (const line of lines) {
-            if (`${current}\n${line}`.length > 3900) {
-                chunks.push(current);
-                current = line;
-            } else {
-                current = current ? `${current}\n${line}` : line;
-            }
+        return true;
+    }
+
+    if (interaction.customId?.startsWith("v2_staff_public_place_category:")) {
+        if (!policy.canAccess(interaction, "scenes", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
+            return true;
         }
-        if (current || !chunks.length) chunks.push(current || "Aucun lieu trouvé dans ce forum.");
-        await interaction.editReply({
-            content: "",
-            embeds: chunks.slice(0, 10).map((description, index) => ({
-                color: 0x5865F2,
-                title: index ? `🗺️ ${forum.name} · suite` : `🗺️ Lieux publics · ${forum.name}`,
-                description
-            })),
-            components: [require("../../pages/staff/StaffScenesPage").build(interaction).components.at(-1)]
-        });
+        const [, forumId, channelId] = interaction.customId.split(":");
+        const service = require("../../services/publicPlaces/PublicPlaceForumService");
+        service.categorize(interaction.guildId, channelId, interaction.values[0]);
+        const forum = await interaction.guild.channels.fetch(forumId);
+        const places = service.get(interaction.guildId, forumId);
+        await interaction.update(
+            require("../../views/staff/StaffPublicPlacesView").build(interaction, forum, places)
+        );
         return true;
     }
 

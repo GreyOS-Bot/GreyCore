@@ -175,6 +175,15 @@ class RelationshipRepository {
         );
     }
 
+    getForGuild(guildId) {
+        return db.prepare(`
+            ${SELECT_RELATIONSHIP}
+            WHERE relationship.guild_id = ?
+            AND relationship.ended_at IS NULL
+            ORDER BY relationship.id ASC
+        `).all(guildId);
+    }
+
     findActive({
         continuityAId,
         continuityBId,

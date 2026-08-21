@@ -884,6 +884,22 @@ module.exports = async interaction => {
         }
     }
 
+    if (interaction.customId.startsWith("v2_staff_public_places_refresh:")) {
+        if (!require("../../core/policies/StaffPermissionPolicy").canAccess(interaction, "scenes", { write: false })) {
+            await require("../../core/services/InteractionResponseService").replyError(interaction, "Tu n’as pas accès aux cycles de scènes.");
+            return true;
+        }
+        await interaction.deferUpdate();
+        const forumId = interaction.customId.split(":")[1];
+        const forum = await interaction.guild.channels.fetch(forumId);
+        const places = await require("../../services/publicPlaces/PublicPlaceForumService")
+            .synchronize(interaction.guildId, forum);
+        await interaction.editReply(
+            require("../../views/staff/StaffPublicPlacesView").build(interaction, forum, places)
+        );
+        return true;
+    }
+
     if (interaction.customId !== "staff_close") return false;
 
     await interaction.update({

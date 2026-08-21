@@ -105,6 +105,7 @@ function clearApplicationSchemaCache() {
         "src/database/schemaV2SceneAssistant.js",
         "src/database/schemaV2StaffPermissions.js"
         ,"src/database/schemaV2Entities.js"
+        ,"src/database/schemaV2PublicPlaces.js"
     ];
 
     for (const modulePath of schemaModules) {

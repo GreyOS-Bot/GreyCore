@@ -112,6 +112,25 @@ test(
     }
 );
 
+test("l’arbre propage les liens familiaux à tous les personnages concernés", () => {
+    const allRelationships = [
+        rawRelationship("r1", "parent", "evelyn", "parent", "Evelyn", "Morgan"),
+        rawRelationship("r2", "parent", "parent", "sloane", "Morgan", "Sloane"),
+        rawRelationship("r3", "sibling", "parent", "tante", "Morgan", "Talia"),
+        rawRelationship("r4", "parent", "tante", "cousine", "Talia", "Célia")
+    ];
+    const tree = familyTreeService.buildNetwork({
+        continuityId: "sloane",
+        directRelationships: [],
+        allRelationships
+    });
+    const groups = Object.fromEntries(tree.map(group => [group.key, group.members]));
+    assert.equal(groups.grandparents[0].name, "Evelyn");
+    assert.equal(groups.grandparents[0].label, "Grand-parent de");
+    assert.ok(groups.extended.some(member => member.name === "Talia" && member.label === "Oncle/Tante de"));
+    assert.ok(groups.extended.some(member => member.name === "Célia" && member.label === "Cousin·e de"));
+});
+
 function relationship({
     id,
     key,
@@ -132,5 +151,18 @@ function relationship({
                 : continuityAId,
         otherCharacterName: otherName,
         displayLabel: label
+    };
+}
+
+function rawRelationship(id, key, continuityAId, continuityBId, nameA, nameB) {
+    return {
+        id,
+        key,
+        continuity_a_id: continuityAId,
+        continuity_b_id: continuityBId,
+        character_a_id: `character-${continuityAId}`,
+        character_b_id: `character-${continuityBId}`,
+        character_a_name: nameA,
+        character_b_name: nameB
     };
 }

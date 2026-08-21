@@ -56,7 +56,8 @@ class CharacterFamilyTreePage {
 
         const tree = continuityId
             ? relationshipManager.getFamilyTree(
-                continuityId
+                continuityId,
+                interaction.guildId
             )
             : [];
 
