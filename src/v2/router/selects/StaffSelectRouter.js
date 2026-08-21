@@ -30,13 +30,32 @@ module.exports = async interaction => {
             await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }
-        const [, forumId, channelId] = interaction.customId.split(":");
+        const [, forumId, channelId, rawPage] = interaction.customId.split(":");
         const service = require("../../services/publicPlaces/PublicPlaceForumService");
         service.categorize(interaction.guildId, channelId, interaction.values[0]);
         const forum = await interaction.guild.channels.fetch(forumId);
         const places = service.get(interaction.guildId, forumId);
         await interaction.update(
-            require("../../views/staff/StaffPublicPlacesView").build(interaction, forum, places)
+            require("../../views/staff/StaffPublicPlacesView").build(
+                interaction, forum, places, null, Number(rawPage) || 0
+            )
+        );
+        return true;
+    }
+
+    if (interaction.customId?.startsWith("v2_staff_public_place_pick:")) {
+        if (!policy.canAccess(interaction, "scenes", { write: true })) {
+            await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
+            return true;
+        }
+        const [, forumId, rawPage] = interaction.customId.split(":");
+        const forum = await interaction.guild.channels.fetch(forumId);
+        const places = require("../../services/publicPlaces/PublicPlaceForumService")
+            .get(interaction.guildId, forumId);
+        await interaction.update(
+            require("../../views/staff/StaffPublicPlacesView").build(
+                interaction, forum, places, interaction.values[0], Number(rawPage) || 0
+            )
         );
         return true;
     }

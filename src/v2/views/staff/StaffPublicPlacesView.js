@@ -9,8 +9,11 @@ const CATEGORIES = Object.freeze([
 ]);
 
 function build(interaction, forum, places, focusChannelId = null, requestedPage = 0) {
+    const pageCount = Math.max(1, Math.ceil(places.length / 25));
+    const page = Math.max(0, Math.min(Number(requestedPage) || 0, pageCount - 1));
+    const pagePlaces = places.slice(page * 25, (page + 1) * 25);
     const grouped = new Map();
-    for (const place of places) {
+    for (const place of pagePlaces) {
         const key = place.category || "non_classe";
         if (!grouped.has(key)) grouped.set(key, []);
         grouped.get(key).push(place);
@@ -21,26 +24,28 @@ function build(interaction, forum, places, focusChannelId = null, requestedPage 
         lines.push(`**${categoryLabel(category)} (${entries.length})**`);
         lines.push(...entries.map(place => `• [${place.name}](https://discord.com/channels/${interaction.guildId}/${place.channel_id})`));
     }
-    const chunks = [];
-    let chunk = "";
-    for (const line of lines) {
-        if (`${chunk}\n${line}`.length > 3900) {
-            chunks.push(chunk);
-            chunk = line;
-        } else chunk = chunk ? `${chunk}\n${line}` : line;
-    }
-    if (chunk || !chunks.length) chunks.push(chunk || "Aucun lieu trouvé.");
-    const page = Math.max(0, Math.min(Number(requestedPage) || 0, chunks.length - 1));
     const focus = places.find(place => String(place.channel_id) === String(focusChannelId))
         || places.find(place => !place.category);
     const components = [];
+    const selectablePlaces = pagePlaces;
+    if (selectablePlaces.length) components.push(new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+            .setCustomId(`v2_staff_public_place_pick:${forum.id}:${page}`)
+            .setPlaceholder("Modifier la catégorie d’un lieu")
+            .addOptions(selectablePlaces.map(place => ({
+                value: String(place.channel_id),
+                label: String(place.name).slice(0, 100),
+                description: `Catégorie actuelle : ${categoryLabel(place.category)}`.slice(0, 100),
+                emoji: "📍"
+            })))
+    ));
     if (focus) components.push(new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
-            .setCustomId(`v2_staff_public_place_category:${forum.id}:${focus.channel_id}`)
-            .setPlaceholder(`Classer : ${focus.name}`)
+            .setCustomId(`v2_staff_public_place_category:${forum.id}:${focus.channel_id}:${page}`)
+            .setPlaceholder(`${focus.category ? "Modifier" : "Classer"} : ${focus.name}`.slice(0, 150))
             .addOptions(CATEGORIES.map(([value, label, emoji]) => ({ value, label, emoji })))
     ));
-    if (chunks.length > 1) components.push(new ActionRowBuilder().addComponents(
+    if (pageCount > 1) components.push(new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`v2_staff_public_places_page:${forum.id}:${page - 1}`)
             .setLabel("Précédent").setEmoji("⬅️").setStyle(ButtonStyle.Secondary)
@@ -48,7 +53,7 @@ function build(interaction, forum, places, focusChannelId = null, requestedPage 
         new ButtonBuilder()
             .setCustomId(`v2_staff_public_places_page:${forum.id}:${page + 1}`)
             .setLabel("Suivant").setEmoji("➡️").setStyle(ButtonStyle.Secondary)
-            .setDisabled(page === chunks.length - 1)
+            .setDisabled(page === pageCount - 1)
     ));
     components.push(new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId(`v2_staff_public_places_refresh:${forum.id}`).setLabel("Actualiser le forum").setEmoji("🔄").setStyle(ButtonStyle.Secondary),
@@ -60,9 +65,9 @@ function build(interaction, forum, places, focusChannelId = null, requestedPage 
         embeds: [new EmbedBuilder()
             .setColor(0x5865F2)
             .setTitle(`🗺️ Lieux professionnels/publics · ${forum.name}`)
-            .setDescription(chunks[page])
+            .setDescription(lines.join("\n") || "Aucun lieu trouvé.")
             .setFooter({ text: [
-                `Page ${page + 1}/${chunks.length}`,
+                `Page ${page + 1}/${pageCount}`,
                 focus ? `Saisie rapide : « ${focus.name} »` : "Tous les lieux sont classés."
             ].join(" · ") })],
         components

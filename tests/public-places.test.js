@@ -39,3 +39,24 @@ test("les annuaires volumineux utilisent un seul embed paginé", () => {
         component.data.custom_id?.startsWith("v2_player_public_places_page:")
     )));
 });
+
+test("le staff peut sélectionner un lieu déjà classé pour corriger sa catégorie", () => {
+    const places = [{
+        channel_id: "123456789012345678",
+        name: "Garage Central",
+        category: "garage"
+    }];
+    const view = require("../src/v2/views/staff/StaffPublicPlacesView").build(
+        { guildId: "guild" }, { id: "987654321098765432", name: "Lieux" }, places
+    );
+    assert.ok(view.components.some(row => row.components.some(component =>
+        component.data.custom_id?.startsWith("v2_staff_public_place_pick:")
+    )));
+    const correction = require("../src/v2/views/staff/StaffPublicPlacesView").build(
+        { guildId: "guild" }, { id: "987654321098765432", name: "Lieux" }, places,
+        "123456789012345678"
+    );
+    assert.ok(correction.components.some(row => row.components.some(component =>
+        component.data.custom_id?.startsWith("v2_staff_public_place_category:")
+    )));
+});
