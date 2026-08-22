@@ -178,3 +178,34 @@ test(
         }), true);
     }
 );
+
+test("un joueur ayant réellement proxifié dans la scène peut confirmer même si son participant manque", context => {
+    const isolated = createIsolatedDatabase({ initializeSchema: true });
+    context.after(() => isolated.cleanup());
+    isolated.database.prepare(`INSERT INTO Guilds (id, name, created_at) VALUES ('guild-proof', 'Greyline', '2026-08-06')`).run();
+    isolated.database.prepare(`
+        INSERT INTO UsersV2 (discord_user_id, created_at, updated_at)
+        VALUES ('player-proof', '2026-08-06', '2026-08-06')
+    `).run();
+    isolated.database.prepare(`
+        INSERT INTO CharactersV2 (id, owner_user_id, proxy_name, character_type, created_at, updated_at)
+        VALUES ('character-proof', 1, 'London', 'personnage_joue', '2026-08-06', '2026-08-06')
+    `).run();
+    for (const modulePath of [
+        "../src/v2/repositories/SceneAssistantRepository",
+        "../src/v2/managers/SceneAssistantV2Manager"
+    ]) delete require.cache[require.resolve(modulePath)];
+    const manager = require("../src/v2/managers/SceneAssistantV2Manager");
+    const scene = manager.createScene({
+        guildId: "guild-proof", channelId: "home", title: "Chez London",
+        startedAt: "2026-08-20T10:00:00.000Z"
+    });
+    isolated.database.prepare(`
+        INSERT INTO ProxyMessages (
+            discord_message_id, webhook_message_id, webhook_id, channel_id,
+            guild_id, author_id, character_id, character_version, created_at
+        ) VALUES ('original', 'webhook-message', 'webhook', 'home',
+            'guild-proof', 'player-proof', 'character-proof', 'v2', '2026-08-20T11:00:00.000Z')
+    `).run();
+    assert.equal(manager.isSceneParticipantUser(scene.id, "player-proof"), true);
+});

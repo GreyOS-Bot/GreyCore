@@ -335,7 +335,7 @@ class SceneAssistantRepository {
     }
 
     isSceneParticipantUser(sceneId, discordUserId) {
-        return Boolean(db.prepare(`
+        const registered = db.prepare(`
             SELECT 1
             FROM SceneParticipantsV2 participant
             JOIN CharactersV2 character
@@ -346,7 +346,29 @@ class SceneAssistantRepository {
             AND participant.left_at IS NULL
             AND user.discord_user_id = ?
             LIMIT 1
-        `).get(sceneId, discordUserId));
+        `).get(sceneId, discordUserId);
+
+        if (registered) return true;
+
+        return Boolean(db.prepare(`
+            SELECT 1
+            FROM ProxyMessages proxy
+            JOIN ScenesV2 scene
+                ON scene.id = ?
+            JOIN SceneChannelsV2 link
+                ON link.scene_id = scene.id
+                AND link.channel_id = proxy.channel_id
+            JOIN CharactersV2 character
+                ON character.id = proxy.character_id
+            JOIN UsersV2 user
+                ON user.id = character.owner_user_id
+            WHERE proxy.guild_id = scene.guild_id
+            AND proxy.character_version = 'v2'
+            AND proxy.created_at >= scene.started_at
+            AND proxy.author_id = ?
+            AND user.discord_user_id = ?
+            LIMIT 1
+        `).get(sceneId, discordUserId, discordUserId));
     }
 
     touchScene(sceneId, occurredAt) {
