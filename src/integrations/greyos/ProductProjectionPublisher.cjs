@@ -3,7 +3,7 @@ const { createHash, createHmac, randomBytes } = require("node:crypto");
 
 const PRODUCT = "greycore";
 const CONTRACT_VERSION = "1.0.0";
-const AGENT_VERSION = "1.7.0";
+const AGENT_VERSION = "1.8.0";
 const DEFAULT_INTERVAL_MS = 120_000;
 const MIN_INTERVAL_MS = 60_000;
 const MAX_INTERVAL_MS = 900_000;
@@ -12,6 +12,7 @@ const CIRCUIT_COOLDOWN_MS = 15 * 60_000;
 const LOOPBACK_ORIGINS = new Set(["http://127.0.0.1:3001", "http://[::1]:3001"]);
 const INSTALLATION_ID = /^[a-z0-9][a-z0-9._:-]{2,127}$/;
 const KEY_ID = /^[a-z0-9][a-z0-9._-]{2,63}$/;
+const INVENTORY_PAGE_SIZE = 50;
 
 const METRICS = Object.freeze([
     Object.freeze({ key: "narrative.characters.total", query: "SELECT COUNT(*) FROM CharactersV2 WHERE is_archived = 0" }),
@@ -36,6 +37,7 @@ function configuration(environment = process.env) {
     );
     const keyId = String(environment.GREYCORE_GREYOS_CONNECTOR_KEY_ID || "");
     const secret = String(environment.GREYCORE_GREYOS_CONNECTOR_SECRET || "");
+    const bindingSecret = String(environment.GREYLINE_INSTALLATION_BINDING_KEY || "");
     const intervalMs = Number(
         environment.GREYCORE_GREYOS_CONNECTOR_INTERVAL_MS || DEFAULT_INTERVAL_MS
     );
@@ -45,10 +47,13 @@ function configuration(environment = process.env) {
     if (!/^[A-Za-z0-9_-]{43,}$/.test(secret) || Buffer.from(secret, "base64url").length < 32) {
         throw new Error("GREYCORE_CONNECTOR_SECRET_INVALID");
     }
+    if (bindingSecret && (!/^[A-Za-z0-9_-]{43,}$/.test(bindingSecret) || Buffer.from(bindingSecret, "base64url").length < 32)) {
+        throw new Error("GREYCORE_BINDING_KEY_INVALID");
+    }
     if (!Number.isSafeInteger(intervalMs) || intervalMs < MIN_INTERVAL_MS || intervalMs > MAX_INTERVAL_MS) {
         throw new Error("GREYCORE_CONNECTOR_INTERVAL_INVALID");
     }
-    return Object.freeze({ enabled: true, origin, installationId, keyId, secret, intervalMs });
+    return Object.freeze({ enabled: true, origin, installationId, keyId, secret, bindingSecret: bindingSecret || null, intervalMs });
 }
 
 function count(database, query) {
@@ -69,7 +74,7 @@ function readMetrics(database) {
     }));
 }
 
-function manifest({ installationId, productVersion, observedAt = new Date().toISOString() }) {
+function manifest({ installationId, productVersion, inventoryEnabled = false, observedAt = new Date().toISOString() }) {
     return {
         schema: "greyos.product-manifest",
         contractVersion: CONTRACT_VERSION,
@@ -81,10 +86,66 @@ function manifest({ installationId, productVersion, observedAt = new Date().toIS
         observedAt,
         capabilities: [
             { key: "health.read", access: "read", version: CONTRACT_VERSION },
-            { key: "operational.metrics.read", access: "read", version: CONTRACT_VERSION }
+            { key: "operational.metrics.read", access: "read", version: CONTRACT_VERSION },
+            ...(inventoryEnabled ? [{ key: "installation.inventory.read", access: "read", version: CONTRACT_VERSION }] : [])
         ],
         endpoints: { health: "/api/internal/v1/health" }
     };
+}
+
+function installationSubject(bindingSecret, guildId) {
+    if (!bindingSecret) throw new Error("GREYCORE_BINDING_KEY_REQUIRED");
+    return createHmac("sha256", Buffer.from(bindingSecret, "base64url"))
+        .update(`greyline:discord-guild:v1:${guildId}`)
+        .digest("hex");
+}
+
+function inventoryPages({ installationId, productVersion, bindingSecret, client, observedAt = new Date().toISOString() }) {
+    if (!bindingSecret) return [];
+    const guilds = [...(client?.guilds?.cache?.values?.() || [])]
+        .sort((left, right) => String(left.id).localeCompare(String(right.id)));
+    const pageCount = Math.max(1, Math.ceil(guilds.length / INVENTORY_PAGE_SIZE));
+    const snapshotId = `greycore-inventory-${observedAt.replace(/[^0-9a-z]/gi, "").toLowerCase()}`;
+    return Array.from({ length: pageCount }, (_, pageIndex) => ({
+        schema: "greyos.installation-inventory",
+        contractVersion: CONTRACT_VERSION,
+        product: PRODUCT,
+        installationId,
+        snapshotId,
+        page: { index: pageIndex, count: pageCount, final: pageIndex === pageCount - 1 },
+        observedAt,
+        privacy: "administrative-minimum",
+        installations: guilds
+            .slice(pageIndex * INVENTORY_PAGE_SIZE, (pageIndex + 1) * INVENTORY_PAGE_SIZE)
+            .map(guild => {
+                const subjectHmac = installationSubject(bindingSecret, String(guild.id));
+                const ready = Boolean(client?.isReady?.());
+                if (!Number.isSafeInteger(guild.memberCount) || guild.memberCount < 0) {
+                    throw new Error("GREYCORE_GUILD_MEMBER_COUNT_UNAVAILABLE");
+                }
+                return {
+                    managedInstallationId: `discord-guild-${subjectHmac.slice(0, 24)}`,
+                    kind: "discord-guild",
+                    environment: "production",
+                    status: ready ? "online" : "degraded",
+                    displayLabel: null,
+                    binding: { kind: "discord-guild", subjectHmac },
+                    deployment: {
+                        productVersion: safeVersion(productVersion),
+                        agentVersion: AGENT_VERSION,
+                        status: ready ? "healthy" : "degraded",
+                        lastSeenAt: observedAt
+                    },
+                    modules: [],
+                    metrics: [{ key: "users.total", value: guild.memberCount, unit: "count" }],
+                    checks: [{
+                        key: "discord",
+                        status: ready ? "pass" : "warn",
+                        detailCode: ready ? "DISCORD_READY" : "DISCORD_NOT_READY"
+                    }]
+                };
+            })
+    }));
 }
 
 function health({ installationId, database, client, observedAt = new Date().toISOString() }) {
@@ -202,7 +263,7 @@ function createPublisher({
                 await send({
                     config,
                     kind: "manifest",
-                    payload: manifest({ installationId: config.installationId, productVersion }),
+                    payload: manifest({ installationId: config.installationId, productVersion, inventoryEnabled: Boolean(config.bindingSecret) }),
                     fetchImpl
                 });
                 manifestPublished = true;
@@ -215,6 +276,14 @@ function createPublisher({
                 payload: projection({ installationId: config.installationId, database }),
                 fetchImpl
             });
+            for (const payload of inventoryPages({
+                installationId: config.installationId,
+                productVersion,
+                bindingSecret: config.bindingSecret,
+                client
+            })) {
+                await send({ config, kind: "installation-inventory", payload, fetchImpl });
+            }
             consecutiveFailures = 0;
             circuitOpenUntil = 0;
             emitState({ status: "published", observedAt: new Date(now()).toISOString() });
@@ -260,6 +329,8 @@ module.exports = {
     manifest,
     health,
     projection,
+    installationSubject,
+    inventoryPages,
     createPublisher,
     startGreyOSProjectionPublisher
 };
