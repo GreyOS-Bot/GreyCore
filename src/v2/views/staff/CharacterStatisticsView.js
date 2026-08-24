@@ -118,6 +118,8 @@ function buildUserSelection(characters, guild, requestedPage = 0, userNames = ne
             .filter(Boolean)
     )).map(userId => {
         const member = guild?.members?.cache?.get(userId);
+        const balance = playedBalance(characters.filter(character =>
+            String(character.discord_user_id || "").trim() === userId));
         return {
             userId,
             label: String(
@@ -126,7 +128,11 @@ function buildUserSelection(characters, guild, requestedPage = 0, userNames = ne
                 || member?.user?.username
                 || userNames.get(userId)
                 || `Utilisateur ${userId}`
-            ).trim()
+            ).trim(),
+            balance: {
+                ...balance,
+                difference: Math.abs(balance.female - balance.male)
+            }
         };
     }).sort((left, right) => left.label.localeCompare(
         right.label,
@@ -144,6 +150,7 @@ function buildUserSelection(characters, guild, requestedPage = 0, userNames = ne
             .setTitle("👤 Statistiques par utilisateur")
             .setDescription([
                 "Cette liste contient tous les propriétaires de personnages installés dans GreyCore, y compris ceux que Discord ne propose pas spontanément.",
+                "⚠️ signale automatiquement un écart d’au moins 2 entre les PJ féminins et masculins.",
                 "",
                 `**${owners.length} utilisateur(s) · Page ${page + 1}/${pageCount}**`
             ].join("\n"))],
@@ -153,10 +160,12 @@ function buildUserSelection(characters, guild, requestedPage = 0, userNames = ne
                     .setCustomId("v2_staff_characters_statistics_user_select")
                     .setPlaceholder("Choisir un utilisateur")
                     .addOptions(visible.map(owner => ({
-                        label: owner.label.slice(0, 100),
+                        label: `${owner.balance.difference >= 2 ? "⚠️ " : ""}${owner.label}`.slice(0, 100),
                         value: owner.userId,
-                        description: `Identifiant ${owner.userId}`.slice(0, 100),
-                        emoji: "👤"
+                        description: owner.balance.difference >= 2
+                            ? `♀️ ${owner.balance.female} · ♂️ ${owner.balance.male} · Écart ${owner.balance.difference}`
+                            : `✅ Équilibré · ♀️ ${owner.balance.female} · ♂️ ${owner.balance.male}`,
+                        emoji: owner.balance.difference >= 2 ? "⚠️" : "👤"
                     })))
             )] : []),
             new ActionRowBuilder().addComponents(

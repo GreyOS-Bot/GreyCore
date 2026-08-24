@@ -182,3 +182,24 @@ test("GreyCore envoie au joueur le détail de l’alerte demandée par le staff"
     assert.match(description, /masculins : \*\*1\*\*/);
     assert.match(description, /demande du staff/i);
 });
+test("la liste signale les utilisateurs déséquilibrés sans ouvrir leur fiche", () => {
+    const view = require("../src/v2/views/staff/CharacterStatisticsView");
+    const roster = [
+        character("Alba", "owner-alert", "personnage_joue", "Femme"),
+        character("Reya", "owner-alert", "personnage_joue", "Femme"),
+        character("Kiona", "owner-alert", "personnage_joue", "Femme"),
+        character("Icaro", "owner-alert", "personnage_joue", "Homme"),
+        character("Evan", "owner-ok", "personnage_joue", "Homme"),
+        character("Nora", "owner-ok", "personnage_joue", "Femme")
+    ];
+    const names = new Map([["owner-alert", "Joueuse alerte"], ["owner-ok", "Joueuse équilibrée"]]);
+    const menu = view.buildUserSelection(roster, null, 0, names)
+        .components[0].toJSON().components[0];
+    const alert = menu.options.find(option => option.value === "owner-alert");
+    const balanced = menu.options.find(option => option.value === "owner-ok");
+
+    assert.match(alert.label, /^⚠️/);
+    assert.match(alert.description, /♀️ 3 · ♂️ 1 · Écart 2/);
+    assert.doesNotMatch(balanced.label, /^⚠️/);
+    assert.match(balanced.description, /Équilibré/);
+});
