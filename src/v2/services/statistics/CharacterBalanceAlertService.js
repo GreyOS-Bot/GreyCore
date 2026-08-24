@@ -4,6 +4,50 @@ const characterTypes = require("../../core/character/CharacterTypeCatalog");
 const statistics = require("../../views/staff/CharacterStatisticsView");
 
 class CharacterBalanceAlertService {
+    getUserBalance(roster, userId) {
+        const counts = roster
+            .filter(character => !character.is_archived)
+            .filter(character => character.character_type === "personnage_joue")
+            .filter(character => String(character.discord_user_id) === String(userId))
+            .reduce((result, character) => {
+                const category = statistics.genderCategory(character.gender, character.firstname);
+                if (category === "female" || category === "male") result[category] += 1;
+                return result;
+            }, { female: 0, male: 0 });
+        return {
+            ...counts,
+            difference: Math.abs(counts.female - counts.male)
+        };
+    }
+
+    async notifyUser({ guild, userId, client, roster, requestedBy }) {
+        const balance = this.getUserBalance(roster, userId);
+        if (balance.difference < 2) {
+            throw new Error("Cet utilisateur ne présente pas un écart suffisant pour recevoir une alerte.");
+        }
+        const user = await client?.users?.fetch?.(String(userId));
+        if (!user?.send) {
+            throw new Error("Cet utilisateur Discord est introuvable.");
+        }
+        await user.send({
+            embeds: [new EmbedBuilder()
+                .setColor(0xFEE75C)
+                .setTitle("⚖️ Alerte d’équilibre de tes PJ")
+                .setDescription([
+                    `Le staff de **${guild?.name || "ce serveur"}** souhaite attirer ton attention sur la répartition de tes personnages joués.`,
+                    "",
+                    `♀️ Personnages féminins : **${balance.female}**`,
+                    `♂️ Personnages masculins : **${balance.male}**`,
+                    `Écart actuel : **${balance.difference}**`,
+                    "",
+                    "Pour tes prochaines créations, pense si possible à privilégier le genre le moins représenté afin de contribuer à l’équilibre du serveur.",
+                    "Cette notification est informative et a été envoyée par GreyCore à la demande du staff."
+                ].join("\n"))
+                .setFooter({ text: `Demande du staff · ${requestedBy}` })]
+        });
+        return balance;
+    }
+
     async notifyAfterApproval({ guildId, characterId, channel }) {
         if (!channel?.isTextBased?.() || typeof channel.send !== "function") {
             return false;

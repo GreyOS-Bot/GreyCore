@@ -224,6 +224,16 @@ function genderFields(characters) {
     ];
 }
 
+function playedBalance(characters) {
+    return characters.filter(character => !character.is_archived)
+        .filter(character => character.character_type === "personnage_joue")
+        .reduce((counts, character) => {
+            const category = genderCategory(character.gender, character.firstname);
+            if (category === "female" || category === "male") counts[category] += 1;
+            return counts;
+        }, { female: 0, male: 0 });
+}
+
 function buildUser(userId, characters, guild = null, userNames = new Map()) {
     const embed = new EmbedBuilder()
         .setColor(0x5865F2)
@@ -247,7 +257,13 @@ function buildUser(userId, characters, guild = null, userNames = new Map()) {
                     .setCustomId("v2_staff_characters_statistics_user")
                     .setLabel("Retour aux utilisateurs")
                     .setEmoji("⬅️")
-                    .setStyle(ButtonStyle.Secondary)
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId(`v2_staff_character_balance_alert:${userId}`)
+                    .setLabel(`Envoyer l’alerte · écart ${Math.abs(playedBalance(characters).female - playedBalance(characters).male)}`)
+                    .setEmoji("⚖️")
+                    .setStyle(ButtonStyle.Danger)
+                    .setDisabled(Math.abs(playedBalance(characters).female - playedBalance(characters).male) < 2)
             ),
             navigationRow()
         ]
@@ -261,5 +277,6 @@ module.exports = {
     genderCategory,
     genderDetails,
     genderFields,
+    playedBalance,
     USER_PAGE_SIZE
 };

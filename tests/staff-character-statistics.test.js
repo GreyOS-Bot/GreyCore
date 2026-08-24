@@ -141,3 +141,44 @@ function character(firstname, owner, type, gender) {
         is_archived: 0
     };
 }
+test("l’alerte manuelle est active uniquement à partir de deux PJ d’écart", () => {
+    const view = require("../src/v2/views/staff/CharacterStatisticsView");
+    const roster = [
+        character("Alba", "owner-a", "personnage_joue", "Femme"),
+        character("Reya", "owner-a", "personnage_joue", "Femme"),
+        character("Kiona", "owner-a", "personnage_joue", "Femme"),
+        character("Icaro", "owner-a", "personnage_joue", "Homme"),
+        character("Masque", "owner-a", "pj_masque", "Femme")
+    ];
+    const page = view.buildUser("owner-a", roster);
+    const buttons = page.components[0].toJSON().components;
+    const alert = buttons.find(button => button.custom_id === "v2_staff_character_balance_alert:owner-a");
+
+    assert.equal(alert.disabled, false);
+    assert.match(alert.label, /écart 2/);
+});
+
+test("GreyCore envoie au joueur le détail de l’alerte demandée par le staff", async () => {
+    const service = require("../src/v2/services/statistics/CharacterBalanceAlertService");
+    let payload;
+    const roster = [
+        character("Alba", "123", "personnage_joue", "Femme"),
+        character("Reya", "123", "personnage_joue", "Femme"),
+        character("Kiona", "123", "personnage_joue", "Femme"),
+        character("Icaro", "123", "personnage_joue", "Homme")
+    ];
+    const result = await service.notifyUser({
+        guild: { name: "Greyline" },
+        userId: "123",
+        requestedBy: "Fiona",
+        roster,
+        client: { users: { fetch: async () => ({ send: async value => { payload = value; } }) } }
+    });
+
+    assert.equal(result.difference, 2);
+    const description = payload.embeds[0].toJSON().description;
+    assert.match(description, /Greyline/);
+    assert.match(description, /féminins : \*\*3\*\*/);
+    assert.match(description, /masculins : \*\*1\*\*/);
+    assert.match(description, /demande du staff/i);
+});

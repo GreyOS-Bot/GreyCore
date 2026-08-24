@@ -26,6 +26,35 @@ module.exports = async interaction => {
         return true;
     }
 
+    if (interaction.customId.startsWith("v2_staff_character_balance_alert:")) {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canManageCharacters(interaction)) {
+            await replyError(interaction, "Cette alerte est réservée au staff chargé des personnages.");
+            return true;
+        }
+        await require("../../core/services/InteractionResponseService").deferPrivate(interaction);
+        const userId = interaction.customId.split(":")[1];
+        const roster = require("../../managers/CharacterRosterV2Manager")
+            .getRoster(interaction.guildId, { includeArchived: false });
+        try {
+            const balance = await require("../../services/statistics/CharacterBalanceAlertService")
+                .notifyUser({
+                    guild: interaction.guild,
+                    userId,
+                    client: interaction.client,
+                    roster,
+                    requestedBy: interaction.user?.username || interaction.user?.id
+                });
+            await interaction.editReply(
+                `✅ Alerte envoyée en message privé à <@${userId}> · écart de **${balance.difference}**.`
+            );
+        } catch (error) {
+            await interaction.editReply(`❌ ${error.message || "L’alerte n’a pas pu être envoyée."}`);
+        }
+        return true;
+    }
+
     if (interaction.customId === "v2_staff_relationships_install_defaults") {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
