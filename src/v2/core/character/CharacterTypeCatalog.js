@@ -13,6 +13,34 @@ const CHARACTER_TYPES = {
         installationVisibility:
             "private"
     },
+    pj_masque: {
+        label:
+            "PJ masqué",
+        displayLabel:
+            "PJ masqué",
+        isNpc:
+            false,
+        creationMode:
+            "complete",
+        usageScope:
+            "owner",
+        installationVisibility:
+            "private"
+    },
+    animal: {
+        label:
+            "Animal",
+        displayLabel:
+            "Animal",
+        isNpc:
+            false,
+        creationMode:
+            "complete",
+        usageScope:
+            "owner",
+        installationVisibility:
+            "private"
+    },
     pnj: {
         label:
             "PNJ",
@@ -152,6 +180,10 @@ function isNpc(
     );
 }
 
+function isPlayedCharacter(value) {
+    return ["personnage_joue", "pj_masque"].includes(normalize(value));
+}
+
 function getDefinition(
     value
 ) {
@@ -191,6 +223,7 @@ module.exports = {
     isSupported,
     getDisplayLabel,
     isNpc,
+    isPlayedCharacter,
     getDefinition,
     usesSimpleCreation,
     getUsageScope,

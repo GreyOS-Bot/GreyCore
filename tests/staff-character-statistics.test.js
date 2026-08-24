@@ -43,6 +43,27 @@ test("les statistiques alertent le staff dès deux PJ d’écart", () => {
     assert.match(text, /Alerte équilibre des PJ : écart de 2/);
     assert.equal(page.embeds[0].toJSON().color, 0xED4245);
 });
+test("les PJ masqués participent à l’équilibre et le détail énumère les personnages", () => {
+    const view = require("../src/v2/views/staff/CharacterStatisticsView");
+    const roster = [
+        character("Alba", "owner-a", "personnage_joue", "Femme"),
+        character("Story", "owner-a", "pj_masque", "Femme"),
+        character("Icaro", "owner-a", "personnage_joue", "Homme"),
+        character("Moka", "owner-a", "animal", null)
+    ];
+
+    assert.match(view.statisticsText(roster), /léger écart de 1/);
+    const page = view.buildUser("owner-a", roster, {
+        members: { cache: new Map([["owner-a", { displayName: "Fiona" }]]) }
+    });
+    const description = page.embeds[0].toJSON().description;
+
+    assert.match(description, /Utilisateur : \*\*Fiona\*\*/);
+    assert.match(description, /Femmes \(2\).*Alba.*Story/);
+    assert.match(description, /Hommes \(1\).*Icaro/);
+    assert.match(description, /Non renseigné \/ non genré \(1\).*Moka/);
+});
+
 
 test("la sélection staff limite les statistiques au seul utilisateur choisi", async () => {
     const roster = [

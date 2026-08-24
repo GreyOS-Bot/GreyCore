@@ -81,7 +81,7 @@ module.exports = async interaction => {
             .getRoster(interaction.guildId, { includeArchived: false })
             .filter(character => String(character.discord_user_id) === String(userId));
         await interaction.update(
-            require("../../views/staff/CharacterStatisticsView").buildUser(userId, roster)
+            require("../../views/staff/CharacterStatisticsView").buildUser(userId, roster, interaction.guild)
         );
         return true;
     }

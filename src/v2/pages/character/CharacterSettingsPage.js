@@ -159,6 +159,20 @@ class CharacterSettingsPage {
 
                 );
 
+const typeRow = ["personnage_joue", "pj_masque"].includes(
+            String(dashboardData.character.character_type)
+        ) ? new ActionRowBuilder().addComponents(
+            UI.button.secondary({
+                id: `v2_character_toggle_masked:${characterId}`,
+                label: dashboardData.character.character_type === "pj_masque"
+                    ? "Afficher comme PJ"
+                    : "Passer en PJ masqué",
+                emoji: dashboardData.character.character_type === "pj_masque"
+                    ? "👤"
+                    : "🥷"
+            })
+        ) : null;
+
         const navigationRow =
             new ActionRowBuilder()
                 .addComponents(
@@ -191,6 +205,7 @@ class CharacterSettingsPage {
                 embed,
                 components: [
                     actionRow,
+                    ...(typeRow ? [typeRow] : []),
                     navigationRow
                 ]
 

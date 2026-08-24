@@ -8,6 +8,10 @@ const {
 const TYPE_LABELS = {
     personnage_joue:
         "Personnage jou\u00e9",
+    pj_masque:
+        "PJ masqu\u00e9",
+    animal:
+        "Animal",
     pnj:
         "PNJ",
     random:
@@ -403,7 +407,7 @@ class CharacterCreateModal {
                 );
 
         const storyIsRequired =
-            type === "personnage_joue";
+            ["personnage_joue", "pj_masque"].includes(type);
 
         const storyInput =
             new TextInputBuilder()

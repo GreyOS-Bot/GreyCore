@@ -18,7 +18,7 @@ class CharacterCreateTypeView {
                 .setDescription([
                     "Choisis le type de personnage à créer.",
                     "",
-                    "Les PJ et PNJ personnels ont une fiche complète. Les Random et personnages réservés demandent seulement un prénom et un avatar, qui devra être validé par le staff."
+                    "Les PJ, PJ masqués, animaux et PNJ personnels ont une fiche complète. Les Random et personnages réservés demandent seulement un prénom et un avatar, qui devra être validé par le staff."
                 ].join("\n"));
 
         const typesRow =
@@ -40,17 +40,15 @@ class CharacterCreateTypeView {
                         "Random",
                         "🎲"
                     ),
-                    this.createTypeButton(
-                        "pnj_reserve",
-                        "PNJ réservé",
-                        "🔒"
-                    ),
-                    this.createTypeButton(
-                        "reserve_staff",
-                        "Réservé staff",
-                        "🛡️"
-                    )
+                    this.createTypeButton("pj_masque", "PJ masqué", "🥷"),
+                    this.createTypeButton("animal", "Animal", "🐾")
                 );
+
+        const specialTypesRow = new ActionRowBuilder()
+            .addComponents(
+                this.createTypeButton("pnj_reserve", "PNJ réservé", "🔒"),
+                this.createTypeButton("reserve_staff", "Réservé staff", "🛡️")
+            );
 
         const navigationRow =
             new ActionRowBuilder()
@@ -74,6 +72,7 @@ class CharacterCreateTypeView {
             embeds: [embed],
             components: [
                 typesRow,
+                specialTypesRow,
                 navigationRow
             ]
         };

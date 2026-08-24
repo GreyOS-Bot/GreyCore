@@ -6,14 +6,17 @@ const characterRepository = require(
     "../../repositories/CharacterRepository"
 );
 
+const characterTypes = require("../../core/character/CharacterTypeCatalog");
+
 class PlayedCharacterCreationLimitService {
     assertCanCreate({
+
         guildId,
         discordUserId,
         characterType,
         now = new Date()
     }) {
-        if (characterType !== "personnage_joue") {
+        if (!characterTypes.isPlayedCharacter(characterType)) {
             return;
         }
 

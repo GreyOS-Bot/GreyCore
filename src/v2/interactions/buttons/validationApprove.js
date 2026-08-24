@@ -145,6 +145,13 @@ module.exports = async interaction => {
         await interaction.editReply(
             validationCard
         );
+        await require("../../services/statistics/CharacterBalanceAlertService")
+            .notifyAfterApproval({
+                guildId: interaction.guildId,
+                characterId: validationData.character_id,
+                channel: interaction.channel
+            })
+            .catch(error => logger.error("Alerte équilibre ignorée :", error));
 
         const playerId =
             validationData.owner_id

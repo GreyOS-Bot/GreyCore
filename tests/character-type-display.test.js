@@ -20,6 +20,10 @@ test(
         const expectedLabels = {
             personnage_joue:
                 "PJ",
+            pj_masque:
+                "PJ masqué",
+            animal:
+                "Animal",
             pnj:
                 "PNJ",
             random:
