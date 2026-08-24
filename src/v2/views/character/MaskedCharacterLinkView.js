@@ -30,7 +30,7 @@ function build(candidates, { mode = "create", maskedCharacterId = null, staff = 
             )] : []),
             new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
-                    .setCustomId(mode === "create" ? "v2_character_create" : `page:character:settings:${maskedCharacterId}`)
+                    .setCustomId(mode === "create" ? "v2_character_create" : (staff ? "page:staff:section:characters" : `page:character:settings:${maskedCharacterId}`))
                     .setLabel("Retour")
                     .setEmoji("⬅️")
                     .setStyle(ButtonStyle.Secondary)

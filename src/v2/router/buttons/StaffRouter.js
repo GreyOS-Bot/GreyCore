@@ -648,7 +648,7 @@ const owners = Array.from(new Set(
             components: [new ActionRowBuilder().addComponents(
                 new ButtonBuilder().setCustomId(`v2_staff_character_delete_confirm:${characterId}`)
                     .setLabel("Confirmer la suppression").setStyle(ButtonStyle.Danger),
-                new ButtonBuilder().setCustomId("page:staff:characters:root")
+                new ButtonBuilder().setCustomId("page:staff:section:characters")
                     .setLabel("Annuler").setStyle(ButtonStyle.Secondary)
             )]
         });
@@ -688,7 +688,7 @@ const owners = Array.from(new Set(
             components: [new ActionRowBuilder().addComponents(
                 new ButtonBuilder().setCustomId(`v2_staff_characters_delete_owner_confirm:${userId}`)
                     .setLabel("Tout supprimer").setStyle(ButtonStyle.Danger),
-                new ButtonBuilder().setCustomId("page:staff:characters:root")
+                new ButtonBuilder().setCustomId("page:staff:section:characters")
                     .setLabel("Annuler").setStyle(ButtonStyle.Secondary)
             )]
         });

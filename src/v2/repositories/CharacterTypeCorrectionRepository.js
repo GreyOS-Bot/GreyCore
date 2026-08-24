@@ -137,9 +137,15 @@ class CharacterTypeCorrectionRepository {
         db.transaction(() => {
             db.prepare(`
                 UPDATE CharactersV2
-                SET character_type = ?, updated_at = ?
+                SET character_type = ?,
+                    masked_parent_character_id = CASE
+                        WHEN ? = 'pj_masque' THEN masked_parent_character_id
+                        ELSE NULL
+                    END,
+                    updated_at = ?
                 WHERE id = ?
             `).run(
+                characterType,
                 characterType,
                 updatedAt,
                 characterId

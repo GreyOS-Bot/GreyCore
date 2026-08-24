@@ -151,7 +151,7 @@ test(
             "v2_validation_request_change:1",
             "v2_staff_character_delete:character",
             "v2_staff_character_type:character",
-            "page:staff:characters:root",
+            "page:staff:section:characters",
             "staff_close"
         ]);
 

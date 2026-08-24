@@ -102,7 +102,7 @@ class StaffCharacterCorrectionView {
                 new ActionRowBuilder()
                     .addComponents(typeSelect),
                 new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId("page:staff:characters:root")
+                    new ButtonBuilder().setCustomId("page:staff:section:characters")
                         .setLabel("Retour aux personnages").setEmoji("⬅️").setStyle(ButtonStyle.Secondary),
                     new ButtonBuilder().setCustomId("staff_close")
                         .setLabel("Fermer").setEmoji("❌").setStyle(ButtonStyle.Secondary)

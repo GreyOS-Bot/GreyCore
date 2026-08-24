@@ -224,3 +224,13 @@ test("la commande de création Discord propose aussi Animal et PJ masqué", () =
     assert.equal(choices.get("pj_masque"), "PJ masqué");
     assert.equal(choices.get("animal"), "Animal");
 });
+test("la commande propose une recherche rapide pour modifier le type", () => {
+    const command = require("../src/commands/personnage").data.toJSON();
+    const typeCommand = command.options.find(option => option.name === "type");
+    assert.ok(typeCommand);
+    assert.equal(typeCommand.options.find(option => option.name === "personnage").autocomplete, true);
+    assert.deepEqual(
+        typeCommand.options.find(option => option.name === "nouveau_type").choices.map(choice => choice.value),
+        ["personnage_joue", "pj_masque", "animal", "pnj", "random", "pnj_reserve", "reserve_staff"]
+    );
+});

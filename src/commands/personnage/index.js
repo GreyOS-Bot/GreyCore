@@ -105,6 +105,34 @@ module.exports = {
 
     .addSubcommand(sub =>
         sub
+            .setName("type")
+            .setDescription("Modifie rapidement le type d’un personnage.")
+            .addStringOption(option =>
+                option
+                    .setName("personnage")
+                    .setDescription("Tape le prénom ou l’alias du personnage")
+                    .setRequired(true)
+                    .setAutocomplete(true)
+            )
+            .addStringOption(option =>
+                option
+                    .setName("nouveau_type")
+                    .setDescription("Nouveau type du personnage")
+                    .setRequired(true)
+                    .addChoices(
+                        { name: "Personnage joué", value: "personnage_joue" },
+                        { name: "PJ masqué", value: "pj_masque" },
+                        { name: "Animal", value: "animal" },
+                        { name: "PNJ", value: "pnj" },
+                        { name: "Random", value: "random" },
+                        { name: "PNJ réservé", value: "pnj_reserve" },
+                        { name: "Réservé staff", value: "reserve_staff" }
+                    )
+            )
+    )
+
+    .addSubcommand(sub =>
+        sub
             .setName("fiche")
             .setDescription("Affiche la fiche d’un personnage.")
             .addStringOption(option =>
@@ -162,6 +190,48 @@ module.exports = {
         view
     );
 }
+
+        if (subcommand === "type") {
+            const characterId = interaction.options.getString("personnage", true);
+            const newType = interaction.options.getString("nouveau_type", true);
+            const service = require("../../v2/services/character/CharacterTypeCorrectionService");
+            const staffPolicy = require("../../v2/core/policies/StaffPermissionPolicy");
+            const isStaff = staffPolicy.canManageCharacters(interaction);
+            let context;
+
+            if (isStaff) {
+                context = service.correctForStaff({
+                    guildId: interaction.guildId,
+                    characterId,
+                    changes: { characterType: newType }
+                });
+            } else {
+                if (!["animal", "pj_masque"].includes(newType)) {
+                    return replyPrivate(interaction,
+                        "❌ Seul le staff peut convertir un personnage en PJ, PNJ, Random ou personnage réservé.");
+                }
+                context = service.correct({
+                    guildId: interaction.guildId,
+                    discordUserId: interaction.user.id,
+                    characterId,
+                    changes: { characterType: newType }
+                });
+            }
+
+            if (newType === "pj_masque") {
+                const candidates = require("../../v2/managers/CharacterV2Manager")
+                    .getByOwnerDiscordId(context.discord_user_id);
+                return replyPrivate(interaction,
+                    require("../../v2/views/character/MaskedCharacterLinkView").build(candidates, {
+                        mode: "link",
+                        maskedCharacterId: characterId,
+                        staff: isStaff
+                    }));
+            }
+
+            return replyPrivate(interaction,
+                `✅ **${context.firstname || context.proxy_name}** est maintenant classé comme **${require("../../v2/core/character/CharacterTypeCatalog").getDisplayLabel(newType)}**.`);
+        }
 
                /*
          * FICHE V2
@@ -264,10 +334,8 @@ module.exports = {
     },
 
     async autocomplete(interaction) {
-        if (
-            interaction.options.getSubcommand()
-                !== "fiche"
-        ) {
+        const subcommand = interaction.options.getSubcommand();
+        if (!["fiche", "type"].includes(subcommand)) {
             return interaction.respond([]);
         }
 
@@ -276,12 +344,24 @@ module.exports = {
             || ""
         ).trim();
 
-        const characters =
-            characterPublicSearchRepository
-                .searchInstalledByDisplayName(
-                    interaction.guildId,
-                    focused
-                );
+        let characters;
+        if (subcommand === "type") {
+            characters = require("../../v2/services/character/CharacterTypeCorrectionService")
+                .search(interaction.guildId, focused);
+            const isStaff = require("../../v2/core/policies/StaffPermissionPolicy")
+                .canManageCharacters(interaction);
+            if (!isStaff) {
+                characters = characters.filter(character =>
+                    String(character.discord_user_id) === String(interaction.user.id));
+            }
+            characters = characters.map(character => ({
+                ...character,
+                display_name: character.display_name || character.firstname || character.proxy_name
+            }));
+        } else {
+            characters = characterPublicSearchRepository
+                .searchInstalledByDisplayName(interaction.guildId, focused);
+        }
 
         const ownerDisplays =
             await discordUserDisplayService
