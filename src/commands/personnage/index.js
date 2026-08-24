@@ -57,6 +57,14 @@ module.exports = {
                             value: "personnage_joue"
                         },
                         {
+                            name: "PJ masqué",
+                            value: "pj_masque"
+                        },
+                        {
+                            name: "Animal",
+                            value: "animal"
+                        },
+                        {
                             name: "PNJ",
                             value: "pnj"
                         },

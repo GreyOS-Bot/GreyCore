@@ -215,3 +215,12 @@ function clearModule(
         resolved
     ];
 }
+test("la commande de création Discord propose aussi Animal et PJ masqué", () => {
+    const command = require("../src/commands/personnage").data.toJSON();
+    const create = command.options.find(option => option.name === "creer");
+    const type = create.options.find(option => option.name === "type");
+    const choices = new Map(type.choices.map(choice => [choice.value, choice.name]));
+
+    assert.equal(choices.get("pj_masque"), "PJ masqué");
+    assert.equal(choices.get("animal"), "Animal");
+});
