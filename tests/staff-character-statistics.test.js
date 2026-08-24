@@ -56,17 +56,36 @@ test("les PJ masqués restent détaillés sans participer aux statistiques des P
     const page = view.buildUser("owner-a", roster, {
         members: { cache: new Map([["owner-a", { displayName: "Fiona" }]]) }
     });
-    const description = page.embeds[0].toJSON().description;
+    const json = page.embeds[0].toJSON();
+    const description = json.description;
 
     assert.match(description, /Utilisateur : \*\*Fiona\*\*/);
-    assert.match(description, /Femmes \(2\).*Alba.*Story/);
-    assert.match(description, /Hommes \(1\).*Icaro/);
-    assert.match(description, /Non renseigné \/ non genré \(1\).*Moka/);
+    assert.deepEqual(json.fields.map(field => field.name), [
+        "♀️ Personnages féminins — 2",
+        "♂️ Personnages masculins — 1",
+        "⚪ Non renseignés / non genrés — 1"
+    ]);
+    assert.match(json.fields[0].value, /Alba.*Story/s);
+    assert.match(json.fields[1].value, /Icaro/);
+    assert.match(json.fields[2].value, /Moka/);
     const componentIds = page.components.flatMap(row => row.toJSON().components.map(component => component.custom_id));
     assert.ok(componentIds.includes("v2_staff_characters_statistics_user"));
 });
 
 
+test("les pseudos Discord récupérés directement remplacent les identifiants", () => {
+    const view = require("../src/v2/views/staff/CharacterStatisticsView");
+    const names = new Map([["123456789", "Fiona"]]);
+    const roster = [character("Reya", "123456789", "personnage_joue", "Femme")];
+
+    const selection = view.buildUserSelection(roster, null, 0, names);
+    const option = selection.components[0].toJSON().components[0].options[0];
+    assert.equal(option.label, "Fiona");
+
+    const detail = view.buildUser("123456789", roster, null, names).embeds[0].toJSON();
+    assert.match(detail.description, /Utilisateur : \*\*Fiona\*\*/);
+    assert.match(detail.fields[0].value, /Reya/);
+});
 test("la sélection staff limite les statistiques au seul utilisateur choisi", async () => {
     const roster = [
         character("Alba", "owner-a", "personnage_joue", "Femme"),

@@ -80,12 +80,22 @@ module.exports = async interaction => {
         const roster = require("../../managers/CharacterRosterV2Manager")
             .getRoster(interaction.guildId, { includeArchived: false })
             .filter(character => String(character.discord_user_id) === String(userId));
+        const deferred = typeof interaction.deferUpdate === "function"
+            && typeof interaction.editReply === "function";
+        if (deferred) await interaction.deferUpdate();
         if (!interaction.guild?.members?.cache?.has(String(userId)) && interaction.guild?.members?.fetch) {
             await interaction.guild.members.fetch(String(userId)).catch(() => null);
         }
-        await interaction.update(
-            require("../../views/staff/CharacterStatisticsView").buildUser(userId, roster, interaction.guild)
-        );
+        const userNames = new Map();
+        if (interaction.client?.users?.fetch) {
+            const user = await interaction.client.users.fetch(String(userId)).catch(() => null);
+            const name = user?.globalName || user?.username;
+            if (name) userNames.set(String(userId), name);
+        }
+        const payload = require("../../views/staff/CharacterStatisticsView")
+            .buildUser(userId, roster, interaction.guild, userNames);
+        if (deferred) await interaction.editReply(payload);
+        else await interaction.update(payload);
         return true;
     }
 

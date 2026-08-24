@@ -111,7 +111,7 @@ function buildGlobal(characters) {
 
 const USER_PAGE_SIZE = 20;
 
-function buildUserSelection(characters, guild, requestedPage = 0) {
+function buildUserSelection(characters, guild, requestedPage = 0, userNames = new Map()) {
     const owners = Array.from(new Set(
         characters
             .map(character => String(character.discord_user_id || "").trim())
@@ -124,6 +124,7 @@ function buildUserSelection(characters, guild, requestedPage = 0) {
                 member?.displayName
                 || member?.user?.globalName
                 || member?.user?.username
+                || userNames.get(userId)
                 || `Utilisateur ${userId}`
             ).trim()
         };
@@ -197,28 +198,49 @@ function genderDetails(characters) {
     ].join("\n");
 }
 
-function resolveUserName(userId, guild) {
+function resolveUserName(userId, guild, userNames = new Map()) {
     const member = guild?.members?.cache?.get(String(userId));
     return String(member?.displayName || member?.user?.globalName
-        || member?.user?.username || `Utilisateur ${userId}`).trim();
+        || member?.user?.username || userNames.get(String(userId))
+        || `Utilisateur ${userId}`).trim();
 }
 
-function buildUser(userId, characters, guild = null) {
+function genderFields(characters) {
+    const groups = { female: [], male: [], unspecified: [] };
+    characters.filter(character => !character.is_archived).forEach(character => {
+        groups[genderCategory(character.gender, character.firstname)].push(characterName(character));
+    });
+    const field = (name, values) => ({
+        name: `${name} — ${values.length}`,
+        value: values.length
+            ? values.sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }))
+                .map(value => `• ${value}`).join("\n").slice(0, 1024)
+            : "Aucun personnage"
+    });
+    return [
+        field("♀️ Personnages féminins", groups.female),
+        field("♂️ Personnages masculins", groups.male),
+        field("⚪ Non renseignés / non genrés", groups.unspecified)
+    ];
+}
+
+function buildUser(userId, characters, guild = null, userNames = new Map()) {
+    const embed = new EmbedBuilder()
+        .setColor(0x5865F2)
+        .setTitle("👤 Statistiques d’un utilisateur")
+        .setDescription([
+            `Utilisateur : **${resolveUserName(userId, guild, userNames)}** (<@${userId}>)`,
+            "Personnages validés, installés et actifs sur ce serveur.",
+            "Le genre renseigné sur la fiche est prioritaire ; sinon GreyCore fait une estimation prudente depuis le prénom.",
+            "",
+            statisticsText(characters),
+            "",
+            "### Liste détaillée des personnages"
+        ].join("\n"))
+        .addFields(genderFields(characters));
     return {
         content: "",
-        embeds: [new EmbedBuilder()
-            .setColor(0x5865F2)
-            .setTitle("👤 Statistiques d’un utilisateur")
-            .setDescription([
-                `Utilisateur : **${resolveUserName(userId, guild)}** (<@${userId}>)`,
-                "Personnages validés, installés et actifs sur ce serveur.",
-                "Le genre renseigné sur la fiche est prioritaire ; sinon GreyCore fait une estimation prudente depuis le prénom.",
-                "",
-                statisticsText(characters),
-                "",
-                "### Détail des personnages par genre",
-                genderDetails(characters)
-            ].join("\n"))],
+        embeds: [embed],
         components: [
             new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
@@ -231,7 +253,6 @@ function buildUser(userId, characters, guild = null) {
         ]
     };
 }
-
 module.exports = {
     buildGlobal,
     buildUserSelection,
@@ -239,5 +260,6 @@ module.exports = {
     statisticsText,
     genderCategory,
     genderDetails,
+    genderFields,
     USER_PAGE_SIZE
 };

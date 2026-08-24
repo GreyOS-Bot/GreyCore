@@ -467,8 +467,18 @@ const owners = Array.from(new Set(
                     .catch(() => null);
             }
         }
+        const userNames = new Map();
+        if (interaction.client?.users?.fetch) {
+            const fetchedUsers = await Promise.all(owners.map(async userId => {
+                const user = await interaction.client.users.fetch(String(userId)).catch(() => null);
+                return [String(userId), user?.globalName || user?.username || null];
+            }));
+            fetchedUsers.forEach(([userId, name]) => {
+                if (name) userNames.set(userId, name);
+            });
+        }
         const payload = require("../../views/staff/CharacterStatisticsView")
-            .buildUserSelection(roster, interaction.guild, page);
+            .buildUserSelection(roster, interaction.guild, page, userNames);
         if (deferred) await interaction.editReply(payload);
         else await interaction.update(payload);
         return true;
