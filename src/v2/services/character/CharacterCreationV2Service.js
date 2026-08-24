@@ -345,6 +345,8 @@ class CharacterCreationV2Service {
                     data.alias,
                 age:
                     data.age,
+                gender:
+                    data.gender,
                 gang:
                     data.gang,
                 birthday:

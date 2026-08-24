@@ -30,6 +30,20 @@ test("un genre absent est estimé seulement pour un prénom non ambigu reconnu",
     assert.equal(view.genderCategory("Non binaire", "Freyja"), "unspecified");
 });
 
+test("les statistiques alertent le staff dès deux PJ d’écart", () => {
+    const view = require("../src/v2/views/staff/CharacterStatisticsView");
+    const characters = [
+        character("Alba", "owner-a", "personnage_joue", "Femme"),
+        character("Kiona", "owner-k", "personnage_joue", "Femme"),
+        character("Reya", "owner-r", "personnage_joue", "Femme"),
+        character("Icaro", "owner-i", "personnage_joue", "Homme")
+    ];
+    const text = view.statisticsText(characters);
+    const page = view.buildGlobal(characters);
+    assert.match(text, /Alerte équilibre des PJ : écart de 2/);
+    assert.equal(page.embeds[0].toJSON().color, 0xED4245);
+});
+
 test("la sélection staff limite les statistiques au seul utilisateur choisi", async () => {
     const roster = [
         character("Alba", "owner-a", "personnage_joue", "Femme"),

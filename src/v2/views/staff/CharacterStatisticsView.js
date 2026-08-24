@@ -74,7 +74,9 @@ function statisticsText(characters) {
             ? "⚪ Équilibre des PJ : genres non renseignés"
             : difference === 0
                 ? "✅ Équilibre des PJ : parfait"
-                : `⚠️ Équilibre des PJ : écart de ${difference}`;
+                : difference >= 2
+                    ? `🚨 **Alerte équilibre des PJ : écart de ${difference}** (seuil : 2)`
+                    : "🟡 Équilibre des PJ : léger écart de 1";
         lines.push("", balance);
     }
 
@@ -82,16 +84,17 @@ function statisticsText(characters) {
 }
 
 function buildGlobal(characters) {
+    const statistics = statisticsText(characters);
     return {
         content: "",
         embeds: [new EmbedBuilder()
-            .setColor(0x5865F2)
+            .setColor(statistics.includes("🚨") ? 0xED4245 : 0x5865F2)
             .setTitle("📊 Statistiques globales des personnages")
             .setDescription([
                 "Personnages validés, installés et actifs sur ce serveur.",
                 "Le genre renseigné sur la fiche est prioritaire ; sinon GreyCore fait une estimation prudente depuis le prénom.",
                 "",
-                statisticsText(characters)
+                statistics
             ].join("\n"))],
         components: [navigationRow()]
     };

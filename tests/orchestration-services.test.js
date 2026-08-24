@@ -84,6 +84,8 @@ test(
                         "1er ao\u00fbt 2026",
                     alias:
                         "Avocate Alba",
+                    gender:
+                        "Femme",
                     story:
                         "Une histoire"
                 });
@@ -116,6 +118,10 @@ test(
             assert.equal(
                 result.profile.alias,
                 "Avocate Alba"
+            );
+            assert.equal(
+                result.profile.gender,
+                "Femme"
             );
             assert.equal(
                 result.phone
