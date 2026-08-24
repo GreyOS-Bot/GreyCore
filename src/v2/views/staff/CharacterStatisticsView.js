@@ -67,8 +67,17 @@ function statisticsText(characters) {
         );
     }
 
-    const played = counts.get("personnage_joue");
-    if (played) {
+    const played = ["personnage_joue"].reduce((total, type) => {
+        const count = counts.get(type);
+        if (count) {
+            total.total += count.total;
+            total.female += count.female;
+            total.male += count.male;
+            total.unspecified += count.unspecified;
+        }
+        return total;
+    }, { total: 0, female: 0, male: 0, unspecified: 0 });
+    if (played.total) {
         const difference = Math.abs(played.female - played.male);
         const balance = played.female === 0 && played.male === 0
             ? "⚪ Équilibre des PJ : genres non renseignés"
@@ -168,18 +177,47 @@ function buildUserSelection(characters, guild, requestedPage = 0) {
     };
 }
 
-function buildUser(userId, characters) {
+function characterName(character) {
+    return String(character.firstname || character.proxy_name || "Personnage sans nom").trim();
+}
+
+function genderDetails(characters) {
+    const groups = { female: [], male: [], unspecified: [] };
+    characters.filter(character => !character.is_archived).forEach(character => {
+        groups[genderCategory(character.gender, character.firstname)].push(characterName(character));
+    });
+    const line = (emoji, label, values) =>
+        `${emoji} **${label} (${values.length})** : ${values.length
+            ? values.sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" })).join(", ")
+            : "Aucun"}`;
+    return [
+        line("♀️", "Femmes", groups.female),
+        line("♂️", "Hommes", groups.male),
+        line("⚪", "Non renseigné / non genré", groups.unspecified)
+    ].join("\n");
+}
+
+function resolveUserName(userId, guild) {
+    const member = guild?.members?.cache?.get(String(userId));
+    return String(member?.displayName || member?.user?.globalName
+        || member?.user?.username || `Utilisateur ${userId}`).trim();
+}
+
+function buildUser(userId, characters, guild = null) {
     return {
         content: "",
         embeds: [new EmbedBuilder()
             .setColor(0x5865F2)
             .setTitle("👤 Statistiques d’un utilisateur")
             .setDescription([
-                `Utilisateur : <@${userId}>`,
+                `Utilisateur : **${resolveUserName(userId, guild)}** (<@${userId}>)`,
                 "Personnages validés, installés et actifs sur ce serveur.",
                 "Le genre renseigné sur la fiche est prioritaire ; sinon GreyCore fait une estimation prudente depuis le prénom.",
                 "",
-                statisticsText(characters)
+                statisticsText(characters),
+                "",
+                "### Détail des personnages par genre",
+                genderDetails(characters)
             ].join("\n"))],
         components: [navigationRow()]
     };
@@ -191,5 +229,6 @@ module.exports = {
     buildUser,
     statisticsText,
     genderCategory,
+    genderDetails,
     USER_PAGE_SIZE
 };

@@ -15,6 +15,32 @@ module.exports =
         interaction,
         dependencies
     ) {
+        if (interaction.isButton() && interaction.customId.startsWith("v2_character_toggle_masked:")) {
+            const characterId = interaction.customId.split(":")[1];
+            const character = require("../../managers/CharacterV2Manager").getById(characterId);
+            const policy = require("../../core/policies/CharacterManagementPolicy");
+            if (!character || !policy.isOwner(interaction, character)) {
+                await replyError(interaction, "Tu ne peux pas modifier le type de ce personnage.");
+                return true;
+            }
+            if (!["personnage_joue", "pj_masque"].includes(character.character_type)) {
+                await replyError(interaction, "Seul un PJ peut être affiché ou masqué.");
+                return true;
+            }
+            require("../../services/character/CharacterTypeCorrectionService").correct({
+                guildId: interaction.guildId,
+                discordUserId: interaction.user.id,
+                characterId,
+                changes: {
+                    characterType: character.character_type === "pj_masque"
+                        ? "personnage_joue"
+                        : "pj_masque"
+                }
+            });
+            await require("../../pages/character/CharacterSettingsPage")
+                .execute(interaction, characterId);
+            return true;
+        }
 
         if (
             interaction.isButton()

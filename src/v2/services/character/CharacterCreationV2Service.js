@@ -209,7 +209,7 @@ class CharacterCreationV2Service {
             || null;
 
         if (
-            type === "personnage_joue"
+            characterTypeCatalog.isPlayedCharacter(type)
             && !story
         ) {
             throw new Error(
