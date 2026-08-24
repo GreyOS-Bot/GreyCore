@@ -418,6 +418,7 @@ function createCoreTables(
             base_firstname TEXT,
             base_lastname TEXT,
             character_type TEXT,
+            masked_parent_character_id TEXT,
             is_archived INTEGER
                 NOT NULL DEFAULT 0,
             created_at TEXT

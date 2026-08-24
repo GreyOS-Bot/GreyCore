@@ -118,11 +118,12 @@ class CharacterRepository {
                 base_firstname,
                 base_lastname,
                 character_type,
+                masked_parent_character_id,
                 is_archived,
                 created_at,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             data.id,
             data.ownerUserId,
@@ -131,6 +132,7 @@ class CharacterRepository {
             data.baseFirstname,
             data.baseLastname,
             data.characterType,
+            data.maskedParentCharacterId || null,
             data.isArchived,
             data.createdAt,
             data.updatedAt
@@ -141,6 +143,14 @@ class CharacterRepository {
         );
     }
 
+    setMaskedParent(characterId, parentCharacterId, updatedAt) {
+        db.prepare(`
+            UPDATE CharactersV2
+            SET masked_parent_character_id = ?, updated_at = ?
+            WHERE id = ?
+        `).run(parentCharacterId, updatedAt, characterId);
+        return this.getById(characterId);
+    }
     updateIdentity(
         characterId,
         data

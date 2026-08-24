@@ -62,6 +62,8 @@ test("les PJ masqués restent détaillés sans participer aux statistiques des P
     assert.match(description, /Femmes \(2\).*Alba.*Story/);
     assert.match(description, /Hommes \(1\).*Icaro/);
     assert.match(description, /Non renseigné \/ non genré \(1\).*Moka/);
+    const componentIds = page.components.flatMap(row => row.toJSON().components.map(component => component.custom_id));
+    assert.ok(componentIds.includes("v2_staff_characters_statistics_user"));
 });
 
 

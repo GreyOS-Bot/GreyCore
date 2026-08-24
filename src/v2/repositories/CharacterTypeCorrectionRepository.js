@@ -57,6 +57,8 @@ class CharacterTypeCorrectionRepository {
                 character.id,
                 character.proxy_name,
                 character.character_type,
+                character.masked_parent_character_id,
+                parent.proxy_name AS masked_parent_proxy_name,
                 character.base_firstname,
                 character.base_lastname,
                 user.discord_user_id,
@@ -74,6 +76,8 @@ class CharacterTypeCorrectionRepository {
                 ON character.id = installation.character_id
             JOIN UsersV2 AS user
                 ON user.id = character.owner_user_id
+            LEFT JOIN CharactersV2 AS parent
+                ON parent.id = character.masked_parent_character_id
             LEFT JOIN CharacterProfilesV2 AS profile
                 ON profile.continuity_id = installation.continuity_id
             WHERE installation.guild_id = ?

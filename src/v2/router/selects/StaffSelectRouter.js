@@ -80,6 +80,9 @@ module.exports = async interaction => {
         const roster = require("../../managers/CharacterRosterV2Manager")
             .getRoster(interaction.guildId, { includeArchived: false })
             .filter(character => String(character.discord_user_id) === String(userId));
+        if (!interaction.guild?.members?.cache?.has(String(userId)) && interaction.guild?.members?.fetch) {
+            await interaction.guild.members.fetch(String(userId)).catch(() => null);
+        }
         await interaction.update(
             require("../../views/staff/CharacterStatisticsView").buildUser(userId, roster, interaction.guild)
         );

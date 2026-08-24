@@ -93,6 +93,9 @@ class CharacterCreationV2Service {
             );
         }
 
+        if (type === "pj_masque" && !String(data.maskedParentCharacterId || "").trim()) {
+            throw new Error("Choisis d’abord le PJ principal de cette version masquée.");
+        }
         const proxyName =
             this.normalizeDisplayText(
                 data.proxyName
@@ -258,6 +261,10 @@ class CharacterCreationV2Service {
                     || data.guildId
                 ),
             type,
+            maskedParentCharacterId:
+                type === "pj_masque"
+                    ? String(data.maskedParentCharacterId || "").trim()
+                    : null,
             proxyName,
             firstname,
             lastname:
@@ -310,7 +317,9 @@ class CharacterCreationV2Service {
                 baseLastname:
                     data.lastname,
                 characterType:
-                    data.type
+                    data.type,
+                maskedParentCharacterId:
+                    data.maskedParentCharacterId
             });
 
         const continuity =

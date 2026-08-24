@@ -28,6 +28,9 @@ class StaffCharacterCorrectionView {
                 `**Propriétaire :** <@${character.discord_user_id}>`,
                 `**Statut :** ${character.status}`,
                 `**Type :** ${characterTypes.getDisplayLabel(character.character_type)}`,
+                ...(character.character_type === "pj_masque"
+                    ? [`**PJ principal lié :** ${character.masked_parent_proxy_name || "Non relié"}`]
+                    : []),
                 "",
                 `**Proxy :** ${empty(character.proxy_name)}`,
                 `**Alias affiché :** ${empty(character.alias)}`,
@@ -63,7 +66,13 @@ class StaffCharacterCorrectionView {
                     .setLabel("Demander une modification")
                     .setEmoji("📨")
                     .setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder()
+                ...(character.character_type === "pj_masque" ? [
+                    new ButtonBuilder()
+                        .setCustomId(`v2_staff_character_masked_link:${character.id}`)
+                        .setLabel("Changer le PJ lié")
+                        .setEmoji("🔗")
+                        .setStyle(ButtonStyle.Secondary)
+                ] : []),                new ButtonBuilder()
                     .setCustomId(`v2_staff_character_delete:${character.id}`)
                     .setLabel("Supprimer")
                     .setEmoji("🗑️")

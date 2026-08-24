@@ -15,33 +15,22 @@ module.exports =
         interaction,
         dependencies
     ) {
-        if (interaction.isButton() && interaction.customId.startsWith("v2_character_toggle_masked:")) {
+        if (interaction.isButton() && interaction.customId.startsWith("v2_character_masked_link:")) {
             const characterId = interaction.customId.split(":")[1];
-            const character = require("../../managers/CharacterV2Manager").getById(characterId);
+            const manager = require("../../managers/CharacterV2Manager");
+            const masked = manager.getById(characterId);
             const policy = require("../../core/policies/CharacterManagementPolicy");
-            if (!character || !policy.isOwner(interaction, character)) {
-                await replyError(interaction, "Tu ne peux pas modifier le type de ce personnage.");
+            if (!masked || masked.character_type !== "pj_masque" || !policy.isOwner(interaction, masked)) {
+                await replyError(interaction, "Tu ne peux pas modifier cette liaison.");
                 return true;
             }
-            if (!["personnage_joue", "pj_masque"].includes(character.character_type)) {
-                await replyError(interaction, "Seul un PJ peut être affiché ou masqué.");
-                return true;
-            }
-            require("../../services/character/CharacterTypeCorrectionService").correct({
-                guildId: interaction.guildId,
-                discordUserId: interaction.user.id,
-                characterId,
-                changes: {
-                    characterType: character.character_type === "pj_masque"
-                        ? "personnage_joue"
-                        : "pj_masque"
-                }
-            });
-            await require("../../pages/character/CharacterSettingsPage")
-                .execute(interaction, characterId);
+            const candidates = manager.getByOwner(masked.owner_user_id);
+            await interaction.update(
+                require("../../views/character/MaskedCharacterLinkView")
+                    .build(candidates, { mode: "link", maskedCharacterId: characterId })
+            );
             return true;
         }
-
         if (
             interaction.isButton()
             && interaction.customId.startsWith("v2_character_archive:")
@@ -90,6 +79,27 @@ module.exports =
             return true;
         }
 
+        if (interaction.isButton() && interaction.customId.startsWith("v2_staff_character_masked_link:")) {
+            const characterId = interaction.customId.split(":")[1];
+            const staffPolicy = require("../../core/policies/StaffPermissionPolicy");
+            if (!staffPolicy.canManageCharacters(interaction)) {
+                await replyError(interaction, "Cette action est réservée au staff.");
+                return true;
+            }
+            const manager = require("../../managers/CharacterV2Manager");
+            const masked = manager.getById(characterId);
+            if (!masked || masked.character_type !== "pj_masque") {
+                await replyError(interaction, "Cette version masquée est introuvable.");
+                return true;
+            }
+            await interaction.update(
+                require("../../views/character/MaskedCharacterLinkView").build(
+                    manager.getByOwner(masked.owner_user_id),
+                    { mode: "link", maskedCharacterId: characterId, staff: true }
+                )
+            );
+            return true;
+        }
         if (
             interaction.isButton()
             && interaction.customId.startsWith(
@@ -195,14 +205,18 @@ module.exports =
                 interaction.customId
                     .split(":")[1];
 
-            const modal =
-                require(
-                    "../../modals/CharacterCreateModal"
+            if (type === "pj_masque") {
+                const candidates = require("../../managers/CharacterV2Manager")
+                    .getByOwnerDiscordId(interaction.user.id);
+                await interaction.update(
+                    require("../../views/character/MaskedCharacterLinkView")
+                        .build(candidates, { mode: "create" })
                 );
+                return true;
+            }
 
-            await interaction.showModal(
-                modal.build(type)
-            );
+            const modal = require("../../modals/CharacterCreateModal");
+            await interaction.showModal(modal.build(type));
 
             return true;
 

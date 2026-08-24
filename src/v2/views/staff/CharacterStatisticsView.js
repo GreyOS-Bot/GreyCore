@@ -219,7 +219,16 @@ function buildUser(userId, characters, guild = null) {
                 "### Détail des personnages par genre",
                 genderDetails(characters)
             ].join("\n"))],
-        components: [navigationRow()]
+        components: [
+            new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId("v2_staff_characters_statistics_user")
+                    .setLabel("Retour aux utilisateurs")
+                    .setEmoji("⬅️")
+                    .setStyle(ButtonStyle.Secondary)
+            ),
+            navigationRow()
+        ]
     };
 }
 

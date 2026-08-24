@@ -455,10 +455,22 @@ module.exports = async interaction => {
         const page = interaction.customId.includes(":")
             ? Number(interaction.customId.split(":")[1]) || 0
             : 0;
-        await interaction.update(
-            require("../../views/staff/CharacterStatisticsView")
-                .buildUserSelection(roster, interaction.guild, page)
-        );
+const owners = Array.from(new Set(
+            roster.map(character => character.discord_user_id).filter(Boolean)
+        ));
+        const deferred = typeof interaction.deferUpdate === "function"
+            && typeof interaction.editReply === "function";
+        if (deferred) await interaction.deferUpdate();
+        if (interaction.guild?.members?.fetch) {
+            for (let index = 0; index < owners.length; index += 100) {
+                await interaction.guild.members.fetch({ user: owners.slice(index, index + 100) })
+                    .catch(() => null);
+            }
+        }
+        const payload = require("../../views/staff/CharacterStatisticsView")
+            .buildUserSelection(roster, interaction.guild, page);
+        if (deferred) await interaction.editReply(payload);
+        else await interaction.update(payload);
         return true;
     }
 

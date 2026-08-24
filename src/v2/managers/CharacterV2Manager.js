@@ -75,6 +75,16 @@ class CharacterV2Manager {
             );
         }
 
+        if (data.characterType === "pj_masque") {
+            if (!data.maskedParentCharacterId) {
+                throw new Error("Choisis le PJ principal de cette version masquée.");
+            }
+            const parent = this.requireCharacter(data.maskedParentCharacterId);
+            if (parent.character_type !== "personnage_joue"
+                || String(parent.owner_user_id) !== String(data.ownerUserId)) {
+                throw new Error("Le PJ principal choisi est invalide.");
+            }
+        }
         const now =
             new Date()
                 .toISOString();
@@ -100,6 +110,8 @@ class CharacterV2Manager {
             characterType:
                 data.characterType
                 || "personnage_joue",
+            maskedParentCharacterId:
+                data.maskedParentCharacterId || null,
             isArchived:
                 data.isArchived
                     ? 1
@@ -113,6 +125,20 @@ class CharacterV2Manager {
         });
     }
 
+    setMaskedParent(characterId, parentCharacterId) {
+        const character = this.requireCharacter(characterId);
+        const parent = this.requireCharacter(parentCharacterId);
+        if (character.character_type !== "pj_masque") {
+            throw new Error("Seule une version masquée peut être reliée à un PJ.");
+        }
+        if (parent.character_type !== "personnage_joue") {
+            throw new Error("Le personnage principal doit être un PJ.");
+        }
+        if (String(character.owner_user_id) !== String(parent.owner_user_id)) {
+            throw new Error("Le PJ masqué et le PJ principal doivent appartenir au même utilisateur.");
+        }
+        return repository.setMaskedParent(characterId, parentCharacterId, new Date().toISOString());
+    }
     updateIdentity(
         characterId,
         data

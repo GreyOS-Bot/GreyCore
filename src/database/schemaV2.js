@@ -67,6 +67,8 @@ function initializeSchemaV2() {
             character_type TEXT NOT NULL
                 DEFAULT 'personnage_joue',
 
+            masked_parent_character_id TEXT,
+
             is_archived INTEGER NOT NULL DEFAULT 0,
 
             created_at TEXT NOT NULL,
@@ -93,6 +95,14 @@ function initializeSchemaV2() {
         `).run();
     }
 
+    if (!columnExists("CharactersV2", "masked_parent_character_id")) {
+        db.prepare(`
+            ALTER TABLE CharactersV2
+            ADD COLUMN masked_parent_character_id TEXT
+            REFERENCES CharactersV2(id)
+            ON DELETE SET NULL
+        `).run();
+    }
     db.prepare(`
         CREATE TABLE IF NOT EXISTS CharacterAliasesV2 (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -277,4 +287,3 @@ function initializeSchemaV2() {
 }
 
 module.exports = initializeSchemaV2;
-

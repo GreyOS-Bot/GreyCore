@@ -57,6 +57,16 @@ async function startCharacterCreation(
         ensureGuild(interaction);
 
         const type = getType(interaction);
+        const maskedSelection = type === "pj_masque"
+            ? pendingActionManager.get(interaction.user.id)
+            : null;
+        if (type === "pj_masque" && (
+            !maskedSelection
+            || maskedSelection.type !== "masked_parent_selection"
+            || String(maskedSelection.guildId) !== String(interaction.guild.id)
+        )) {
+            throw new Error("Choisis d’abord le PJ principal de cette version masquée.");
+        }
 
         if (
             characterTypeCatalog
@@ -100,6 +110,8 @@ async function startCharacterCreation(
             characterType:
                 type,
             data: {
+                maskedParentCharacterId:
+                    maskedSelection?.maskedParentCharacterId || null,
                 proxyName:
                     readField(
                         interaction,
