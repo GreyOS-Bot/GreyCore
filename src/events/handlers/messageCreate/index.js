@@ -134,6 +134,10 @@ module.exports =
                 message
             );
 
+        if (message.greycorePlayBlocked) {
+            return true;
+        }
+
         let entityHandled = false;
         try {
             entityHandled = await narrativeEntityService

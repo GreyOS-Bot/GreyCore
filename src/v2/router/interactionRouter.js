@@ -6,6 +6,9 @@ const interactionRouters = [
     require("./buttonRouter")
 ];
 
+const userPlayBlockService =
+    require("../services/moderation/UserPlayBlockService" );
+
 const maintenanceModeService =
     require(
         "../services/MaintenanceModeService"
@@ -15,6 +18,10 @@ module.exports =
     async function interactionRouter(
         interaction
     ) {
+        if (await userPlayBlockService.blockInteraction(interaction)) {
+            return true;
+        }
+
         if (
             await maintenanceModeService
                 .blockInteraction(

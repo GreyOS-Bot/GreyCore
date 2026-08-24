@@ -69,6 +69,16 @@ module.exports =
             return false;
         }
 
+        const playBlock = require("../../../v2/services/moderation/UserPlayBlockService")
+            .get(message.guild.id, message.author.id);
+        if (playBlock) {
+            message.greycorePlayBlocked = true;
+            await message.reply(
+                `❌ Ton accès au jeu GreyCore est temporairement suspendu.\n**Motif :** ${playBlock.reason}`
+            );
+            return true;
+        }
+
         const {
             character,
             v2Installation

@@ -5,7 +5,8 @@ const PUBLIC_SLASH_COMMANDS = new Set([
     "greycore",
     "personnage",
     "staff",
-    "phone"
+    "phone",
+    "blocage"
 ]);
 
 function isContextMenuCommand(commandData) {
