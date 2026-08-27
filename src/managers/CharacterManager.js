@@ -41,6 +41,93 @@ class CharacterManager {
     return rows.map(row => this.mapRowToCharacter(row));
 }
 
+    searchCharactersByGuild(
+        guildId,
+        focused,
+        limit = 25
+    ) {
+        const normalizedLimit =
+            Math.max(
+                0,
+                Math.min(
+                    25,
+                    Number(limit) || 0
+                )
+            );
+
+        if (!normalizedLimit) {
+            return [];
+        }
+
+        const focusedValue =
+            String(focused || "")
+                .toLowerCase();
+        const pageSize =
+            100;
+        const results = [];
+        let lastName = null;
+
+        const readPage =
+            db.prepare(`
+                SELECT *
+                FROM Characters
+                WHERE guild_id = ?
+                AND (
+                    ? IS NULL
+                    OR name > ?
+                )
+                ORDER BY name ASC
+                LIMIT ?
+            `);
+
+        while (results.length < normalizedLimit) {
+            const rows =
+                readPage.all(
+                    guildId,
+                    lastName,
+                    lastName,
+                    pageSize
+                );
+
+            if (!rows.length) {
+                break;
+            }
+
+            for (const row of rows) {
+                if (
+                    row.name
+                        .toLowerCase()
+                        .includes(
+                            focusedValue
+                        )
+                ) {
+                    results.push(
+                        this.mapRowToCharacter(
+                            row
+                        )
+                    );
+
+                    if (
+                        results.length ===
+                            normalizedLimit
+                    ) {
+                        break;
+                    }
+                }
+            }
+
+            lastName =
+                rows[rows.length - 1]
+                    .name;
+
+            if (rows.length < pageSize) {
+                break;
+            }
+        }
+
+        return results;
+    }
+
 getCharactersAvailableForUser(
     guildId,
     ownerId
