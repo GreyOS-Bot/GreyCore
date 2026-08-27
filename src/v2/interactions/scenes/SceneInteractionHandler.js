@@ -78,6 +78,23 @@ async function submitMove(interaction, sceneId, destinationId) {
     if (!source || !destination?.isTextBased?.()) {
         return editOrReplyError(interaction, "Le salon de destination est inaccessible à GreyCore.");
     }
+    if (
+        !belongsToGuild(
+            destination,
+            interaction.guildId
+        )
+    ) {
+        return editOrReplyError(
+            interaction,
+            "Le salon de destination n’appartient pas à ce serveur."
+        );
+    }
+    if (source.id === destinationId) {
+        return editOrReplyError(
+            interaction,
+            "Cette scène se trouve déjà dans ce salon."
+        );
+    }
 
     const rawReference = interaction.fields
         .getTextInputValue("transition_message")
@@ -104,12 +121,6 @@ async function submitMove(interaction, sceneId, destinationId) {
             .join("\n")
         : "> Aucun message de transition disponible.";
 
-    await sendNarrativeOrFallback({
-        channel: source,
-        triggerKey: "scene_moved",
-        suffix: `🔄 La scène **${scene.title}** se poursuit désormais dans <#${destinationId}>.`,
-        fallback: `🔄 La scène **${scene.title}** se poursuit désormais dans <#${destinationId}>.`
-    });
     const destinationContinuity = [
         `🔄 Suite de la scène **${scene.title}** provenant de <#${source.id}>.`,
         "",
@@ -117,24 +128,69 @@ async function submitMove(interaction, sceneId, destinationId) {
         quote,
         transition?.url ? `\n[Voir le message d’origine](${transition.url})` : ""
     ].filter(Boolean).join("\n");
-    await sendNarrativeOrFallback({
-        channel: destination,
-        triggerKey: "scene_moved",
-        suffix: destinationContinuity,
-        fallback: destinationContinuity
-    });
 
-    manager.moveScene({
-        sceneId,
-        guildId: interaction.guildId,
-        sourceChannelId: source.id,
-        destinationChannelId: destinationId,
-        transitionMessageId: transition?.id || null,
-        createdBy: interaction.user.id
-    });
+    const moveResult =
+        manager.moveSceneIfCurrent({
+            sceneId,
+            guildId:
+                interaction.guildId,
+            expectedSourceChannelId:
+                source.id,
+            destinationChannelId:
+                destinationId,
+            transitionMessageId:
+                transition?.id
+                || null,
+            createdBy:
+                interaction.user.id
+        });
+
+    if (!moveResult.moved) {
+        return editOrReplyError(
+            interaction,
+            moveFailureMessage(
+                moveResult.reason
+            )
+        );
+    }
+
+    const failedAnnouncements =
+        await publishMoveAnnouncements({
+            sceneId,
+            sourceChannelId:
+                source.id,
+            destinationChannelId:
+                destinationId,
+            sendSource: () =>
+                sendNarrativeOrFallback({
+                    channel: source,
+                    triggerKey:
+                        "scene_moved",
+                    suffix:
+                        `🔄 La scène **${scene.title}** se poursuit désormais dans <#${destinationId}>.`,
+                    fallback:
+                        `🔄 La scène **${scene.title}** se poursuit désormais dans <#${destinationId}>.`
+                }),
+            sendDestination: () =>
+                sendNarrativeOrFallback({
+                    channel:
+                        destination,
+                    triggerKey:
+                        "scene_moved",
+                    suffix:
+                        destinationContinuity,
+                    fallback:
+                        destinationContinuity
+                })
+        });
 
     return interaction.editReply({
-        content: `✅ **${scene.title}** a été déplacée vers <#${destinationId}> sans réinitialiser son cycle.`
+        content:
+            moveConfirmation(
+                scene,
+                destinationId,
+                failedAnnouncements
+            )
     });
 }
 
@@ -155,7 +211,10 @@ function resume(interaction) {
                 .setPlaceholder("Choisir une scène")
                 .addOptions(scenes.map(scene => ({
                     label: scene.title.slice(0, 100),
-                    value: scene.id,
+                    value:
+                        resumeSelectionValue(
+                            scene
+                        ),
                     description: `${scene.rp_message_count} message(s) RP`.slice(0, 100)
                 })))
         )]
@@ -163,58 +222,137 @@ function resume(interaction) {
 }
 
 async function selectResume(interaction) {
-    const scene = manager.getScene(interaction.values[0]);
+    const {
+        sceneId,
+        expectedSourceChannelId
+    } = parseResumeSelection(
+        interaction.values[0]
+    );
+    const scene = manager.getScene(sceneId);
     if (!scene || scene.guild_id !== interaction.guildId) {
         return replyError(interaction, "Cette scène est introuvable.");
     }
 
-    const sourceChannelId = String(scene.channel_ids || "")
-        .split(",")
-        .find(Boolean) || null;
+    if (!expectedSourceChannelId) {
+        return replyError(
+            interaction,
+            "Cette interface n’est plus active. Rouvrez GreyCore pour continuer."
+        );
+    }
+    if (
+        !interaction.channel
+            ?.isTextBased?.()
+        || !belongsToGuild(
+            interaction.channel,
+            interaction.guildId
+        )
+    ) {
+        return replyError(
+            interaction,
+            "Le salon de destination est inaccessible à GreyCore."
+        );
+    }
+    if (
+        expectedSourceChannelId
+        === interaction.channelId
+    ) {
+        return replyError(
+            interaction,
+            "Cette scène se trouve déjà dans ce salon."
+        );
+    }
 
-    manager.moveScene({
-        sceneId: scene.id,
-        guildId: interaction.guildId,
-        sourceChannelId,
-        destinationChannelId: interaction.channelId,
-        transitionMessageId: null,
-        createdBy: interaction.user.id
-    });
-
-    if (sourceChannelId) {
-        const source = await interaction.client.channels
-            .fetch(sourceChannelId)
+    const source =
+        await interaction.client.channels
+            .fetch(
+                expectedSourceChannelId
+            )
             .catch(() => null);
-        const recent = source?.messages
-            ? await source.messages.fetch({ limit: 25 }).catch(() => null)
-            : null;
-        const transition = recent?.find(message =>
+    const recent = source?.messages
+        ? await source.messages
+            .fetch({
+                limit: 25
+            })
+            .catch(() => null)
+        : null;
+    const transition =
+        recent?.find(message =>
             message.author?.id !== interaction.client.user?.id
             && (message.content?.trim() || message.attachments?.size)
         ) || null;
-        await source?.send?.(
-            `🔄 La scène **${scene.title}** se poursuit désormais dans <#${interaction.channelId}>.`
+    const quote = transition
+        ? String(
+            transition.content
+            || "📎 Pièce jointe"
+        )
+            .slice(0, 1200)
+            .split("\n")
+            .map(line => `> ${line}`)
+            .join("\n")
+        : "> Aucun message de transition disponible.";
+    const destinationContinuity = [
+        `🔄 Suite de la scène **${scene.title}** provenant de <#${expectedSourceChannelId}>.`,
+        "",
+        "**Dernier échange :**",
+        quote,
+        transition?.url
+            ? `\n[Voir le message d’origine](${transition.url})`
+            : ""
+    ].filter(Boolean).join("\n");
+
+    const moveResult =
+        manager.moveSceneIfCurrent({
+            sceneId: scene.id,
+            guildId: interaction.guildId,
+            expectedSourceChannelId,
+            destinationChannelId:
+                interaction.channelId,
+            transitionMessageId:
+                transition?.id
+                || null,
+            createdBy:
+                interaction.user.id
+        });
+
+    if (!moveResult.moved) {
+        return replyError(
+            interaction,
+            moveFailureMessage(
+                moveResult.reason
+            )
         );
-
-        const quote = transition
-            ? String(transition.content || "📎 Pièce jointe")
-                .slice(0, 1200)
-                .split("\n")
-                .map(line => `> ${line}`)
-                .join("\n")
-            : "> Aucun message de transition disponible.";
-
-        await interaction.channel.send([
-            `🔄 Suite de la scène **${scene.title}** provenant de <#${sourceChannelId}>.`,
-            "",
-            "**Dernier échange :**",
-            quote,
-            transition?.url ? `\n[Voir le message d’origine](${transition.url})` : ""
-        ].filter(Boolean).join("\n"));
     }
 
+    const failedAnnouncements =
+        await publishMoveAnnouncements({
+            sceneId: scene.id,
+            sourceChannelId:
+                expectedSourceChannelId,
+            destinationChannelId:
+                interaction.channelId,
+            sendSource: () =>
+                source?.send
+                    ? source.send(
+                        `🔄 La scène **${scene.title}** se poursuit désormais dans <#${interaction.channelId}>.`
+                    )
+                    : Promise.reject(
+                        new Error(
+                            "Salon source inaccessible."
+                        )
+                    ),
+            sendDestination: () =>
+                interaction.channel.send(
+                    destinationContinuity
+                )
+        });
+
     return interaction.update({
-        content: `✅ **${scene.title}** se poursuit maintenant dans <#${interaction.channelId}>.`,
+        content:
+            moveConfirmation(
+                scene,
+                interaction.channelId,
+                failedAnnouncements
+            ),
         components: []
     });
 }
@@ -413,6 +551,118 @@ async function closeNow(interaction, sceneId) {
         embeds: [],
         components: []
     });
+}
+
+function resumeSelectionValue(scene) {
+    const sourceChannelId =
+        String(
+            scene.channel_ids
+            || ""
+        )
+            .split(",")
+            .find(Boolean)
+        || "";
+
+    return [
+        scene.id,
+        sourceChannelId
+    ].join("|");
+}
+
+function parseResumeSelection(value) {
+    const [
+        sceneId,
+        expectedSourceChannelId
+    ] = String(value || "")
+        .split("|");
+
+    return {
+        sceneId,
+        expectedSourceChannelId:
+            expectedSourceChannelId
+            || null
+    };
+}
+
+function belongsToGuild(
+    channel,
+    guildId
+) {
+    return String(
+        channel?.guildId
+        || channel?.guild?.id
+        || ""
+    ) === String(guildId || "");
+}
+
+function moveFailureMessage(reason) {
+    if (reason === "destination_occupied") {
+        return "Une autre scène active utilise déjà ce salon.";
+    }
+
+    if (reason === "same_channel") {
+        return "Cette scène se trouve déjà dans ce salon.";
+    }
+
+    return "Cette scène a été déplacée ou modifiée entre-temps. Actualisez l’interface avant de réessayer.";
+}
+
+function moveConfirmation(
+    scene,
+    destinationChannelId,
+    failedAnnouncements
+) {
+    if (failedAnnouncements.length) {
+        return [
+            `⚠️ La scène **${scene.title}** a bien été déplacée vers <#${destinationChannelId}>,`,
+            "mais une partie des annonces n’a pas pu être publiée."
+        ].join(" ");
+    }
+
+    return `✅ **${scene.title}** a été déplacée vers <#${destinationChannelId}> sans réinitialiser son cycle.`;
+}
+
+async function publishMoveAnnouncements({
+    sceneId,
+    sourceChannelId,
+    destinationChannelId,
+    sendSource,
+    sendDestination
+}) {
+    const failures = [];
+    const announcements = [
+        [
+            "source",
+            sendSource
+        ],
+        [
+            "destination",
+            sendDestination
+        ]
+    ];
+
+    for (const [
+        stage,
+        send
+    ] of announcements) {
+        try {
+            await send();
+        } catch (error) {
+            failures.push(stage);
+            logger.error(
+                "Annonce de déplacement de scène impossible.",
+                {
+                    sceneId,
+                    sourceChannelId,
+                    destinationChannelId,
+                    stage
+                },
+                error
+            );
+        }
+    }
+
+    return failures;
 }
 
 async function sendNarrativeOrFallback({ channel, triggerKey, suffix, fallback }) {

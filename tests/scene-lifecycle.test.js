@@ -41,10 +41,11 @@ test(
             scene.id,
             "2026-08-06T18:01:00.000Z"
         );
-        manager.moveScene({
+        manager.moveSceneIfCurrent({
             sceneId: scene.id,
             guildId: "guild",
-            sourceChannelId: "steel",
+            expectedSourceChannelId:
+                "steel",
             destinationChannelId: "catchup-steel",
             transitionMessageId: "message-42",
             createdBy: "player",

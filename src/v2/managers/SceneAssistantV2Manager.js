@@ -152,11 +152,15 @@ class SceneAssistantV2Manager {
         );
     }
 
-    moveScene(data) {
-        return repository.moveScene({
-            ...data,
-            movedAt: data.movedAt || new Date().toISOString()
-        });
+    moveSceneIfCurrent(data) {
+        return repository
+            .moveSceneIfCurrent({
+                ...data,
+                movedAt:
+                    data.movedAt
+                    || new Date()
+                        .toISOString()
+            });
     }
 
     recordSceneMessage(sceneId, occurredAt = new Date().toISOString()) {
