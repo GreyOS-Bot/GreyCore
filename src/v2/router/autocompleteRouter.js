@@ -48,23 +48,33 @@ module.exports =
                 )
             );
         } catch (error) {
-            await staffErrorLogService.report({
-                guildId:
-                    interaction.guildId,
-                scope:
-                    `Autocomplétion /${interaction.commandName}`,
-                error,
-                interaction
-            });
+            if (
+                !fastAutocompleteResponseService
+                    .hasAttempted(interaction)
+            ) {
+                await respondWithNoChoices(
+                    interaction
+                );
+            }
 
             logger.error(
                 `❌ Erreur autocomplétion /${interaction.commandName} :`,
                 error
             );
 
-            await respondWithNoChoices(
+            void staffErrorLogService.report({
+                guildId:
+                    interaction.guildId,
+                scope:
+                    `Autocomplétion /${interaction.commandName}`,
+                error,
                 interaction
-            );
+            }).catch(reportError => {
+                logger.warn(
+                    `Impossible de journaliser l’erreur d’autocomplétion /${interaction.commandName} :`,
+                    reportError
+                );
+            });
         }
 
         return true;
