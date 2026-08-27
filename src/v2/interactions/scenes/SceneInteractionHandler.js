@@ -11,6 +11,7 @@ const {
 const manager = require("../../managers/SceneAssistantV2Manager");
 const sceneAssistantService = require("../../services/scenes/SceneAssistantService");
 const narrativeEntityService = require("../../services/entities/NarrativeEntityService");
+const staffPermissionPolicy = require("../../core/policies/StaffPermissionPolicy");
 const logger = require("../../core/services/TechnicalLogger")
     .create("SceneInteractionHandler");
 const {
@@ -19,6 +20,29 @@ const {
     editOrReplyError,
     deferPrivate
 } = require("../../core/services/InteractionResponseService");
+
+const MOVE_PERMISSION_ERROR =
+    "Seuls un participant, la personne ayant créé cette scène ou le staff chargé des scènes peuvent la déplacer.";
+
+function canMoveScene(interaction, scene, staffWrite = undefined) {
+    if (!scene || scene.guild_id !== interaction.guildId) {
+        return false;
+    }
+
+    const userId = String(interaction.user?.id || "");
+    return Boolean(
+        manager.isSceneParticipantUser?.(scene.id, userId)
+        || String(scene.created_by || "") === userId
+        || (
+            staffWrite
+            ?? staffPermissionPolicy.canAccess(
+                interaction,
+                "scenes",
+                { write: true }
+            )
+        )
+    );
+}
 
 function start(interaction) {
     const title = new TextInputBuilder()
@@ -68,6 +92,10 @@ async function submitMove(interaction, sceneId, destinationId) {
     const scene = manager.getScene(sceneId);
     if (!scene || scene.guild_id !== interaction.guildId) {
         return editOrReplyError(interaction, "Cette scène est introuvable.");
+    }
+
+    if (!canMoveScene(interaction, scene)) {
+        return editOrReplyError(interaction, MOVE_PERMISSION_ERROR);
     }
 
     const source = interaction.channel;
@@ -195,8 +223,14 @@ async function submitMove(interaction, sceneId, destinationId) {
 }
 
 function resume(interaction) {
+    const canManageScenes = staffPermissionPolicy.canAccess(
+        interaction,
+        "scenes",
+        { write: true }
+    );
     const scenes = manager.getActiveScenes(interaction.guildId)
         .filter(scene => !String(scene.channel_ids || "").split(",").includes(interaction.channelId))
+        .filter(scene => canManageScenes || canMoveScene(interaction, scene, false))
         .slice(0, 25);
 
     if (!scenes.length) {
@@ -231,6 +265,10 @@ async function selectResume(interaction) {
     const scene = manager.getScene(sceneId);
     if (!scene || scene.guild_id !== interaction.guildId) {
         return replyError(interaction, "Cette scène est introuvable.");
+    }
+
+    if (!canMoveScene(interaction, scene)) {
+        return replyError(interaction, MOVE_PERMISSION_ERROR);
     }
 
     if (!expectedSourceChannelId) {
@@ -358,6 +396,14 @@ async function selectResume(interaction) {
 }
 
 function openMove(interaction, sceneId) {
+    const scene = manager.getScene(sceneId);
+    if (!scene || scene.guild_id !== interaction.guildId) {
+        return replyError(interaction, "Cette scène est introuvable.");
+    }
+    if (!canMoveScene(interaction, scene)) {
+        return replyError(interaction, MOVE_PERMISSION_ERROR);
+    }
+
     return replyPrivate(interaction, {
         content: "➡️ Choisis le salon où poursuivre la scène.",
         components: [new ActionRowBuilder().addComponents(
@@ -412,6 +458,22 @@ async function submitNewMove(interaction, destinationId) {
     if (manager.getActiveSceneByChannel(interaction.guildId, interaction.channelId)) {
         return replyError(interaction, "Une scène est déjà active dans ce salon. Relance la demande de rattrapage.");
     }
+    const destination = await interaction.client.channels
+        .fetch(destinationId)
+        .catch(() => null);
+    if (!destination?.isTextBased?.()) {
+        return replyError(interaction, "Le salon de destination est inaccessible à GreyCore.");
+    }
+    if (!belongsToGuild(destination, interaction.guildId)) {
+        return replyError(interaction, "Le salon de destination n’appartient pas à ce serveur.");
+    }
+    if (interaction.channelId === destinationId) {
+        return replyError(interaction, "Cette scène se trouve déjà dans ce salon.");
+    }
+    if (manager.getActiveSceneByChannel(interaction.guildId, destinationId)) {
+        return replyError(interaction, "Une autre scène active utilise déjà ce salon.");
+    }
+
     const scene = manager.createScene({
         guildId: interaction.guildId,
         channelId: interaction.channelId,
@@ -422,6 +484,14 @@ async function submitNewMove(interaction, destinationId) {
 }
 
 function selectMoveChannel(interaction, sceneId) {
+    const scene = manager.getScene(sceneId);
+    if (!scene || scene.guild_id !== interaction.guildId) {
+        return replyError(interaction, "Cette scène est introuvable.");
+    }
+    if (!canMoveScene(interaction, scene)) {
+        return replyError(interaction, MOVE_PERMISSION_ERROR);
+    }
+
     const destinationId = interaction.values[0];
     const message = new TextInputBuilder()
         .setCustomId("transition_message")
@@ -695,6 +765,7 @@ module.exports = {
     submitNewMove,
     selectMoveChannel,
     submitMove,
+    canMoveScene,
     voteClose,
     closeNow,
     keepOpen

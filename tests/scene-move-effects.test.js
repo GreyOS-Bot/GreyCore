@@ -157,7 +157,8 @@ test(
                     id: "scene",
                     guild_id: "guild",
                     title: "Scène",
-                    channel_ids: "B"
+                    channel_ids: "B",
+                    created_by: "player"
                 }),
                 moveSceneIfCurrent:
                     () => ({
@@ -320,7 +321,8 @@ function loadHandler({
             getScene: () => ({
                 id: "scene",
                 guild_id: "guild",
-                title: "Scène"
+                title: "Scène",
+                created_by: "player"
             }),
             moveSceneIfCurrent: () => {
                 order.push("database");
