@@ -16,8 +16,9 @@ class CharacterTypeCorrectionRepository {
                 : String(ownerDiscordUserId);
 
         return db.prepare(`
-            SELECT DISTINCT
-                character.id,
+            WITH candidates AS (
+                SELECT
+                character.id AS character_id,
                 character.proxy_name,
                 character.character_type,
                 user.discord_user_id,
@@ -31,7 +32,8 @@ class CharacterTypeCorrectionRepository {
                     NULLIF(profile.alias, ''),
                     NULLIF(profile.firstname, ''),
                     character.proxy_name
-                ) AS display_name
+                ) AS display_name,
+                installation.id AS installation_id
             FROM CharacterGuildInstallationsV2 AS installation
             JOIN CharactersV2 AS character
                 ON character.id = installation.character_id
@@ -54,7 +56,30 @@ class CharacterTypeCorrectionRepository {
                 OR LOWER(COALESCE(profile.firstname, '')) LIKE LOWER(?)
                 OR LOWER(COALESCE(profile.lastname, '')) LIKE LOWER(?)
             )
-            ORDER BY display_name COLLATE NOCASE ASC
+            ),
+            ranked AS (
+                SELECT
+                    candidates.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY character_id
+                        ORDER BY
+                            display_name COLLATE NOCASE ASC,
+                            installation_id ASC
+                    ) AS rn
+                FROM candidates
+            )
+            SELECT
+                character_id AS id,
+                proxy_name,
+                character_type,
+                discord_user_id,
+                firstname,
+                display_name
+            FROM ranked
+            WHERE rn = 1
+            ORDER BY
+                display_name COLLATE NOCASE ASC,
+                character_id ASC
             LIMIT 25
         `).all(
             guildId,
