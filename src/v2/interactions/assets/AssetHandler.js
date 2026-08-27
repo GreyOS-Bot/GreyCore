@@ -342,6 +342,7 @@ async function transfer(interaction, assetId, targetContinuityId) {
 
     const asset = assetManager.transfer(assetId, {
         toContinuityId: targetContinuityId,
+        expectedContinuityId: context.asset.continuity_id,
         transferredBy: interaction.user.id
     });
 

@@ -78,6 +78,10 @@ class AssetV2Manager {
 
     transfer(assetId, data) {
         const asset = this.requireAsset(assetId);
+        const expectedContinuityId =
+            data.expectedContinuityId === undefined
+                ? asset.continuity_id
+                : data.expectedContinuityId;
         const target = repository.getContinuityForGuild(
             asset.guild_id,
             data.toContinuityId
@@ -93,6 +97,7 @@ class AssetV2Manager {
 
         return repository.transfer(asset, {
             toContinuityId: target.id,
+            expectedContinuityId,
             transferredBy: String(data.transferredBy || "").trim(),
             note: this.normalizeOptional(data.note, 500),
             createdAt: new Date().toISOString()
