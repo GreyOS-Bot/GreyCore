@@ -6,6 +6,11 @@ const CALLBACK_TIMEOUT_MS = 1_200;
 const DISCORD_ALREADY_ACKNOWLEDGED = 40060;
 
 class FastInteractionAcknowledgementService {
+    constructor() {
+        this.deferredComponentUpdates =
+            new WeakSet();
+    }
+
     async deferReply(
         interaction,
         { ephemeral = false } = {}
@@ -50,6 +55,9 @@ class FastInteractionAcknowledgementService {
          */
         if (!interaction.id || !interaction.token) {
             await interaction.deferUpdate();
+            this.deferredComponentUpdates.add(
+                interaction
+            );
             return;
         }
 
@@ -58,6 +66,16 @@ class FastInteractionAcknowledgementService {
         });
 
         interaction.deferred = true;
+        this.deferredComponentUpdates.add(
+            interaction
+        );
+    }
+
+    wasComponentUpdateDeferred(
+        interaction
+    ) {
+        return this.deferredComponentUpdates
+            .has(interaction);
     }
 
     async showModal(interaction, modal) {
