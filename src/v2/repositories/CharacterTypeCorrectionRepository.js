@@ -1,8 +1,19 @@
 const db = require("../../database/database");
 
 class CharacterTypeCorrectionRepository {
-    searchOnGuild(guildId, filter = "") {
+    searchOnGuild(
+        guildId,
+        filter = "",
+        {
+            ownerDiscordUserId = null
+        } = {}
+    ) {
         const query = `%${String(filter).trim()}%`;
+        const ownerFilter =
+            ownerDiscordUserId === null
+            || ownerDiscordUserId === undefined
+                ? null
+                : String(ownerDiscordUserId);
 
         return db.prepare(`
             SELECT DISTINCT
@@ -33,6 +44,10 @@ class CharacterTypeCorrectionRepository {
             WHERE installation.guild_id = ?
             AND installation.status != 'archived'
             AND (
+                ? IS NULL
+                OR user.discord_user_id = ?
+            )
+            AND (
                 ? = '%%'
                 OR LOWER(character.proxy_name) LIKE LOWER(?)
                 OR LOWER(COALESCE(profile.alias, '')) LIKE LOWER(?)
@@ -43,6 +58,8 @@ class CharacterTypeCorrectionRepository {
             LIMIT 25
         `).all(
             guildId,
+            ownerFilter,
+            ownerFilter,
             query,
             query,
             query,

@@ -12,9 +12,17 @@ const profileManager = require(
 );
 
 class CharacterTypeCorrectionService {
-    search(guildId, filter) {
+    search(
+        guildId,
+        filter,
+        options = {}
+    ) {
         return repository
-            .searchOnGuild(guildId, filter);
+            .searchOnGuild(
+                guildId,
+                filter,
+                options
+            );
     }
 
     getForStaff({ guildId, characterId }) {
