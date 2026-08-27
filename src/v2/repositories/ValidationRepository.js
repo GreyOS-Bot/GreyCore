@@ -554,7 +554,8 @@ class ValidationRepository {
 
         db.transaction(
             () => {
-                db.prepare(`
+                const result =
+                    db.prepare(`
                     UPDATE CharacterGuildInstallationsV2
                     SET
                         status = 'approved',
@@ -570,6 +571,7 @@ class ValidationRepository {
                         updated_at = ?
 
                     WHERE id = ?
+                    AND status = 'pending'
                 `).run(
                     approvedBy,
                     now,
@@ -579,6 +581,12 @@ class ValidationRepository {
                     now,
                     installationId
                 );
+
+                if (result.changes !== 1) {
+                    throw new Error(
+                        "Cette validation a déjà été traitée."
+                    );
+                }
 
                 this.recordHistory({
                     installationId,
@@ -615,7 +623,8 @@ class ValidationRepository {
 
         db.transaction(
             () => {
-                db.prepare(`
+                const result =
+                    db.prepare(`
                     UPDATE CharacterGuildInstallationsV2
                     SET
                         status = 'rejected',
@@ -629,6 +638,7 @@ class ValidationRepository {
                         updated_at = ?
 
                     WHERE id = ?
+                    AND status = 'pending'
                 `).run(
                     rejectedBy,
                     now,
@@ -637,6 +647,12 @@ class ValidationRepository {
                     now,
                     installationId
                 );
+
+                if (result.changes !== 1) {
+                    throw new Error(
+                        "Cette validation a déjà été traitée."
+                    );
+                }
 
                 this.recordHistory({
                     installationId,
