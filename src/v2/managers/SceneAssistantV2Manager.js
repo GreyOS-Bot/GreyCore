@@ -209,10 +209,18 @@ class SceneAssistantV2Manager {
         return repository.getScene(sceneId);
     }
 
-    closeScene(sceneId) {
+    closeScene(
+        sceneId,
+        {
+            requirePendingPrompt = false
+        } = {}
+    ) {
         const now = new Date().toISOString();
-        repository.resolveClosurePrompt(sceneId, "closed", now);
-        return repository.closeScene(sceneId, now);
+        return repository.closeScene(
+            sceneId,
+            now,
+            requirePendingPrompt
+        );
     }
 
     markSceneConclude(sceneId, notifiedAt = new Date().toISOString()) {

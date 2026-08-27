@@ -379,13 +379,44 @@ class SceneAssistantRepository {
         `).run(occurredAt, occurredAt, sceneId);
     }
 
-    closeScene(sceneId, endedAt) {
+    closeScene(
+        sceneId,
+        endedAt,
+        requirePendingPrompt = false
+    ) {
         const transaction = db.transaction(() => {
-            db.prepare(`
+            const claimed = db.prepare(`
                 UPDATE ScenesV2
                 SET status = 'closed', ended_at = ?, updated_at = ?
                 WHERE id = ?
-            `).run(endedAt, endedAt, sceneId);
+                AND status IN ('active', 'conclude')
+                AND (
+                    ? = 0
+                    OR EXISTS (
+                        SELECT 1
+                        FROM SceneClosurePromptsV2
+                        WHERE scene_id = ?
+                        AND status = 'pending'
+                    )
+                )
+            `).run(
+                endedAt,
+                endedAt,
+                sceneId,
+                requirePendingPrompt ? 1 : 0,
+                sceneId
+            );
+
+            if (claimed.changes !== 1) {
+                return null;
+            }
+
+            db.prepare(`
+                UPDATE SceneClosurePromptsV2
+                SET status = 'closed', resolved_at = ?
+                WHERE scene_id = ? AND status = 'pending'
+            `).run(endedAt, sceneId);
+
             db.prepare(`
                 UPDATE SceneChannelsV2
                 SET unlinked_at = ?
@@ -396,9 +427,10 @@ class SceneAssistantRepository {
                 SET left_at = ?
                 WHERE scene_id = ? AND left_at IS NULL
             `).run(endedAt, sceneId);
+
+            return this.getScene(sceneId);
         });
-        transaction();
-        return this.getScene(sceneId);
+        return transaction();
     }
 
     markSceneConclude(sceneId, notifiedAt) {

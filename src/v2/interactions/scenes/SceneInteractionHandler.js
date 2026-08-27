@@ -326,7 +326,22 @@ async function voteClose(interaction, sceneId) {
         });
     }
 
-    manager.closeScene(sceneId);
+    const closedScene =
+        manager.closeScene(
+            sceneId,
+            {
+                requirePendingPrompt:
+                    true
+            }
+        );
+
+    if (!closedScene) {
+        return replyError(
+            interaction,
+            "Cette scène a déjà été clôturée."
+        );
+    }
+
     await sendNarrativeOrFallback({
         channel: interaction.channel,
         triggerKey: "scene_closed",
@@ -377,7 +392,16 @@ async function closeNow(interaction, sceneId) {
     if (!isParticipant && !isCreator) {
         return replyError(interaction, "Seuls un participant ou la personne ayant créé cette scène peuvent la clôturer.");
     }
-    manager.closeScene(sceneId);
+    const closedScene =
+        manager.closeScene(sceneId);
+
+    if (!closedScene) {
+        return replyError(
+            interaction,
+            "Cette scène a déjà été clôturée."
+        );
+    }
+
     await sendNarrativeOrFallback({
         channel: interaction.channel,
         triggerKey: "scene_closed",
