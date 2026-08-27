@@ -145,41 +145,20 @@ module.exports = {
                     .trim();
 
             const characters =
-                this.getOwnedCharacters(
-                    interaction.user.id,
-                    interaction.guildId
-                );
+                CharacterV2Manager
+                    .searchOwnedPlayableCharacters({
+                        discordUserId:
+                            interaction.user.id,
+                        guildId:
+                            interaction.guildId,
+                        query:
+                            focusedValue,
+                        limit:
+                            25
+                    });
 
             const results =
                 characters
-                    .filter(character => {
-
-                        if (
-                            Number(
-                                character.is_archived
-                            ) === 1
-                        ) {
-                            return false;
-                        }
-
-                        const name =
-                            character.proxy_name
-                            ||
-                            character.name
-                            ||
-                            "";
-
-                        return name
-                            .toLowerCase()
-                            .includes(
-                                focusedValue
-                            );
-
-                    })
-                    .slice(
-                        0,
-                        25
-                    )
                     .map(character => ({
 
                         name:

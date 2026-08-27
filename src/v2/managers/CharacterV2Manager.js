@@ -41,6 +41,15 @@ class CharacterV2Manager {
             );
     }
 
+    searchOwnedPlayableCharacters(
+        options
+    ) {
+        return repository
+            .searchOwnedPlayableCharacters(
+                options
+            );
+    }
+
     getByProxyName(
         ownerUserId,
         proxyName
