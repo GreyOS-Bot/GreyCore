@@ -132,8 +132,20 @@ test(
         stubModule(
             "src/managers/ProxyMessageManager.js",
             {
-                save:
-                    () => true
+                claim:
+                    () => "claim",
+                refreshClaim:
+                    () => ({
+                        changes: 1
+                    }),
+                completeClaim:
+                    () => true,
+                releaseClaim:
+                    () => {},
+                deleteIfMatches:
+                    () => ({
+                        changes: 1
+                    })
             }
         );
 
