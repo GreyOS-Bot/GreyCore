@@ -58,6 +58,60 @@ class RelationshipTypeManager {
             ORDER BY label_a_to_b ASC
         `).all(guildId);
     }
+
+    searchRelationshipTypes(guildId, query, limit = 25) {
+        const boundedLimit = Math.min(
+            Math.max(Number.parseInt(limit, 10) || 0, 0),
+            25
+        );
+
+        if (boundedLimit === 0) {
+            return [];
+        }
+
+        const focusedValue = String(query || "").toLowerCase();
+        const results = [];
+        const pageSize = 100;
+        let offset = 0;
+
+        const selectPage = db.prepare(`
+            SELECT *
+            FROM RelationshipTypes
+            WHERE guild_id = ?
+            ORDER BY label_a_to_b ASC
+            LIMIT ? OFFSET ?
+        `);
+
+        while (results.length < boundedLimit) {
+            const rows = selectPage.all(
+                guildId,
+                pageSize,
+                offset
+            );
+
+            for (const row of rows) {
+                if (
+                    row.label_a_to_b.toLowerCase().includes(focusedValue)
+                    || row.label_b_to_a.toLowerCase().includes(focusedValue)
+                    || row.key.toLowerCase().includes(focusedValue)
+                ) {
+                    results.push(row);
+
+                    if (results.length === boundedLimit) {
+                        break;
+                    }
+                }
+            }
+
+            if (rows.length < pageSize) {
+                break;
+            }
+
+            offset += pageSize;
+        }
+
+        return results;
+    }
 }
 
 module.exports = new RelationshipTypeManager();

@@ -80,6 +80,60 @@ class StateManager {
         return rows.map(row => this.mapRowToStateType(row));
     }
 
+    searchStateTypes(guildId, query, limit = 25) {
+        const boundedLimit = Math.min(
+            Math.max(Number.parseInt(limit, 10) || 0, 0),
+            25
+        );
+
+        if (boundedLimit === 0) {
+            return [];
+        }
+
+        const focusedValue = String(query || "").toLowerCase();
+        const results = [];
+        const pageSize = 100;
+        let offset = 0;
+
+        const selectPage = db.prepare(`
+            SELECT *
+            FROM StateTypes
+            WHERE guild_id = ?
+            ORDER BY name ASC
+            LIMIT ? OFFSET ?
+        `);
+
+        while (results.length < boundedLimit) {
+            const rows = selectPage.all(
+                guildId,
+                pageSize,
+                offset
+            );
+
+            for (const row of rows) {
+                if (
+                    row.name.toLowerCase().includes(focusedValue)
+                ) {
+                    results.push(
+                        this.mapRowToStateType(row)
+                    );
+
+                    if (results.length === boundedLimit) {
+                        break;
+                    }
+                }
+            }
+
+            if (rows.length < pageSize) {
+                break;
+            }
+
+            offset += pageSize;
+        }
+
+        return results;
+    }
+
 addStateToCharacter(data) {
 
 const existing = db.prepare(`

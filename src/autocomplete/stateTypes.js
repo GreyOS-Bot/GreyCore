@@ -7,18 +7,12 @@ module.exports = async (interaction) => {
             .getFocused()
             .toLowerCase();
 
-    const states =
-        stateManager.getStateTypesByGuild(
-            interaction.guild.id
-        );
-
-    const results = states
-        .filter(state =>
-            state.name
-                .toLowerCase()
-                .includes(focusedValue)
+    const results =
+        stateManager.searchStateTypes(
+            interaction.guild.id,
+            focusedValue,
+            25
         )
-        .slice(0, 25)
         .map(state => ({
             name:
                 `${state.emoji || "❤️‍🩹"} ${state.name}`,
