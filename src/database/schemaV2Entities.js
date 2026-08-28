@@ -114,11 +114,29 @@ function initializeEntitySchemaV2() {
             message_id TEXT,
             status TEXT NOT NULL,
             error_message TEXT,
+            attempt_token TEXT,
+            external_effect_attempted INTEGER,
+            lease_at TEXT,
             created_at TEXT NOT NULL,
             FOREIGN KEY(event_id) REFERENCES NarrativeEntityEventsV2(id) ON DELETE CASCADE,
             UNIQUE(event_id, run_key, channel_id)
         )
     `).run();
+
+    const runColumns = new Set(
+        db.prepare("PRAGMA table_info(NarrativeEntityEventRunsV2)")
+            .all()
+            .map(column => column.name)
+    );
+    for (const [name, definition] of [
+        ["attempt_token", "TEXT"],
+        ["external_effect_attempted", "INTEGER"],
+        ["lease_at", "TEXT"]
+    ]) {
+        if (!runColumns.has(name)) {
+            db.prepare(`ALTER TABLE NarrativeEntityEventRunsV2 ADD COLUMN ${name} ${definition}`).run();
+        }
+    }
 
     db.prepare(`
         CREATE INDEX IF NOT EXISTS idx_narrative_entities_guild

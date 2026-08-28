@@ -34,7 +34,15 @@ class NarrativeEntityService {
         return sent.webhookMessage;
     }
 
-    async sendEntity({ channel, entityId, content = null, suffix = null, variables = {}, threadName = null }) {
+    async sendEntity({
+        channel,
+        entityId,
+        content = null,
+        suffix = null,
+        variables = {},
+        threadName = null,
+        onBeforeSendAttempt = null
+    }) {
         const entity = manager.getById(channel.guildId, entityId);
         if (!entity || !entity.is_enabled) return null;
         const messages = entity.messages.filter(message => Number(message.is_enabled) === 1);
@@ -53,7 +61,9 @@ class NarrativeEntityService {
             allowedMentions: { parse: [] }
         };
         if (threadName) payload.threadName = threadName.slice(0, 100);
-        const sent = await webhookManager.sendWithWebhook(channel, payload);
+        const sent = await webhookManager.sendWithWebhook(channel, payload, {
+            onBeforeSendAttempt
+        });
         return sent.webhookMessage;
     }
 

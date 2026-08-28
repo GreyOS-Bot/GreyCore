@@ -99,12 +99,18 @@ test("une destination morte ou en cooldown ne bloque ni les autres scopes ni leu
         }]
     });
     stubModule("src/v2/repositories/NarrativeEntityEventRepository.js", {
-        claimRun: (eventId, runKey, channelId) => { claimed.push(channelId); return true; },
+        getStaleRunningRuns: () => [],
+        claimRun: (eventId, runKey, channelId) => { claimed.push(channelId); return `token-${channelId}`; },
+        markExternalEffectAttempted: () => true,
         completeRun: (eventId, runKey, channelId) => runs.push([channelId, "sent"]),
         failRun: (eventId, runKey, channelId) => runs.push([channelId, "failed"])
     });
     stubModule("src/v2/services/entities/NarrativeEntityService.js", {
-        sendEntity: async payload => { sent.push(payload); return { id: `message-${payload.channel.id}` }; }
+        sendEntity: async payload => {
+            payload.onBeforeSendAttempt();
+            sent.push(payload);
+            return { id: `message-${payload.channel.id}` };
+        }
     });
     stubModule("src/v2/services/entities/NarrativeEventSchedule.js", { matchSchedule: () => "run" });
     stubModule("src/v2/core/services/TechnicalLogger.js", { create: () => ({ error: () => {} }) });
