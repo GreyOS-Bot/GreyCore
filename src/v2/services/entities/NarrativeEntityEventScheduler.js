@@ -4,6 +4,7 @@ const eventRepository = require("../../repositories/NarrativeEntityEventReposito
 const entityService = require("./NarrativeEntityService");
 const { matchSchedule } = require("./NarrativeEventSchedule");
 const logger = require("../../core/services/TechnicalLogger").create("NarrativeEntityEventScheduler");
+const referenceResolver = require("../../core/services/DiscordReferenceResolverService");
 
 class NarrativeEntityEventScheduler {
     constructor() { this.timer = null; this.running = false; }
@@ -32,7 +33,7 @@ class NarrativeEntityEventScheduler {
                 if (!runKey) continue;
                 const guild = this.client.guilds.cache.get(event.guild_id);
                 if (!guild) continue;
-                for (const channel of await this.resolveChannels(guild, event.scopes)) {
+                for (const channel of await this.resolveChannels(guild, event.scopes, event, now)) {
                     const claimed = eventRepository.claimRun(event.id, runKey, channel.id, now.toISOString());
                     if (!claimed) continue;
                     try {
@@ -50,11 +51,24 @@ class NarrativeEntityEventScheduler {
         } finally { this.running = false; }
     }
 
-    async resolveChannels(guild, scopeIds) {
+    async resolveChannels(guild, scopeIds, event = {}, now = new Date()) {
         const resolved = new Map();
         for (const id of scopeIds || []) {
-            const scope = guild.channels.cache.get(id) || await guild.channels.fetch(id).catch(() => null);
-            if (!scope) continue;
+            const cached = guild.channels.cache.get(id) || null;
+            const reference = {
+                domain: "narrative_entity",
+                ownerKey: `scope:${event.id || "unknown"}:${id}`,
+                resourceKind: "channel",
+                discordId: id,
+                guildId: event.guild_id || guild.id
+            };
+            const resolution = await referenceResolver.resolve(
+                reference,
+                { guild },
+                cached ? { channel: cached, now } : { now }
+            );
+            if (!resolution.available) continue;
+            const scope = resolution.channel;
             if (scope.type === ChannelType.GuildCategory) {
                 for (const channel of guild.channels.cache.values()) {
                     if (channel.parentId === scope.id && channel.isTextBased?.() && channel.type !== ChannelType.GuildForum) {

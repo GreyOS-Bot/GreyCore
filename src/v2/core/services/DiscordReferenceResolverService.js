@@ -8,10 +8,18 @@ class DiscordReferenceResolverService {
             return { checked: false, available: false, channel: null, diagnostic: null };
         }
 
-        const diagnostic = await channelDiagnosticService.resolveChannel(
-            reference.discordId || reference.discord_id,
-            context
-        );
+        const diagnostic = options.channel
+            ? {
+                ...await channelDiagnosticService.inspectChannel(
+                    options.channel,
+                    { ...context, source: "cache" }
+                ),
+                channel: options.channel
+            }
+            : await channelDiagnosticService.resolveChannel(
+                reference.discordId || reference.discord_id,
+                context
+            );
         if (!diagnostic.found) {
             referenceHealthService.recordFailure(reference, diagnostic, now);
             return { checked: true, available: false, channel: null, diagnostic };
