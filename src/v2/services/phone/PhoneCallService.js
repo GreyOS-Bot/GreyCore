@@ -22,6 +22,16 @@ const PhoneCallSessionManager =
         "../../managers/PhoneCallSessionManager"
     );
 
+const channelDiagnosticService =
+    require(
+        "../../core/services/DiscordChannelDiagnosticService"
+    );
+
+const threadAccessService =
+    require(
+        "../../core/services/DiscordThreadAccessService"
+    );
+
 const logger =
     require(
         "../../core/services/TechnicalLogger"
@@ -112,25 +122,31 @@ class PhoneCallService {
 
         }
 
-        const channel =
-            await client.channels
-                .fetch(
-                    channelId
-                )
-                .catch(
-                    () => null
+        const diagnostic =
+            await channelDiagnosticService
+                .resolveChannel(
+                    channelId,
+                    { client }
                 );
 
         if (
-            !channel
-            ||
-            !channel.isTextBased()
+            !diagnostic.found
         ) {
 
-            throw new Error(
-                "Le salon RP de cet appel n’est plus accessible."
+            throw this.channelError(
+                diagnostic.status,
+                diagnostic
             );
 
+        }
+
+        const channel = diagnostic.channel;
+
+        if (!channel?.isTextBased?.()) {
+            throw this.channelError(
+                "discord_error",
+                diagnostic
+            );
         }
 
         if (
@@ -152,8 +168,96 @@ class PhoneCallService {
 
         }
 
-        return channel;
+        if (
+            this.hasKnownMissingPermissions(
+                diagnostic
+            )
+        ) {
+            throw this.channelError(
+                "missing_permissions",
+                diagnostic
+            );
+        }
 
+        const access =
+            await threadAccessService
+                .ensureWritable(
+                    channel,
+                    { client }
+                );
+
+        if (!access.ready) {
+            throw this.channelError(
+                access.status,
+                access.diagnostic,
+                access.error
+            );
+        }
+
+        return access.channel || channel;
+
+    }
+
+    hasKnownMissingPermissions(
+        diagnostic
+    ) {
+        const permissions =
+            diagnostic?.permissions;
+
+        if (!permissions) {
+            return false;
+        }
+
+        const canSend =
+            diagnostic.isThread
+                ? permissions.sendMessagesInThreads
+                : permissions.sendMessages;
+
+        return !permissions.viewChannel
+            || !permissions.manageWebhooks
+            || !canSend;
+    }
+
+    channelError(
+        status,
+        diagnostic = null,
+        classifiedError = null
+    ) {
+        const messages = {
+            unknown_channel:
+                "Le salon ou thread utilisé pour cet appel n’existe plus.",
+            missing_access:
+                "GreyCore n’a plus accès au salon ou thread utilisé pour cet appel.",
+            missing_permissions:
+                "GreyCore n’a plus les permissions nécessaires pour utiliser ce salon ou thread.",
+            locked:
+                "Le thread utilisé pour cet appel est verrouillé.",
+            unsupported:
+                "Le salon utilisé pour cet appel ne permet pas cette opération.",
+            discord_error:
+                "Le salon de cet appel est momentanément indisponible."
+        };
+        const normalizedStatus =
+            messages[status]
+                ? status
+                : "discord_error";
+        const error = new Error(
+            messages[normalizedStatus]
+        );
+
+        error.name = "PhoneCallChannelError";
+        error.code = "PHONE_CALL_CHANNEL_UNAVAILABLE";
+        error.phoneChannelDiagnostic = {
+            status: normalizedStatus,
+            channelId:
+                diagnostic?.channelId || null,
+            discordCode:
+                classifiedError?.discordCode
+                ?? diagnostic?.error?.discordCode
+                ?? null
+        };
+
+        return error;
     }
 
     async sendFirstSpeech({
@@ -353,7 +457,8 @@ class PhoneCallService {
         character,
         otherCharacter,
         contactName,
-        content
+        content,
+        onChannelReady = null
     }) {
 
         const cleanContent =
@@ -398,6 +503,10 @@ class PhoneCallService {
                 "La session de cet appel est introuvable."
             );
 
+        }
+
+        if (typeof onChannelReady === "function") {
+            await onChannelReady(channel);
         }
 
         const previousMessageId =

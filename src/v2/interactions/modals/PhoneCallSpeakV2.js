@@ -349,17 +349,6 @@ class PhoneCallSpeakV2 {
                 )
             );
 
-PhoneCallV2Manager
-    .createMessage({
-        callId:
-            call.id,
-
-        speakerPhoneId:
-            phone.id,
-
-        content
-    });
-
 await PhoneCallServiceV2
     .sendSpeech({
                     client:
@@ -380,7 +369,20 @@ await PhoneCallServiceV2
 
                     contactName,
 
-                    content
+                    content,
+
+                    onChannelReady: () => {
+                        PhoneCallV2Manager
+                            .createMessage({
+                                callId:
+                                    call.id,
+
+                                speakerPhoneId:
+                                    phone.id,
+
+                                content
+                            });
+                    }
                 });
 
             /*
