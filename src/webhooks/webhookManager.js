@@ -1,5 +1,22 @@
 class WebhookManager {
     async getOrCreateWebhook(channel) {
+        const threadAccessService = require(
+            "../v2/core/services/DiscordThreadAccessService"
+        );
+        const access =
+            await threadAccessService.ensureWritable(
+                channel
+            );
+
+        if (!access.ready) {
+            throw threadAccessService.errorFor(
+                access,
+                "webhook"
+            );
+        }
+
+        channel = access.channel || channel;
+
         const webhookChannel =
             await this.resolveWebhookChannel(
                 channel

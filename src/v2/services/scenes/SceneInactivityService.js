@@ -2,6 +2,9 @@ const manager = require("../../managers/SceneAssistantV2Manager");
 const sceneAssistantService = require("./SceneAssistantService");
 const logger = require("../../core/services/TechnicalLogger")
     .create("SceneInactivity");
+const threadAccessService = require(
+    "../../core/services/DiscordThreadAccessService"
+);
 
 class SceneInactivityService {
     constructor() {
@@ -44,7 +47,26 @@ class SceneInactivityService {
                 continue;
             }
 
-            const message = await channel.send(
+            const access =
+                await threadAccessService.ensureWritable(
+                    channel
+                );
+
+            if (!access.ready) {
+                logger.warn(
+                    "Prompt d’inactivité impossible :",
+                    threadAccessService.errorFor(
+                        access,
+                        "scene_inactivity"
+                    )
+                );
+                continue;
+            }
+
+            const writableChannel =
+                access.channel || channel;
+
+            const message = await writableChannel.send(
                 sceneAssistantService.buildClosurePrompt(
                     scene,
                     scene.inactivity_hours

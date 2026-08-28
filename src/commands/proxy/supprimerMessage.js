@@ -13,6 +13,10 @@ const {
     "../../v2/core/services/ProxyThreadContext"
 );
 
+const threadAccessService = require(
+    "../../v2/core/services/DiscordThreadAccessService"
+);
+
 module.exports = {
     data: new ContextMenuCommandBuilder()
         .setName("Supprimer le proxy")
@@ -48,6 +52,22 @@ module.exports = {
             flags: MessageFlags.Ephemeral
         });
 
+        const access =
+            await threadAccessService.ensureWritable(
+                interaction.targetMessage.channel
+            );
+
+        if (!access.ready) {
+            throw threadAccessService.errorFor(
+                access,
+                "proxy_delete_command"
+            );
+        }
+
+        const writableChannel =
+            access.channel
+            || interaction.targetMessage.channel;
+
         const webhook =
             await interaction.client
                 .fetchWebhook(
@@ -56,7 +76,7 @@ module.exports = {
 
         const threadId =
             getThreadId(
-                interaction.targetMessage.channel
+                writableChannel
             );
 
         if (threadId) {

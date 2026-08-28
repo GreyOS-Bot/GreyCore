@@ -14,6 +14,9 @@ const narrativeEntityService = require("../../services/entities/NarrativeEntityS
 const staffPermissionPolicy = require("../../core/policies/StaffPermissionPolicy");
 const logger = require("../../core/services/TechnicalLogger")
     .create("SceneInteractionHandler");
+const threadAccessService = require(
+    "../../core/services/DiscordThreadAccessService"
+);
 const {
     replyError,
     replyPrivate,
@@ -370,7 +373,8 @@ async function selectResume(interaction) {
                 interaction.channelId,
             sendSource: () =>
                 source?.send
-                    ? source.send(
+                    ? sendWritableMessage(
+                        source,
                         `🔄 La scène **${scene.title}** se poursuit désormais dans <#${interaction.channelId}>.`
                     )
                     : Promise.reject(
@@ -379,7 +383,8 @@ async function selectResume(interaction) {
                         )
                     ),
             sendDestination: () =>
-                interaction.channel.send(
+                sendWritableMessage(
+                    interaction.channel,
                     destinationContinuity
                 )
         });
@@ -736,6 +741,20 @@ async function publishMoveAnnouncements({
 }
 
 async function sendNarrativeOrFallback({ channel, triggerKey, suffix, fallback }) {
+    const access =
+        await threadAccessService.ensureWritable(
+            channel
+        );
+
+    if (!access.ready) {
+        throw threadAccessService.errorFor(
+            access,
+            "scene_announcement"
+        );
+    }
+
+    channel = access.channel || channel;
+
     try {
         const sent = await narrativeEntityService.send({
             channel,
@@ -752,6 +771,24 @@ async function sendNarrativeOrFallback({ channel, triggerKey, suffix, fallback }
     return fallback && channel?.send
         ? channel.send(fallback)
         : null;
+}
+
+async function sendWritableMessage(channel, payload) {
+    const access =
+        await threadAccessService.ensureWritable(
+            channel
+        );
+
+    if (!access.ready) {
+        throw threadAccessService.errorFor(
+            access,
+            "scene_announcement"
+        );
+    }
+
+    return (access.channel || channel).send(
+        payload
+    );
 }
 
 module.exports = {

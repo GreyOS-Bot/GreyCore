@@ -33,6 +33,10 @@ const logger =
         "../../../v2/core/services/TechnicalLogger"
     ).create("MessageCreateRouter");
 
+const threadAccessService = require(
+    "../../../v2/core/services/DiscordThreadAccessService"
+);
+
 async function offerSceneStart(message, result) {
     const targetMessage =
         message.greycoreProxyWebhookMessage
@@ -154,8 +158,34 @@ module.exports =
                 await sceneAssistantService
                     .processMessage(message);
 
+            let writableChannel =
+                message.channel;
+
+            if (
+                result?.justReachedThreshold
+                || result?.moveIntentDetected
+                || result?.closureIntentDetected
+            ) {
+                const access =
+                    await threadAccessService
+                        .ensureWritable(
+                            message.channel
+                        );
+
+                if (!access.ready) {
+                    throw threadAccessService.errorFor(
+                        access,
+                        "scene_cycle"
+                    );
+                }
+
+                writableChannel =
+                    access.channel
+                    || message.channel;
+            }
+
             if (result?.justReachedThreshold) {
-                await message.channel.send({
+                await writableChannel.send({
                     embeds: [
                         sceneAssistantService
                             .buildThresholdEmbed()
@@ -164,7 +194,7 @@ module.exports =
             }
 
             if (result?.moveIntentDetected) {
-                await message.channel.send(
+                await writableChannel.send(
                     result.cycle
                         ? sceneAssistantService.buildMoveIntentPrompt(result.cycle)
                         : sceneAssistantService.buildNewMoveIntentPrompt()
@@ -173,7 +203,7 @@ module.exports =
 
 
             if (result?.closureIntentDetected) {
-                await message.channel.send(
+                await writableChannel.send(
                     sceneAssistantService.buildManualClosurePrompt(result.cycle)
                 );
             }

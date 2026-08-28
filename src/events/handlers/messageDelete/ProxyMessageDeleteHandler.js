@@ -15,6 +15,10 @@ const {
     "../../../v2/core/services/ProxyThreadContext"
 );
 
+const threadAccessService = require(
+    "../../../v2/core/services/DiscordThreadAccessService"
+);
+
 module.exports =
     async function proxyMessageDeleteHandler(
         message
@@ -49,6 +53,27 @@ module.exports =
         }
 
         try {
+            let writableChannel =
+                message.channel || null;
+
+            if (writableChannel) {
+                const access =
+                    await threadAccessService.ensureWritable(
+                        writableChannel
+                    );
+
+                if (!access.ready) {
+                    throw threadAccessService.errorFor(
+                        access,
+                        "proxy_delete"
+                    );
+                }
+
+                writableChannel =
+                    access.channel
+                    || writableChannel;
+            }
+
             const webhook =
                 await message.client
                     .fetchWebhook(
@@ -58,7 +83,7 @@ module.exports =
 
             const threadId =
                 getThreadId(
-                    message.channel
+                    writableChannel
                 );
 
             if (threadId) {

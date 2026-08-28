@@ -23,6 +23,10 @@ const {
     "../../core/services/ProxyThreadContext"
 );
 
+const threadAccessService = require(
+    "../../core/services/DiscordThreadAccessService"
+);
+
 module.exports =
     async function editProxyMessage(
         interaction
@@ -77,6 +81,27 @@ module.exports =
                 );
             }
 
+            let writableChannel =
+                interaction.channel || null;
+
+            if (writableChannel) {
+                const access =
+                    await threadAccessService.ensureWritable(
+                        writableChannel
+                    );
+
+                if (!access.ready) {
+                    throw threadAccessService.errorFor(
+                        access,
+                        "proxy_edit"
+                    );
+                }
+
+                writableChannel =
+                    access.channel
+                    || writableChannel;
+            }
+
             const webhook =
                 await interaction.client
                     .fetchWebhook(
@@ -88,7 +113,7 @@ module.exports =
                 proxyRecord
                     .webhook_message_id,
                 withThreadId(
-                    interaction.channel,
+                    writableChannel,
                     {
                         content:
                             newContent

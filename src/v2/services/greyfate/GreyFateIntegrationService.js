@@ -5,6 +5,7 @@ const repository = require("../../repositories/GreyFateRepository");
 const entityManager = require("../../managers/NarrativeEntityV2Manager");
 const webhookManager = require("../../../webhooks/webhookManager");
 const { withThreadId } = require("../../core/services/ProxyThreadContext");
+const threadAccessService = require("../../core/services/DiscordThreadAccessService");
 const logger = require("../../core/services/TechnicalLogger").create("GreyFateIntegrationService");
 
 const SUPPORTED_EVENTS = new Set([
@@ -88,7 +89,26 @@ class GreyFateIntegrationService {
     }
     async process(payload, executionState = { externalEffectAttempted: false }) { if (payload.type === "GREYFATE_EVENT_STARTED") return this.eventStarted(payload, executionState); if (payload.type === "GREYFATE_DUO_CLOSURE_DUE") return this.closureDue(payload, executionState); if (payload.type === "GREYFATE_EVENT_COMPLETED" || payload.type === "GREYFATE_EVENT_CONTINUED") return; throw new Error(`Événement inconnu : ${payload.type}`); }
     entity(guildId) { return entityManager.getByGuild(guildId).find(e => e.name.toLowerCase() === "the weaver of fate" && e.is_enabled) || null; }
-    async sendAsWeaver(channel, content, components = [], executionState = null) { const entity = this.entity(channel.guildId); if (!entity) throw new Error("The Weaver of Fate doit être active dans GreyCore"); if (executionState) executionState.externalEffectAttempted = true; const webhook = await webhookManager.getOrCreateWebhook(channel); return webhook.send(withThreadId(channel, { username: entity.name, avatarURL: entity.avatar_url || undefined, embeds: [new EmbedBuilder().setColor(entity.embed_color).setDescription(content)], components, allowedMentions: { parse: [] } })); }
+    async sendAsWeaver(channel, content, components = [], executionState = null) {
+        const entity = this.entity(channel.guildId);
+        if (!entity) throw new Error("The Weaver of Fate doit être active dans GreyCore");
+
+        const access = await threadAccessService.ensureWritable(channel);
+        if (!access.ready) {
+            throw threadAccessService.errorFor(access, "greyfate");
+        }
+        channel = access.channel || channel;
+
+        if (executionState) executionState.externalEffectAttempted = true;
+        const webhook = await webhookManager.getOrCreateWebhook(channel);
+        return webhook.send(withThreadId(channel, {
+            username: entity.name,
+            avatarURL: entity.avatar_url || undefined,
+            embeds: [new EmbedBuilder().setColor(entity.embed_color).setDescription(content)],
+            components,
+            allowedMentions: { parse: [] }
+        }));
+    }
     upsertDuo(payload, duo, now) { repository.upsertDuo(payload, duo, now); }
     async eventStarted(payload, executionState = { externalEffectAttempted: false }) { const now = new Date().toISOString(); this.initializeSchema(); repository.upsertEvent(payload, now); const failures = []; for (const duo of payload.duos || []) { if (!duo.threadId) continue; this.upsertDuo(payload, duo, now); const saved = this.duo(duo.duoId); if (saved.welcome_sent_at) continue; try { const channel = await this.client.channels.fetch(duo.threadId); await this.sendAsWeaver(channel, `Les fils du destin se sont croisés. **${duo.maleCharacter}** et **${duo.femaleCharacter}**, votre histoire peut commencer.`, [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`greyfate_scene_start:${duo.duoId}`).setLabel("Commencer la scène").setEmoji("🧵").setStyle(ButtonStyle.Primary))], executionState); repository.markWelcome(duo.duoId, now); } catch (error) { repository.markError(duo.duoId, error.message, now); failures.push(`${duo.duoId}: ${error.message}`); } } if (failures.length) throw new Error(`Accueil incomplet : ${failures.join(" | ")}`); }
     async closureDue(payload, executionState = { externalEffectAttempted: false }) { const duo = this.duo(payload.duoId); if (!duo || duo.closed_at || duo.closure_prompt_sent_at) return; const now = new Date().toISOString(); try { const channel = await this.client.channels.fetch(duo.thread_id); await this.sendAsWeaver(channel, "Le fil de cette scène approche-t-il de son terme ?", [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`greyfate_duo_continue:${duo.duo_id}`).setLabel("Continuer").setEmoji("▶️").setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId(`greyfate_duo_close:${duo.duo_id}`).setLabel("Clôturer").setEmoji("🏁").setStyle(ButtonStyle.Danger))], executionState); repository.markClosurePrompt(duo.duo_id, now); } catch (error) { repository.markError(duo.duo_id, error.message, now); throw error; } }
