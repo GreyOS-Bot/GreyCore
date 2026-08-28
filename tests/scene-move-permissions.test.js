@@ -41,6 +41,12 @@ function loadHandler({
     stubModule("src/v2/services/entities/NarrativeEntityService.js", {
         send: async () => null
     });
+    stubModule("src/v2/core/services/DiscordReferenceResolverService.js", {
+        resolve: async (reference, context) => ({
+            available: true,
+            channel: await context.client.channels.fetch(reference.discordId)
+        })
+    });
     stubModule("src/v2/core/services/TechnicalLogger.js", {
         create: () => ({ warn: () => {}, error: () => {} })
     });

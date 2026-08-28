@@ -9,8 +9,15 @@ const servicePath = require.resolve("../src/v2/services/greyfate/GreyFateIntegra
 
 function fixture() {
     const isolated = createIsolatedDatabase();
+    require("../src/database/schemaV2DiscordReferenceHealth")();
     delete require.cache[repositoryPath];
     delete require.cache[servicePath];
+    for (const modulePath of [
+        "../src/v2/repositories/DiscordReferenceHealthRepository",
+        "../src/v2/core/services/DiscordReferenceHealthService",
+        "../src/v2/core/services/DiscordChannelDiagnosticService",
+        "../src/v2/core/services/DiscordReferenceResolverService"
+    ]) delete require.cache[require.resolve(modulePath)];
     const repository = require(repositoryPath);
     repository.initializeSchema();
     const service = require(servicePath);

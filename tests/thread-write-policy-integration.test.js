@@ -270,6 +270,15 @@ test(
                 content: scene.id
             })
         });
+        stubModule("src/v2/core/services/DiscordReferenceResolverService.js", {
+            resolve: async reference => ({
+                available: true,
+                channel: reference.discordId === archived.id
+                    ? archived
+                    : locked
+            }),
+            recordFailure: () => null
+        });
         stubModule("src/v2/core/services/TechnicalLogger.js", {
             create: () => ({
                 warn: (...args) => warnings.push(args),

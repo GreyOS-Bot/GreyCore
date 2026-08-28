@@ -5,6 +5,7 @@ const repository = require("../../repositories/GreyFateRepository");
 const entityManager = require("../../managers/NarrativeEntityV2Manager");
 const webhookManager = require("../../../webhooks/webhookManager");
 const threadAccessService = require("../../core/services/DiscordThreadAccessService");
+const referenceResolver = require("../../core/services/DiscordReferenceResolverService");
 const logger = require("../../core/services/TechnicalLogger").create("GreyFateIntegrationService");
 
 const SUPPORTED_EVENTS = new Set([
@@ -88,12 +89,13 @@ class GreyFateIntegrationService {
     }
     async process(payload, executionState = { externalEffectAttempted: false }) { if (payload.type === "GREYFATE_EVENT_STARTED") return this.eventStarted(payload, executionState); if (payload.type === "GREYFATE_DUO_CLOSURE_DUE") return this.closureDue(payload, executionState); if (payload.type === "GREYFATE_EVENT_COMPLETED" || payload.type === "GREYFATE_EVENT_CONTINUED") return; throw new Error(`Événement inconnu : ${payload.type}`); }
     entity(guildId) { return entityManager.getByGuild(guildId).find(e => e.name.toLowerCase() === "the weaver of fate" && e.is_enabled) || null; }
-    async sendAsWeaver(channel, content, components = [], executionState = null) {
+    async sendAsWeaver(channel, content, components = [], executionState = null, reference = null) {
         const entity = this.entity(channel.guildId);
         if (!entity) throw new Error("The Weaver of Fate doit être active dans GreyCore");
 
         const access = await threadAccessService.ensureWritable(channel);
         if (!access.ready) {
+            if (reference) referenceResolver.recordFailure(reference, access.error || access);
             throw threadAccessService.errorFor(access, "greyfate");
         }
         channel = access.channel || channel;
@@ -111,9 +113,11 @@ class GreyFateIntegrationService {
         });
         return sent.webhookMessage;
     }
+    referenceForDuo(duo) { return { domain: "greyfate", ownerKey: `duo:${duo.duo_id || duo.duoId}`, resourceKind: "thread", discordId: duo.thread_id || duo.threadId, guildId: duo.guild_id || duo.guildId || null }; }
+    async resolveDuoThread(duo) { const result = await referenceResolver.resolve(this.referenceForDuo(duo), { client: this.client }); if (!result.available) throw referenceResolver.errorFor(result, "greyfate"); return result.channel; }
     upsertDuo(payload, duo, now) { repository.upsertDuo(payload, duo, now); }
-    async eventStarted(payload, executionState = { externalEffectAttempted: false }) { const now = new Date().toISOString(); this.initializeSchema(); repository.upsertEvent(payload, now); const failures = []; for (const duo of payload.duos || []) { if (!duo.threadId) continue; this.upsertDuo(payload, duo, now); const saved = this.duo(duo.duoId); if (saved.welcome_sent_at) continue; try { const channel = await this.client.channels.fetch(duo.threadId); await this.sendAsWeaver(channel, `Les fils du destin se sont croisés. **${duo.maleCharacter}** et **${duo.femaleCharacter}**, votre histoire peut commencer.`, [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`greyfate_scene_start:${duo.duoId}`).setLabel("Commencer la scène").setEmoji("🧵").setStyle(ButtonStyle.Primary))], executionState); repository.markWelcome(duo.duoId, now); } catch (error) { repository.markError(duo.duoId, error.message, now); failures.push(`${duo.duoId}: ${error.message}`); } } if (failures.length) throw new Error(`Accueil incomplet : ${failures.join(" | ")}`); }
-    async closureDue(payload, executionState = { externalEffectAttempted: false }) { const duo = this.duo(payload.duoId); if (!duo || duo.closed_at || duo.closure_prompt_sent_at) return; const now = new Date().toISOString(); try { const channel = await this.client.channels.fetch(duo.thread_id); await this.sendAsWeaver(channel, "Le fil de cette scène approche-t-il de son terme ?", [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`greyfate_duo_continue:${duo.duo_id}`).setLabel("Continuer").setEmoji("▶️").setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId(`greyfate_duo_close:${duo.duo_id}`).setLabel("Clôturer").setEmoji("🏁").setStyle(ButtonStyle.Danger))], executionState); repository.markClosurePrompt(duo.duo_id, now); } catch (error) { repository.markError(duo.duo_id, error.message, now); throw error; } }
+    async eventStarted(payload, executionState = { externalEffectAttempted: false }) { const now = new Date().toISOString(); this.initializeSchema(); repository.upsertEvent(payload, now); const failures = []; for (const duo of payload.duos || []) { if (!duo.threadId) continue; this.upsertDuo(payload, duo, now); const saved = this.duo(duo.duoId); if (saved.welcome_sent_at) continue; const reference = this.referenceForDuo(saved || duo); try { const channel = await this.resolveDuoThread(saved || duo); await this.sendAsWeaver(channel, `Les fils du destin se sont croisés. **${duo.maleCharacter}** et **${duo.femaleCharacter}**, votre histoire peut commencer.`, [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`greyfate_scene_start:${duo.duoId}`).setLabel("Commencer la scène").setEmoji("🧵").setStyle(ButtonStyle.Primary))], executionState, reference); repository.markWelcome(duo.duoId, now); } catch (error) { repository.markError(duo.duoId, error.message, now); failures.push(`${duo.duoId}: ${error.message}`); } } if (failures.length) throw new Error(`Accueil incomplet : ${failures.join(" | ")}`); }
+    async closureDue(payload, executionState = { externalEffectAttempted: false }) { const duo = this.duo(payload.duoId); if (!duo || duo.closed_at || duo.closure_prompt_sent_at) return; const now = new Date().toISOString(); const reference = this.referenceForDuo(duo); try { const channel = await this.resolveDuoThread(duo); await this.sendAsWeaver(channel, "Le fil de cette scène approche-t-il de son terme ?", [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`greyfate_duo_continue:${duo.duo_id}`).setLabel("Continuer").setEmoji("▶️").setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId(`greyfate_duo_close:${duo.duo_id}`).setLabel("Clôturer").setEmoji("🏁").setStyle(ButtonStyle.Danger))], executionState, reference); repository.markClosurePrompt(duo.duo_id, now); } catch (error) { repository.markError(duo.duo_id, error.message, now); throw error; } }
     async sendToFate(payload) { const url = process.env.GREYFATE_CALLBACK_URL, secret = process.env.GREYFATE_SHARED_SECRET; if (!url || !secret) throw new Error("Retour GreyFate non configuré"); const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 5000); try { const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${secret}` }, body: JSON.stringify(payload), signal: controller.signal }); if (!response.ok) throw new Error(`GreyFate HTTP ${response.status}`); return response.json(); } finally { clearTimeout(timeout); } }
     async sceneStart(duo, actorId) { if (duo.scene_started_at) return { duplicate: true }; await this.sendToFate({ type: "GREYCORE_SCENE_STARTED", operationKey: `${duo.event_id}:${duo.duo_id}:START`, eventId: duo.event_id, guildId: duo.guild_id, duoId: duo.duo_id, threadId: duo.thread_id, actorId }); const now = new Date().toISOString(); repository.markStarted(duo.duo_id, now); return { duplicate: false }; }
     async continueDuo(duo, actorId, hours = 48) { await this.sendToFate({ type: "GREYCORE_DUO_CONTINUE", operationKey: `${duo.event_id}:${duo.duo_id}:CONTINUE:${Date.now()}`, eventId: duo.event_id, guildId: duo.guild_id, duoId: duo.duo_id, threadId: duo.thread_id, hours, actorId }); repository.markContinued(duo.duo_id, new Date().toISOString()); }
@@ -128,7 +132,7 @@ class GreyFateIntegrationService {
         const statistics = [];
         for (const duo of duos) {
             try {
-                const channel = await this.client.channels.fetch(duo.thread_id);
+                const channel = await this.resolveDuoThread(duo);
                 const messages = await this.fetchChannelMessages(channel, 1000);
                 const rp = messages.filter(message =>
                     String(message.content || "").trim()

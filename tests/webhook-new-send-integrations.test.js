@@ -252,6 +252,13 @@ test(
             [welcomeThread.id, welcomeThread],
             [closureThread.id, closureThread]
         ]);
+        stubModule("src/v2/core/services/DiscordReferenceResolverService.js", {
+            resolve: async reference => ({
+                available: true,
+                channel: channels.get(reference.discordId)
+            }),
+            errorFor: () => new Error("référence inaccessible")
+        });
         clear("../src/v2/services/greyfate/GreyFateIntegrationService");
         const service = require(
             "../src/v2/services/greyfate/GreyFateIntegrationService"

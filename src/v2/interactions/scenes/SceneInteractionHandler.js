@@ -17,6 +17,9 @@ const logger = require("../../core/services/TechnicalLogger")
 const threadAccessService = require(
     "../../core/services/DiscordThreadAccessService"
 );
+const referenceResolver = require(
+    "../../core/services/DiscordReferenceResolverService"
+);
 const {
     replyError,
     replyPrivate,
@@ -303,12 +306,18 @@ async function selectResume(interaction) {
         );
     }
 
-    const source =
-        await interaction.client.channels
-            .fetch(
-                expectedSourceChannelId
-            )
-            .catch(() => null);
+    // Une reprise explicite reste un geste de réparation : elle contrôle
+    // immédiatement l'ancienne référence, même pendant son cooldown.
+    const sourceResolution = await referenceResolver.resolve({
+        domain: "scene",
+        ownerKey: `scene:${scene.id}`,
+        resourceKind: "channel",
+        discordId: expectedSourceChannelId,
+        guildId: interaction.guildId
+    }, { client: interaction.client }, { force: true });
+    const source = sourceResolution.available
+        ? sourceResolution.channel
+        : null;
     const recent = source?.messages
         ? await source.messages
             .fetch({

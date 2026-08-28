@@ -121,10 +121,11 @@ class DiscordChannelDiagnosticService {
                 );
             }
 
-            return this.inspectChannel(channel, {
+            const diagnostic = await this.inspectChannel(channel, {
                 ...context,
                 source: "fetch"
             });
+            return { ...diagnostic, channel };
         } catch (error) {
             const classified =
                 this.classifyDiscordChannelError(error);

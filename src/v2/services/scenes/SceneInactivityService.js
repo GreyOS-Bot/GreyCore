@@ -5,6 +5,9 @@ const logger = require("../../core/services/TechnicalLogger")
 const threadAccessService = require(
     "../../core/services/DiscordThreadAccessService"
 );
+const referenceResolver = require(
+    "../../core/services/DiscordReferenceResolverService"
+);
 
 class SceneInactivityService {
     constructor() {
@@ -39,9 +42,20 @@ class SceneInactivityService {
 
         const prompted = [];
         for (const scene of manager.getInactiveScenes(now)) {
-            const channel = await this.client.channels
-                .fetch(scene.channel_id)
-                .catch(() => null);
+            const reference = {
+                domain: "scene",
+                ownerKey: `scene:${scene.id}`,
+                resourceKind: "channel",
+                discordId: scene.channel_id,
+                guildId: scene.guild_id
+            };
+            const resolution = await referenceResolver.resolve(
+                reference,
+                { client: this.client },
+                { now }
+            );
+            if (!resolution.available) continue;
+            const channel = resolution.channel;
 
             if (!channel?.isTextBased?.()) {
                 continue;
@@ -53,6 +67,11 @@ class SceneInactivityService {
                 );
 
             if (!access.ready) {
+                referenceResolver.recordFailure(
+                    reference,
+                    access.error || access,
+                    now
+                );
                 logger.warn(
                     "Prompt d’inactivité impossible :",
                     threadAccessService.errorFor(

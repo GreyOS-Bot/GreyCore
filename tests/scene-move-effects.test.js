@@ -199,6 +199,15 @@ test(
                     }
             }
         );
+        stubModule(
+            "src/v2/core/services/DiscordReferenceResolverService.js",
+            {
+                resolve: async () => ({
+                    available: true,
+                    channel: source
+                })
+            }
+        );
 
         const handlerPath =
             require.resolve(
