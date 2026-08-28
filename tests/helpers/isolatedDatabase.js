@@ -106,6 +106,8 @@ function clearApplicationSchemaCache() {
         "src/database/schemaV2StaffPermissions.js"
         ,"src/database/schemaV2Entities.js"
         ,"src/database/schemaV2PublicPlaces.js"
+        ,"src/database/schemaV2UserPlayBlocks.js"
+        ,"src/database/schemaV2DiscordReferenceHealth.js"
     ];
 
     for (const modulePath of schemaModules) {
