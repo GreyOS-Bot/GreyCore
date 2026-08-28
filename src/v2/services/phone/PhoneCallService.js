@@ -10,6 +10,13 @@ const webhookManager =
         "../../../webhooks/webhookManager"
     );
 
+const {
+    getThreadId,
+    withThreadId
+} = require(
+    "../../core/services/ProxyThreadContext"
+);
+
 const PhoneCallSessionManager =
     require(
         "../../managers/PhoneCallSessionManager"
@@ -151,6 +158,7 @@ class PhoneCallService {
 
     async sendFirstSpeech({
         webhook,
+        channel,
         callId,
         character,
         otherCharacter,
@@ -158,7 +166,10 @@ class PhoneCallService {
         cleanContent
     }) {
 
-        return webhook.send({
+        return webhook.send(
+            withThreadId(
+                channel,
+                {
 
             content:
                 this.formatCallContent(
@@ -181,11 +192,12 @@ class PhoneCallService {
                     otherCharacter
                 ),
 
-            allowedMentions: {
-                parse: []
-            }
-
-        });
+                    allowedMentions: {
+                        parse: []
+                    }
+                }
+            )
+        );
 
     }
 
@@ -215,6 +227,9 @@ class PhoneCallService {
                 otherCharacter
             );
 
+        const threadId =
+            getThreadId(channel);
+
         /*
          * L’envoi passe directement par l’API Discord.
          * Cela permet d’ajouter message_reference sans
@@ -233,7 +248,15 @@ class PhoneCallService {
                     query:
                         new URLSearchParams({
                             wait:
-                                "true"
+                                "true",
+                            ...(
+                                threadId
+                                    ? {
+                                        thread_id:
+                                            threadId
+                                    }
+                                    : {}
+                            )
                         }),
 
                     body: {
@@ -306,7 +329,13 @@ class PhoneCallService {
 
         return webhook
             .fetchMessage(
-                rawMessage.id
+                rawMessage.id,
+                threadId
+                    ? {
+                        threadId:
+                            threadId
+                    }
+                    : undefined
             )
             .catch(
                 () => rawMessage
@@ -391,6 +420,8 @@ class PhoneCallService {
                 await this.sendFirstSpeech({
 
                     webhook,
+
+                    channel,
 
                     callId,
 
@@ -494,9 +525,12 @@ class PhoneCallService {
             await webhook
                 .editMessage(
                     session.lastWebhookMessageId,
-                    {
-                        components: []
-                    }
+                    withThreadId(
+                        channel,
+                        {
+                            components: []
+                        }
+                    )
                 )
                 .catch(error => {
 

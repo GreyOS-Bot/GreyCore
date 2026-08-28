@@ -7,6 +7,13 @@ const PhoneConversationV2Manager =
 const webhookManager =
     require("../../../webhooks/webhookManager");
 
+const {
+    getThreadId,
+    withThreadId
+} = require(
+    "../../core/services/ProxyThreadContext"
+);
+
 const PhoneActionV2Manager =
     require(
         "../../managers/PhoneActionV2Manager"
@@ -260,7 +267,10 @@ class PhoneService {
                     );
 
             webhookMessage =
-                await webhook.send({
+                await webhook.send(
+                    withThreadId(
+                        channel,
+                        {
                     content:
                         this.formatSmsContent(
                             receiverName,
@@ -313,10 +323,12 @@ class PhoneService {
                             ]
                             : [],
 
-                    allowedMentions: {
-                        parse: []
-                    }
-                });
+                            allowedMentions: {
+                                parse: []
+                            }
+                        }
+                    )
+                );
 
             const publishedMessage =
                 PhoneV2Manager
@@ -415,7 +427,9 @@ class PhoneService {
             ) {
                 await webhook
                     .deleteMessage(
-                        webhookMessage.id
+                        webhookMessage.id,
+                        getThreadId(channel)
+                        || undefined
                     )
                     .catch(
                         () => null
