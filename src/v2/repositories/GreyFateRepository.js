@@ -160,9 +160,12 @@ class GreyFateRepository {
             .run(now, now, duoId);
     }
 
-    markContinued(duoId, now) {
-        db.prepare("UPDATE GreyFateDuos SET closure_prompt_sent_at=NULL,last_error=NULL,updated_at=? WHERE duo_id=?")
-            .run(now, duoId);
+    markContinuedIfOccurrence(duoId, occurrence, now) {
+        return db.prepare(`
+            UPDATE GreyFateDuos
+            SET closure_prompt_sent_at=NULL,last_error=NULL,updated_at=?
+            WHERE duo_id=? AND closure_prompt_sent_at=?
+        `).run(now, duoId, occurrence).changes === 1;
     }
 
     markClosed(duoId, now) {

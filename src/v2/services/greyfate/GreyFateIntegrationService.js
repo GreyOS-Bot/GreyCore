@@ -117,12 +117,63 @@ class GreyFateIntegrationService {
     async resolveDuoThread(duo) { const result = await referenceResolver.resolve(this.referenceForDuo(duo), { client: this.client }); if (!result.available) throw referenceResolver.errorFor(result, "greyfate"); return result.channel; }
     upsertDuo(payload, duo, now) { repository.upsertDuo(payload, duo, now); }
     async eventStarted(payload, executionState = { externalEffectAttempted: false }) { const now = new Date().toISOString(); this.initializeSchema(); repository.upsertEvent(payload, now); const failures = []; for (const duo of payload.duos || []) { if (!duo.threadId) continue; this.upsertDuo(payload, duo, now); const saved = this.duo(duo.duoId); if (saved.welcome_sent_at) continue; const reference = this.referenceForDuo(saved || duo); try { const channel = await this.resolveDuoThread(saved || duo); await this.sendAsWeaver(channel, `Les fils du destin se sont croisés. **${duo.maleCharacter}** et **${duo.femaleCharacter}**, votre histoire peut commencer.`, [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`greyfate_scene_start:${duo.duoId}`).setLabel("Commencer la scène").setEmoji("🧵").setStyle(ButtonStyle.Primary))], executionState, reference); repository.markWelcome(duo.duoId, now); } catch (error) { repository.markError(duo.duoId, error.message, now); failures.push(`${duo.duoId}: ${error.message}`); } } if (failures.length) throw new Error(`Accueil incomplet : ${failures.join(" | ")}`); }
-    async closureDue(payload, executionState = { externalEffectAttempted: false }) { const duo = this.duo(payload.duoId); if (!duo || duo.closed_at || duo.closure_prompt_sent_at) return; const now = new Date().toISOString(); const reference = this.referenceForDuo(duo); try { const channel = await this.resolveDuoThread(duo); await this.sendAsWeaver(channel, "Le fil de cette scène approche-t-il de son terme ?", [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`greyfate_duo_continue:${duo.duo_id}`).setLabel("Continuer").setEmoji("▶️").setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId(`greyfate_duo_close:${duo.duo_id}`).setLabel("Clôturer").setEmoji("🏁").setStyle(ButtonStyle.Danger))], executionState, reference); repository.markClosurePrompt(duo.duo_id, now); } catch (error) { repository.markError(duo.duo_id, error.message, now); throw error; } }
+    async closureDue(payload, executionState = { externalEffectAttempted: false }) { const duo = this.duo(payload.duoId); if (!duo || duo.closed_at || duo.closure_prompt_sent_at) return; const occurrence = new Date().toISOString(); const reference = this.referenceForDuo(duo); try { const channel = await this.resolveDuoThread(duo); await this.sendAsWeaver(channel, "Le fil de cette scène approche-t-il de son terme ?", [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(this.continueCustomId(duo.duo_id, occurrence)).setLabel("Continuer").setEmoji("▶️").setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId(`greyfate_duo_close:${duo.duo_id}`).setLabel("Clôturer").setEmoji("🏁").setStyle(ButtonStyle.Danger))], executionState, reference); repository.markClosurePrompt(duo.duo_id, occurrence); } catch (error) { repository.markError(duo.duo_id, error.message, occurrence); throw error; } }
     async sendToFate(payload) { const url = process.env.GREYFATE_CALLBACK_URL, secret = process.env.GREYFATE_SHARED_SECRET; if (!url || !secret) throw new Error("Retour GreyFate non configuré"); const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 5000); try { const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${secret}` }, body: JSON.stringify(payload), signal: controller.signal }); if (!response.ok) throw new Error(`GreyFate HTTP ${response.status}`); return response.json(); } finally { clearTimeout(timeout); } }
     async sceneStart(duo, actorId) { if (duo.scene_started_at) return { duplicate: true }; await this.sendToFate({ type: "GREYCORE_SCENE_STARTED", operationKey: `${duo.event_id}:${duo.duo_id}:START`, eventId: duo.event_id, guildId: duo.guild_id, duoId: duo.duo_id, threadId: duo.thread_id, actorId }); const now = new Date().toISOString(); repository.markStarted(duo.duo_id, now); return { duplicate: false }; }
-    async continueDuo(duo, actorId, hours = 48) { await this.sendToFate({ type: "GREYCORE_DUO_CONTINUE", operationKey: `${duo.event_id}:${duo.duo_id}:CONTINUE:${Date.now()}`, eventId: duo.event_id, guildId: duo.guild_id, duoId: duo.duo_id, threadId: duo.thread_id, hours, actorId }); repository.markContinued(duo.duo_id, new Date().toISOString()); }
+    async continueDuo(duo, actorId, occurrence, hours = 48) {
+        const current = this.duo(duo?.duo_id);
+        if (!current || current.closed_at) {
+            throw new Error("Cette scène ne peut plus être prolongée.");
+        }
+        if (!occurrence || current.closure_prompt_sent_at !== occurrence) {
+            throw new Error("Cette proposition de prolongation n’est plus active.");
+        }
+        const operationKey = `${current.event_id}:${current.duo_id}:CONTINUE:${occurrence}`;
+        const response = await this.sendToFate({
+            type: "GREYCORE_DUO_CONTINUE",
+            operationKey,
+            eventId: current.event_id,
+            guildId: current.guild_id,
+            duoId: current.duo_id,
+            threadId: current.thread_id,
+            hours,
+            actorId
+        });
+        const completed = repository.markContinuedIfOccurrence(
+            current.duo_id,
+            occurrence,
+            new Date().toISOString()
+        );
+        return {
+            completed,
+            duplicate: Boolean(response?.duplicate),
+            operationKey
+        };
+    }
     async closeDuo(duo, actorId) { await this.sendToFate({ type: "GREYCORE_DUO_CLOSE", operationKey: `${duo.event_id}:${duo.duo_id}:CLOSE`, eventId: duo.event_id, guildId: duo.guild_id, duoId: duo.duo_id, threadId: duo.thread_id, actorId }); const now = new Date().toISOString(); repository.markClosed(duo.duo_id, now); }
     duo(id) { return repository.getDuo(id); }
+
+    encodeOccurrence(occurrence) {
+        return Buffer.from(String(occurrence), "utf8").toString("base64url");
+    }
+
+    decodeOccurrence(encoded) {
+        if (!encoded || typeof encoded !== "string") return null;
+        try {
+            const decoded = Buffer.from(encoded, "base64url").toString("utf8");
+            return this.encodeOccurrence(decoded) === encoded ? decoded : null;
+        } catch {
+            return null;
+        }
+    }
+
+    continueCustomId(duoId, occurrence) {
+        const customId = `greyfate_duo_continue:${duoId}:${this.encodeOccurrence(occurrence)}`;
+        if (customId.length > 100) {
+            throw new Error("Identifiant de continuation GreyFate trop long.");
+        }
+        return customId;
+    }
 
     async buildLatestEventReport(guildId) {
         this.initializeSchema();
