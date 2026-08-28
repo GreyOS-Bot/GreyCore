@@ -281,6 +281,7 @@ Dernière mise à jour : juillet 2026
 - 🧪 File de validations staff avec `/validations attente`
 - ✅ Historique des décisions, accessible depuis chaque carte de validation staff
 - ⬜ Permissions détaillées
+- ⬜ Phase 2 Config : politique administrative de priorité entre le Proxy GreyCore et un proxy externe
 - 🧪 Configuration du salon de validation : salon existant ou création privée guidée avec rôle staff
 - ✅ Journaux d’erreurs exploitables
 - ✅ Sauvegarde automatisée de la base

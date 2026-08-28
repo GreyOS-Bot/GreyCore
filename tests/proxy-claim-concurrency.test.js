@@ -259,6 +259,122 @@ test(
 );
 
 test(
+    "un original déjà supprimé déclenche uniquement la compensation GreyCore",
+    async () => {
+        let sends = 0;
+        const compensated = [];
+        let thirdPartyDeletes = 0;
+        const originalMissing =
+            new Error("Unknown Message");
+        originalMissing.code = 10008;
+        const fixture = await createFixture({
+            getWebhook: async () => ({
+                id: "greycore-webhook",
+                send: async () => {
+                    sends += 1;
+                    return {
+                        id: "greycore-message"
+                    };
+                },
+                deleteMessage: async messageId => {
+                    compensated.push(messageId);
+                }
+            }),
+            deletionError: originalMissing
+        });
+        const thirdPartyWebhook = {
+            deleteMessage: async () => {
+                thirdPartyDeletes += 1;
+            }
+        };
+
+        try {
+            await assert.rejects(
+                fixture.createHandler(
+                    fixture.message
+                ),
+                /message original n’a pas pu être supprimé/
+            );
+
+            assert.equal(sends, 1);
+            assert.deepEqual(
+                compensated,
+                ["greycore-message"]
+            );
+            assert.equal(thirdPartyDeletes, 0);
+            assert.equal(
+                fixture.manager.get("source"),
+                undefined
+            );
+            assert.equal(
+                fixture.countClaims(),
+                0
+            );
+        } finally {
+            fixture.cleanup();
+        }
+    }
+);
+
+test(
+    "un original absent et une compensation impossible conservent la trace GreyCore",
+    async () => {
+        let sends = 0;
+        let compensationAttempts = 0;
+        const originalMissing =
+            new Error("Unknown Message");
+        originalMissing.code = 10008;
+        const fixture = await createFixture({
+            getWebhook: async () => ({
+                id: "greycore-webhook",
+                send: async () => {
+                    sends += 1;
+                    return {
+                        id: "greycore-message"
+                    };
+                },
+                deleteMessage: async () => {
+                    compensationAttempts += 1;
+                    const error =
+                        new Error("Unknown Webhook");
+                    error.code = 10015;
+                    throw error;
+                }
+            }),
+            deletionError: originalMissing
+        });
+        const originalConsoleError =
+            console.error;
+        console.error = () => {};
+
+        try {
+            await assert.rejects(
+                fixture.createHandler(
+                    fixture.message
+                ),
+                /message original n’a pas pu être supprimé/
+            );
+
+            assert.equal(sends, 1);
+            assert.equal(compensationAttempts, 1);
+            assert.equal(
+                fixture.manager.get("source")
+                    .webhook_message_id,
+                "greycore-message"
+            );
+            assert.equal(
+                fixture.countClaims(),
+                0
+            );
+        } finally {
+            console.error =
+                originalConsoleError;
+            fixture.cleanup();
+        }
+    }
+);
+
+test(
     "un webhook déjà absent est une compensation réussie et libère le claim",
     async () => {
         const fixture = await createFixture({
