@@ -90,6 +90,9 @@ test(
         });
         stubModule("src/managers/ProxyMessageManager.js", {
             claim: () => "claim",
+            refreshClaim: () => ({
+                changes: 1
+            }),
             releaseClaim: () => {
                 released += 1;
             },

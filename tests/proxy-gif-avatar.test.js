@@ -55,16 +55,21 @@ test(
         stubModule(
             "src/webhooks/webhookManager.js",
             {
-                getOrCreateWebhook: async () => ({
-                    id: "webhook",
-                    send: async payload => {
+                sendWithWebhook: async (
+                    channel,
+                    payload
+                ) => {
                         sentPayload = payload;
 
-                        return {
+                    return {
+                        webhook: {
+                            id: "webhook"
+                        },
+                        webhookMessage: {
                             id: "message"
-                        };
-                    }
-                })
+                        }
+                    };
+                }
             }
         );
         stubModule(

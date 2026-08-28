@@ -562,8 +562,101 @@ test(
     }
 );
 
+test(
+    "un Proxy persiste les IDs du webhook gagnant après récupération 10015",
+    async () => {
+        const managerPath = require.resolve(
+            "../src/webhooks/webhookManager"
+        );
+        delete require.cache[managerPath];
+        const webhookManager = require(managerPath);
+        const sentPayloads = [];
+        const unknownWebhook = new Error(
+            "Unknown Webhook"
+        );
+        unknownWebhook.code = 10015;
+        const firstWebhook = {
+            id: "100",
+            owner: { id: "greycore" },
+            name: "Greycore Proxy",
+            createdTimestamp: 100,
+            send: async payload => {
+                sentPayloads.push(payload);
+                throw unknownWebhook;
+            }
+        };
+        const secondWebhook = {
+            id: "200",
+            owner: { id: "greycore" },
+            name: "Greycore Proxy",
+            createdTimestamp: 200,
+            send: async payload => {
+                sentPayloads.push(payload);
+                return { id: "message-200" };
+            }
+        };
+        let resolution = 0;
+
+        const fixture = await createFixture({
+            getWebhook: async () => firstWebhook,
+            sendWithWebhook: (channel, payload) =>
+                webhookManager.sendWithWebhook(
+                    channel,
+                    payload
+                )
+        });
+
+        fixture.message.channel.parent = {
+            client: { user: { id: "greycore" } },
+            fetchWebhooks: async () => {
+                resolution += 1;
+                const webhooks =
+                    resolution === 1
+                        ? [firstWebhook]
+                        : [firstWebhook, secondWebhook];
+                return new Map(
+                    webhooks.map(webhook => [
+                        webhook.id,
+                        webhook
+                    ])
+                );
+            },
+            createWebhook: async () => {
+                throw new Error("Création inattendue");
+            }
+        };
+
+        try {
+            assert.equal(
+                await fixture.createHandler(
+                    fixture.message
+                ),
+                true
+            );
+            const stored = fixture.manager.get(
+                fixture.message.id
+            );
+            assert.equal(stored.webhook_id, "200");
+            assert.equal(
+                stored.webhook_message_id,
+                "message-200"
+            );
+            assert.equal(fixture.countClaims(), 0);
+            assert.equal(resolution, 2);
+            assert.equal(sentPayloads.length, 2);
+            assert.equal(
+                sentPayloads[1].threadId,
+                "thread"
+            );
+        } finally {
+            fixture.cleanup();
+        }
+    }
+);
+
 async function createFixture({
     getWebhook,
+    sendWithWebhook = null,
     failCompletion = false,
     deletionError = null,
     resolveAvatar = async () => null
@@ -684,7 +777,26 @@ async function createFixture({
         "src/webhooks/webhookManager.js",
         {
             getOrCreateWebhook:
-                getWebhook
+                getWebhook,
+            sendWithWebhook:
+                sendWithWebhook
+                || (async (channel, payload) => {
+                    const webhook =
+                        await getWebhook(channel);
+                    const webhookMessage =
+                        await webhook.send({
+                            ...payload,
+                            threadId:
+                                channel.isThread?.()
+                                    ? channel.id
+                                    : undefined
+                        });
+
+                    return {
+                        webhook,
+                        webhookMessage
+                    };
+                })
         }
     );
     stubModule(

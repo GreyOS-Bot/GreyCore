@@ -142,12 +142,6 @@ module.exports =
         let originalDeletionError = null;
 
         try {
-            webhook =
-                await webhookManager
-                    .getOrCreateWebhook(
-                        message.channel
-                    );
-
             const files =
                 await downloadAttachments(
                     message.attachments
@@ -178,9 +172,9 @@ module.exports =
                 );
             }
 
-            webhookMessage =
-                await webhook.send(
-                    withThreadId(
+            const delivery =
+                await webhookManager
+                    .sendWithWebhook(
                         message.channel,
                         {
                             content:
@@ -196,8 +190,11 @@ module.exports =
                             files,
                             embeds
                         }
-                    )
-                );
+                    );
+
+            webhook = delivery.webhook;
+            webhookMessage =
+                delivery.webhookMessage;
 
             proxyMessageManager.completeClaim({
                 discordMessageId:

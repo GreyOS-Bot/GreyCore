@@ -152,20 +152,24 @@ test(
         stubModule(
             "src/webhooks/webhookManager.js",
             {
-                getOrCreateWebhook:
-                    async channel => {
+                sendWithWebhook:
+                    async (channel, payload) => {
                         sourceChannel = channel;
+                        sentPayload = {
+                            ...payload,
+                            threadId:
+                                channel.isThread()
+                                    ? channel.id
+                                    : undefined
+                        };
 
                         return {
-                            id: "webhook",
-                            send:
-                                async payload => {
-                                    sentPayload = payload;
-
-                                    return {
-                                        id: "proxy-message"
-                                    };
-                                }
+                            webhook: {
+                                id: "webhook"
+                            },
+                            webhookMessage: {
+                                id: "proxy-message"
+                            }
                         };
                     }
             }
