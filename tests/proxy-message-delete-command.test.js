@@ -17,6 +17,7 @@ test(
                     discord_message_id: "source",
                     webhook_message_id: "proxy",
                     webhook_id: "webhook",
+                    channel_id: "channel",
                     author_id: "owner"
                 }),
                 delete: id => {

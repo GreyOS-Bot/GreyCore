@@ -53,7 +53,10 @@ module.exports =
         const result =
             await historicalWebhookService.delete({
                 client: message.client,
-                channel:
+                guild: message.guild,
+                channelId:
+                    proxyRecord.channel_id,
+                currentChannel:
                     message.channel || null,
                 webhookId:
                     proxyRecord.webhook_id,

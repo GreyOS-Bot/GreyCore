@@ -102,21 +102,16 @@ module.exports =
             return false;
         }
 
-        const channel =
-            message.channel?.id ===
-                proxyRecord.channel_id
-                ? message.channel
-                : message.guild.channels.cache
-                    .get(
-                        proxyRecord.channel_id
-                    );
-
         const result =
             await historicalWebhookService.edit({
                 client:
-                    channel?.client
-                    || message.client,
-                channel,
+                    message.client,
+                guild:
+                    message.guild,
+                channelId:
+                    proxyRecord.channel_id,
+                currentChannel:
+                    message.channel || null,
                 webhookId:
                     proxyRecord.webhook_id,
                 webhookMessageId:

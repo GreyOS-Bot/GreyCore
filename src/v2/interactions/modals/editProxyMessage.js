@@ -79,7 +79,11 @@ module.exports =
                 await historicalWebhookService.edit({
                     client:
                         interaction.client,
-                    channel:
+                    guild:
+                        interaction.guild || null,
+                    channelId:
+                        proxyRecord.channel_id,
+                    currentChannel:
                         interaction.channel || null,
                     webhookId:
                         proxyRecord.webhook_id,

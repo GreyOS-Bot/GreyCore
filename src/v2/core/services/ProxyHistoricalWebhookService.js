@@ -1,10 +1,25 @@
 const webhookManager = require("../../../webhooks/webhookManager");
 const threadAccessService = require("./DiscordThreadAccessService");
+const channelDiagnosticService = require("./DiscordChannelDiagnosticService");
 const { getThreadId, withThreadId } = require("./ProxyThreadContext");
 
 class ProxyHistoricalWebhookService {
-    async edit({ client, channel, webhookId, webhookMessageId, payload }) {
-        const prepared = await this.ensureChannelAccess(channel);
+    async edit({
+        client,
+        guild = null,
+        channelId = null,
+        currentChannel = null,
+        channel = null,
+        webhookId,
+        webhookMessageId,
+        payload
+    }) {
+        const prepared = await this.resolveHistoricalChannel({
+            client,
+            guild,
+            channelId: channelId || channel?.id || null,
+            currentChannel: currentChannel || channel || null
+        });
         if (!prepared.ready) return prepared;
 
         const fetched = await this.fetchWebhook(client, webhookId);
@@ -21,8 +36,21 @@ class ProxyHistoricalWebhookService {
         }
     }
 
-    async delete({ client, channel, webhookId, webhookMessageId }) {
-        const prepared = await this.ensureChannelAccess(channel);
+    async delete({
+        client,
+        guild = null,
+        channelId = null,
+        currentChannel = null,
+        channel = null,
+        webhookId,
+        webhookMessageId
+    }) {
+        const prepared = await this.resolveHistoricalChannel({
+            client,
+            guild,
+            channelId: channelId || channel?.id || null,
+            currentChannel: currentChannel || channel || null
+        });
         if (!prepared.ready) return prepared;
 
         const fetched = await this.fetchWebhook(client, webhookId);
@@ -39,6 +67,49 @@ class ProxyHistoricalWebhookService {
         }
     }
 
+    async resolveHistoricalChannel({
+        client,
+        guild = null,
+        channelId,
+        currentChannel = null
+    }) {
+        if (!channelId) {
+            return this.unavailable("unknown_channel", null);
+        }
+
+        let channel =
+            String(currentChannel?.id || "") === String(channelId)
+                ? currentChannel
+                : guild?.channels?.cache?.get?.(channelId)
+                || client?.channels?.cache?.get?.(channelId)
+                || null;
+
+        if (!channel) {
+            const diagnostic =
+                await channelDiagnosticService.resolveChannel(
+                    channelId,
+                    {
+                        channels:
+                            guild?.channels
+                            || client?.channels,
+                        guild,
+                        client
+                    }
+                );
+
+            if (!diagnostic.found) {
+                return this.unavailable(
+                    diagnostic.status,
+                    diagnostic.error?.discordCode ?? null
+                );
+            }
+
+            channel = diagnostic.channel;
+        }
+
+        return this.ensureChannelAccess(channel);
+    }
+
     async ensureChannelAccess(channel) {
         if (!channel) {
             return this.unavailable("missing_access", null);
@@ -46,10 +117,16 @@ class ProxyHistoricalWebhookService {
 
         const access = await threadAccessService.ensureWritable(channel);
         if (!access.ready) {
+            const statuses = new Set([
+                "unknown_channel",
+                "missing_access",
+                "missing_permissions",
+                "locked"
+            ]);
             return this.unavailable(
-                access.status === "missing_permissions"
-                    ? "missing_permissions"
-                    : "missing_access",
+                statuses.has(access.status)
+                    ? access.status
+                    : "discord_error",
                 access.error?.discordCode ?? null
             );
         }
@@ -127,15 +204,19 @@ class ProxyHistoricalWebhookService {
             edit: {
                 message_missing: "Ce message Proxy n’existe plus sur Discord.",
                 webhook_missing: "Le webhook ayant créé ce message n’existe plus. GreyCore ne peut plus modifier ce message automatiquement.",
-                missing_permissions: "GreyCore n’a pas les permissions nécessaires pour modifier ce message.",
-                missing_access: "GreyCore n’a plus accès au salon de ce message Proxy.",
+                unknown_channel: "Le salon ou thread contenant ce message Proxy n’existe plus.",
+                missing_permissions: "GreyCore n’a plus les permissions nécessaires pour agir dans le salon ou thread de ce message Proxy.",
+                missing_access: "GreyCore n’a plus accès au salon ou thread contenant ce message Proxy.",
+                locked: "Le thread contenant ce message Proxy est verrouillé.",
                 discord_error: "Discord n’a pas permis de modifier ce message Proxy. Réessaie plus tard."
             },
             delete: {
                 message_missing: "Ce message Proxy n’existait déjà plus sur Discord. Sa référence GreyCore a été supprimée.",
                 webhook_missing: "Le webhook ayant créé ce message n’existe plus. GreyCore ne peut pas confirmer sa suppression automatique.",
-                missing_permissions: "GreyCore n’a pas les permissions nécessaires pour supprimer ce message.",
-                missing_access: "GreyCore n’a plus accès au salon de ce message Proxy.",
+                unknown_channel: "Le salon ou thread contenant ce message Proxy n’existe plus.",
+                missing_permissions: "GreyCore n’a plus les permissions nécessaires pour agir dans le salon ou thread de ce message Proxy.",
+                missing_access: "GreyCore n’a plus accès au salon ou thread contenant ce message Proxy.",
+                locked: "Le thread contenant ce message Proxy est verrouillé.",
                 discord_error: "Discord n’a pas permis de supprimer ce message Proxy. Réessaie plus tard."
             }
         };
