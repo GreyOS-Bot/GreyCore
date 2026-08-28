@@ -168,6 +168,12 @@ function createInteraction({
         client: {
             fetchWebhook
         },
+        channel: {
+            id:
+                "channel",
+            isThread:
+                () => false
+        },
         inGuild:
             () => true,
         reply:

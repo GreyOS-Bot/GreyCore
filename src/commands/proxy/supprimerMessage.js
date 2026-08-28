@@ -7,14 +7,8 @@ const {
 const proxyMessageManager =
     require("../../managers/ProxyMessageManager");
 
-const {
-    getThreadId
-} = require(
-    "../../v2/core/services/ProxyThreadContext"
-);
-
-const threadAccessService = require(
-    "../../v2/core/services/DiscordThreadAccessService"
+const historicalWebhookService = require(
+    "../../v2/core/services/ProxyHistoricalWebhookService"
 );
 
 module.exports = {
@@ -52,51 +46,32 @@ module.exports = {
             flags: MessageFlags.Ephemeral
         });
 
-        const access =
-            await threadAccessService.ensureWritable(
-                interaction.targetMessage.channel
-            );
+        const result =
+            await historicalWebhookService.delete({
+                client: interaction.client,
+                channel:
+                    interaction.targetMessage.channel,
+                webhookId:
+                    proxyRecord.webhook_id,
+                webhookMessageId:
+                    proxyRecord.webhook_message_id
+            });
 
-        if (!access.ready) {
-            throw threadAccessService.errorFor(
-                access,
-                "proxy_delete_command"
-            );
-        }
-
-        const writableChannel =
-            access.channel
-            || interaction.targetMessage.channel;
-
-        const webhook =
-            await interaction.client
-                .fetchWebhook(
-                    proxyRecord.webhook_id
-                );
-
-        const threadId =
-            getThreadId(
-                writableChannel
-            );
-
-        if (threadId) {
-            await webhook.deleteMessage(
-                proxyRecord.webhook_message_id,
-                threadId
-            );
-        } else {
-            await webhook.deleteMessage(
-                proxyRecord.webhook_message_id
+        if (
+            result.status === "success"
+            || result.status === "message_missing"
+        ) {
+            proxyMessageManager.delete(
+                proxyRecord.discord_message_id
             );
         }
-
-        proxyMessageManager.delete(
-            proxyRecord.discord_message_id
-        );
 
         return interaction.editReply({
             content:
-                "🗑️ Message proxy supprimé."
+                result.status === "success"
+                    ? "🗑️ Message proxy supprimé."
+                    : historicalWebhookService
+                        .userMessage(result, "delete")
         });
     }
 };

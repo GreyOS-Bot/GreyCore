@@ -17,14 +17,8 @@ const {
     "../../core/services/InteractionResponseService"
 );
 
-const {
-    withThreadId
-} = require(
-    "../../core/services/ProxyThreadContext"
-);
-
-const threadAccessService = require(
-    "../../core/services/DiscordThreadAccessService"
+const historicalWebhookService = require(
+    "../../core/services/ProxyHistoricalWebhookService"
 );
 
 module.exports =
@@ -81,45 +75,44 @@ module.exports =
                 );
             }
 
-            let writableChannel =
-                interaction.channel || null;
-
-            if (writableChannel) {
-                const access =
-                    await threadAccessService.ensureWritable(
-                        writableChannel
-                    );
-
-                if (!access.ready) {
-                    throw threadAccessService.errorFor(
-                        access,
-                        "proxy_edit"
-                    );
-                }
-
-                writableChannel =
-                    access.channel
-                    || writableChannel;
-            }
-
-            const webhook =
-                await interaction.client
-                    .fetchWebhook(
-                        proxyRecord
-                            .webhook_id
-                    );
-
-            await webhook.editMessage(
-                proxyRecord
-                    .webhook_message_id,
-                withThreadId(
-                    writableChannel,
-                    {
+            const result =
+                await historicalWebhookService.edit({
+                    client:
+                        interaction.client,
+                    channel:
+                        interaction.channel || null,
+                    webhookId:
+                        proxyRecord.webhook_id,
+                    webhookMessageId:
+                        proxyRecord.webhook_message_id,
+                    payload: {
                         content:
                             newContent
                     }
-                )
-            );
+                });
+
+            if (!result.success) {
+                logger.warn(
+                    "Édition Proxy historique impossible.",
+                    {
+                        discordMessageId,
+                        proxyWebhookMessageId:
+                            proxyRecord.webhook_message_id,
+                        channelId:
+                            proxyRecord.channel_id,
+                        classification:
+                            result.status,
+                        discordCode:
+                            result.discordCode
+                    }
+                );
+
+                return replyError(
+                    interaction,
+                    historicalWebhookService
+                        .userMessage(result, "edit")
+                );
+            }
 
             return replyPrivate(
                 interaction,

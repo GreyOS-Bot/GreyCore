@@ -152,14 +152,20 @@ test(
     "un échec de finalisation compense le webhook et reste réessayable",
     async () => {
         let compensated = 0;
+        let compensationThreadId = null;
         const fixture = await createFixture({
             getWebhook: async () => ({
                 id: "webhook",
                 send: async () => ({
                     id: "proxy-message"
                 }),
-                deleteMessage: async () => {
+                deleteMessage: async (
+                    messageId,
+                    threadId
+                ) => {
                     compensated += 1;
+                    compensationThreadId =
+                        threadId;
                 }
             }),
             failCompletion: true
@@ -174,6 +180,10 @@ test(
             );
 
             assert.equal(compensated, 1);
+            assert.equal(
+                compensationThreadId,
+                "thread"
+            );
             assert.equal(
                 fixture.manager.get("source"),
                 undefined
@@ -455,7 +465,7 @@ test(
 );
 
 test(
-    "un échec de compensation après finalisation conserve la ligne et bloque le replay",
+    "un 10015 de compensation après finalisation conserve la ligne et bloque le replay",
     async () => {
         let sendCount = 0;
         const loggedErrors = [];
@@ -469,9 +479,11 @@ test(
                     return { id: "proxy-message" };
                 },
                 deleteMessage: async () => {
-                    throw new Error(
-                        "Suppression webhook refusée"
+                    const error = new Error(
+                        "Unknown Webhook"
                     );
+                    error.code = 10015;
+                    throw error;
                 }
             }),
             deletionError:
@@ -513,7 +525,7 @@ test(
 );
 
 test(
-    "un échec de compensation avant finalisation conserve temporairement le claim",
+    "un 10015 de compensation avant finalisation conserve temporairement le claim",
     async () => {
         const originalConsoleError =
             console.error;
@@ -525,9 +537,11 @@ test(
                     id: "proxy-message"
                 }),
                 deleteMessage: async () => {
-                    throw new Error(
-                        "Suppression webhook refusée"
+                    const error = new Error(
+                        "Unknown Webhook"
                     );
+                    error.code = 10015;
+                    throw error;
                 }
             }),
             failCompletion: true

@@ -9,15 +9,13 @@ const {
     "../../../services/internalDeleteService"
 );
 
-const {
-    getThreadId
-} = require(
-    "../../../v2/core/services/ProxyThreadContext"
+const historicalWebhookService = require(
+    "../../../v2/core/services/ProxyHistoricalWebhookService"
 );
 
-const threadAccessService = require(
-    "../../../v2/core/services/DiscordThreadAccessService"
-);
+const logger = require(
+    "../../../v2/core/services/TechnicalLogger"
+).create("ProxyMessageDeleteHandler");
 
 module.exports =
     async function proxyMessageDeleteHandler(
@@ -52,65 +50,37 @@ module.exports =
             return false;
         }
 
-        try {
-            let writableChannel =
-                message.channel || null;
+        const result =
+            await historicalWebhookService.delete({
+                client: message.client,
+                channel:
+                    message.channel || null,
+                webhookId:
+                    proxyRecord.webhook_id,
+                webhookMessageId:
+                    proxyRecord.webhook_message_id
+            });
 
-            if (writableChannel) {
-                const access =
-                    await threadAccessService.ensureWritable(
-                        writableChannel
-                    );
-
-                if (!access.ready) {
-                    throw threadAccessService.errorFor(
-                        access,
-                        "proxy_delete"
-                    );
+        if (
+            result.status !== "success"
+            && result.status !== "message_missing"
+        ) {
+            logger.warn(
+                "Suppression Proxy historique non confirmée.",
+                {
+                    discordMessageId:
+                        message.id,
+                    proxyWebhookMessageId:
+                        proxyRecord.webhook_message_id,
+                    channelId:
+                        proxyRecord.channel_id,
+                    classification:
+                        result.status,
+                    discordCode:
+                        result.discordCode
                 }
-
-                writableChannel =
-                    access.channel
-                    || writableChannel;
-            }
-
-            const webhook =
-                await message.client
-                    .fetchWebhook(
-                        proxyRecord
-                            .webhook_id
-                    );
-
-            const threadId =
-                getThreadId(
-                    writableChannel
-                );
-
-            if (threadId) {
-                await webhook.deleteMessage(
-                    proxyRecord
-                        .webhook_message_id,
-                    threadId
-                );
-            } else {
-                await webhook.deleteMessage(
-                    proxyRecord
-                        .webhook_message_id
-                );
-            }
-        } catch (error) {
-            if (
-                error.code !== 10008
-                &&
-                error.code !== 10015
-            ) {
-                console.error(
-                    "❌ Erreur lors de la suppression du proxy :",
-                    error
-                );
-
-                return true;
-            }
+            );
+            return true;
         }
 
         proxyMessageManager.delete(

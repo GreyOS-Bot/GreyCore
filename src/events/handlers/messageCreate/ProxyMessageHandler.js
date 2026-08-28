@@ -36,12 +36,6 @@ const validationStaffPolicy =
         "../../../v2/core/policies/ValidationStaffPolicy"
     );
 
-const {
-    withThreadId
-} = require(
-    "../../../v2/core/services/ProxyThreadContext"
-);
-
 const originalMessageDeletionService =
     require(
         "../../../v2/core/services/OriginalMessageDeletionService"
@@ -237,16 +231,14 @@ module.exports =
                 try {
                     await webhook.deleteMessage(
                         webhookMessage.id,
-                        withThreadId(
-                            message.channel,
-                            {}
-                        )
+                        message.channel.isThread?.()
+                            ? message.channel.id
+                            : undefined
                     );
                     webhookCompensated = true;
                 } catch (compensationError) {
                     if (
                         compensationError.code === 10008
-                        || compensationError.code === 10015
                     ) {
                         webhookCompensated = true;
                     } else {
