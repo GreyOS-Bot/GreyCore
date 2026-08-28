@@ -46,7 +46,7 @@ test(
             }
         };
 
-        stubModule("src/webhooks/webhookManager.js", {
+        const webhookManager = {
             getOrCreateWebhook: async channel => {
                 resolvedWebhookChannels.push(
                     channel.isThread()
@@ -54,8 +54,40 @@ test(
                         : channel
                 );
                 return webhook;
+            },
+            sendWithWebhook: async (
+                channel,
+                payload,
+                options = {}
+            ) => {
+                const selected =
+                    await webhookManager
+                        .getOrCreateWebhook(channel);
+                const preparedPayload = {
+                    ...payload,
+                    ...(channel.isThread()
+                        ? { threadId: channel.id }
+                        : {})
+                };
+                const webhookMessage =
+                    options.sendAttempt
+                        ? await options.sendAttempt(
+                            selected,
+                            preparedPayload
+                        )
+                        : await selected.send(
+                            preparedPayload
+                        );
+                return {
+                    webhook: selected,
+                    webhookMessage
+                };
             }
-        });
+        };
+        stubModule(
+            "src/webhooks/webhookManager.js",
+            webhookManager
+        );
         stubModule("src/v2/managers/PhoneV2Manager.js", {
             getConversationById: () => ({
                 id: 40,

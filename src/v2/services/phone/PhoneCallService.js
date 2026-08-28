@@ -157,7 +157,6 @@ class PhoneCallService {
     }
 
     async sendFirstSpeech({
-        webhook,
         channel,
         callId,
         character,
@@ -166,10 +165,9 @@ class PhoneCallService {
         cleanContent
     }) {
 
-        return webhook.send(
-            withThreadId(
-                channel,
-                {
+        return webhookManager.sendWithWebhook(
+            channel,
+            {
 
             content:
                 this.formatCallContent(
@@ -196,14 +194,12 @@ class PhoneCallService {
                         parse: []
                     }
                 }
-            )
         );
 
     }
 
     async sendReplySpeech({
         client,
-        webhook,
         channel,
         previousMessageId,
         callId,
@@ -212,14 +208,6 @@ class PhoneCallService {
         contactName,
         cleanContent
     }) {
-
-        if (!webhook.token) {
-
-            throw new Error(
-                "Le webhook Greycore ne possède pas de jeton utilisable."
-            );
-
-        }
 
         const components =
             this.buildReplyComponents(
@@ -236,13 +224,24 @@ class PhoneCallService {
          * utiliser Webhook#send(), qui provoquait ici
          * l’erreur liée à resolvedId.
          */
-        const rawMessage =
-            await client.rest.post(
+        return webhookManager.sendWithWebhook(
+            channel,
+            {},
+            {
+                sendAttempt: async webhook => {
+                    if (!webhook.token) {
+                        throw new Error(
+                            "Le webhook Greycore ne possède pas de jeton utilisable."
+                        );
+                    }
 
-                Routes.webhook(
-                    webhook.id,
-                    webhook.token
-                ),
+                    const rawMessage =
+                        await client.rest.post(
+
+                            Routes.webhook(
+                                webhook.id,
+                                webhook.token
+                            ),
 
                 {
                     query:
@@ -309,37 +308,40 @@ class PhoneCallService {
 
                 }
 
-            );
+                        );
 
         /*
          * Le paramètre wait=true demande à Discord
          * de renvoyer le message créé.
          */
-        if (
-            !rawMessage
-            ||
-            !rawMessage.id
-        ) {
+                    if (
+                        !rawMessage
+                        ||
+                        !rawMessage.id
+                    ) {
 
-            throw new Error(
-                "Discord n’a pas renvoyé le message téléphonique publié."
-            );
+                        throw new Error(
+                            "Discord n’a pas renvoyé le message téléphonique publié."
+                        );
 
-        }
-
-        return webhook
-            .fetchMessage(
-                rawMessage.id,
-                threadId
-                    ? {
-                        threadId:
-                            threadId
                     }
-                    : undefined
-            )
-            .catch(
-                () => rawMessage
-            );
+
+                    return webhook
+                        .fetchMessage(
+                            rawMessage.id,
+                            threadId
+                                ? {
+                                    threadId:
+                                        threadId
+                                }
+                                : undefined
+                        )
+                        .catch(
+                            () => rawMessage
+                        );
+                }
+            }
+        );
 
     }
 
@@ -384,12 +386,6 @@ class PhoneCallService {
                 guildId
             );
 
-        const webhook =
-            await webhookManager
-                .getOrCreateWebhook(
-                    channel
-                );
-
         const session =
             PhoneCallSessionManager
                 .get(
@@ -408,7 +404,7 @@ class PhoneCallService {
             session.lastWebhookMessageId
             || null;
 
-        let webhookMessage;
+        let sent;
 
         /*
          * Le premier message n’a aucune référence.
@@ -416,11 +412,8 @@ class PhoneCallService {
          */
         if (!previousMessageId) {
 
-            webhookMessage =
+            sent =
                 await this.sendFirstSpeech({
-
-                    webhook,
-
                     channel,
 
                     callId,
@@ -441,12 +434,10 @@ class PhoneCallService {
              * Les messages suivants répondent au dernier
              * message de l’appel.
              */
-            webhookMessage =
+            sent =
                 await this.sendReplySpeech({
 
                     client,
-
-                    webhook,
 
                     channel,
 
@@ -465,6 +456,10 @@ class PhoneCallService {
                 });
 
         }
+
+        const webhook = sent.webhook;
+        const webhookMessage =
+            sent.webhookMessage;
 
         PhoneCallSessionManager
             .register(

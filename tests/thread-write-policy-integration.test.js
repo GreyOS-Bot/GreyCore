@@ -155,12 +155,23 @@ test(
             }]
         });
         stubModule("src/webhooks/webhookManager.js", {
-            getOrCreateWebhook: async () => ({
-                send: async payload => {
-                    sent.push(payload);
-                    return { id: "message" };
-                }
-            })
+            sendWithWebhook: async (
+                channel,
+                payload,
+                options = {}
+            ) => {
+                options.onBeforeSendAttempt?.();
+                sent.push({
+                    ...payload,
+                    ...(channel.isThread()
+                        ? { threadId: channel.id }
+                        : {})
+                });
+                return {
+                    webhook: { id: "webhook" },
+                    webhookMessage: { id: "message" }
+                };
+            }
         });
         stubModule("src/v2/core/services/TechnicalLogger.js", {
             create: () => ({

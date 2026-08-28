@@ -70,24 +70,26 @@ test(
         stubModule(
             "src/webhooks/webhookManager.js",
             {
-                getOrCreateWebhook:
-                    async () => ({
-                        send:
-                            async payload => {
-                                webhookPayload = payload;
-                                return {
-                                    id: "webhook-message",
-                                    attachments: {
-                                        first:
-                                            () => ({
-                                                url: "https://cdn.example/mms.gif"
-                                            })
-                                    }
-                                };
+                sendWithWebhook:
+                    async (channel, payload) => {
+                        webhookPayload = payload;
+                        return {
+                            webhook: {
+                                id: "webhook",
+                                deleteMessage:
+                                    async () => null
                             },
-                        deleteMessage:
-                            async () => null
-                    })
+                            webhookMessage: {
+                                id: "webhook-message",
+                                attachments: {
+                                    first:
+                                        () => ({
+                                            url: "https://cdn.example/mms.gif"
+                                        })
+                                }
+                            }
+                        };
+                    }
             }
         );
 

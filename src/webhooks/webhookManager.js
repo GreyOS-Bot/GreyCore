@@ -66,7 +66,8 @@ class WebhookManager {
 
     async sendWithWebhook(
         channel,
-        payload
+        payload,
+        options = {}
     ) {
         const {
             withThreadId
@@ -74,13 +75,28 @@ class WebhookManager {
             "../v2/core/services/ProxyThreadContext"
         );
 
+        const sendAttempt =
+            options.sendAttempt
+            || ((webhook, preparedPayload) =>
+                webhook.send(preparedPayload));
+
+        const beforeSendAttempt =
+            typeof options.onBeforeSendAttempt === "function"
+                ? options.onBeforeSendAttempt
+                : () => {};
+
+        const preparedPayload =
+            withThreadId(channel, payload);
+
         const firstWebhook =
             await this.getOrCreateWebhook(channel);
 
         try {
+            beforeSendAttempt(firstWebhook);
             const webhookMessage =
-                await firstWebhook.send(
-                    withThreadId(channel, payload)
+                await sendAttempt(
+                    firstWebhook,
+                    preparedPayload
                 );
 
             return {
@@ -106,12 +122,14 @@ class WebhookManager {
                             firstWebhook.id
                         ]
                     }
-                );
+            );
 
             try {
+                beforeSendAttempt(retryWebhook);
                 const webhookMessage =
-                    await retryWebhook.send(
-                        withThreadId(channel, payload)
+                    await sendAttempt(
+                        retryWebhook,
+                        preparedPayload
                     );
 
                 return {

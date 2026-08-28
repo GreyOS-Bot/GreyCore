@@ -8,8 +8,7 @@ const webhookManager =
     require("../../../webhooks/webhookManager");
 
 const {
-    getThreadId,
-    withThreadId
+    getThreadId
 } = require(
     "../../core/services/ProxyThreadContext"
 );
@@ -260,15 +259,9 @@ class PhoneService {
 
         try {
 
-            webhook =
+            const sent =
                 await webhookManager
-                    .getOrCreateWebhook(
-                        channel
-                    );
-
-            webhookMessage =
-                await webhook.send(
-                    withThreadId(
+                    .sendWithWebhook(
                         channel,
                         {
                     content:
@@ -327,8 +320,11 @@ class PhoneService {
                                 parse: []
                             }
                         }
-                    )
-                );
+                    );
+
+            webhook = sent.webhook;
+            webhookMessage =
+                sent.webhookMessage;
 
             const publishedMessage =
                 PhoneV2Manager

@@ -257,3 +257,77 @@ test(
         }
     }
 );
+
+test(
+    "le contrat personnalisé signale chaque véritable tentative et conserve le payload",
+    async () => {
+        const manager = loadManager();
+        const attempts = [];
+        const before = [];
+        const first = webhook({ id: "100" });
+        const second = webhook({ id: "200" });
+        const parent = channel({
+            batches: [[first], [first, second]]
+        });
+        const thread = {
+            id: "thread",
+            parent: parent.currentChannel,
+            isThread: () => true
+        };
+        const payload = {
+            content: "Message",
+            files: [{ attachment: "image" }]
+        };
+
+        const result = await manager.sendWithWebhook(
+            thread,
+            payload,
+            {
+                onBeforeSendAttempt: current => {
+                    before.push(current.id);
+                },
+                sendAttempt: async (current, prepared) => {
+                    attempts.push([current.id, prepared]);
+                    if (current === first) {
+                        throw discordError(10015);
+                    }
+                    return { id: "message-200" };
+                }
+            }
+        );
+
+        assert.equal(result.webhook, second);
+        assert.deepEqual(before, ["100", "200"]);
+        assert.deepEqual(attempts, [
+            ["100", { ...payload, threadId: "thread" }],
+            ["200", { ...payload, threadId: "thread" }]
+        ]);
+    }
+);
+
+test(
+    "une erreur de résolution survient avant toute tentative externe",
+    async () => {
+        const manager = loadManager();
+        let attempts = 0;
+        const fixture = channel({
+            batches: [discordError(50013)]
+        });
+
+        await assert.rejects(
+            manager.sendWithWebhook(
+                fixture.currentChannel,
+                { content: "Message" },
+                {
+                    onBeforeSendAttempt: () => {
+                        attempts += 1;
+                    }
+                }
+            ),
+            error =>
+                error.webhookDiagnostic.kind
+                === "MISSING_PERMISSIONS"
+        );
+        assert.equal(attempts, 0);
+    }
+);

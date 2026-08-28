@@ -4,7 +4,6 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require("
 const repository = require("../../repositories/GreyFateRepository");
 const entityManager = require("../../managers/NarrativeEntityV2Manager");
 const webhookManager = require("../../../webhooks/webhookManager");
-const { withThreadId } = require("../../core/services/ProxyThreadContext");
 const threadAccessService = require("../../core/services/DiscordThreadAccessService");
 const logger = require("../../core/services/TechnicalLogger").create("GreyFateIntegrationService");
 
@@ -99,15 +98,18 @@ class GreyFateIntegrationService {
         }
         channel = access.channel || channel;
 
-        if (executionState) executionState.externalEffectAttempted = true;
-        const webhook = await webhookManager.getOrCreateWebhook(channel);
-        return webhook.send(withThreadId(channel, {
+        const sent = await webhookManager.sendWithWebhook(channel, {
             username: entity.name,
             avatarURL: entity.avatar_url || undefined,
             embeds: [new EmbedBuilder().setColor(entity.embed_color).setDescription(content)],
             components,
             allowedMentions: { parse: [] }
-        }));
+        }, {
+            onBeforeSendAttempt: () => {
+                if (executionState) executionState.externalEffectAttempted = true;
+            }
+        });
+        return sent.webhookMessage;
     }
     upsertDuo(payload, duo, now) { repository.upsertDuo(payload, duo, now); }
     async eventStarted(payload, executionState = { externalEffectAttempted: false }) { const now = new Date().toISOString(); this.initializeSchema(); repository.upsertEvent(payload, now); const failures = []; for (const duo of payload.duos || []) { if (!duo.threadId) continue; this.upsertDuo(payload, duo, now); const saved = this.duo(duo.duoId); if (saved.welcome_sent_at) continue; try { const channel = await this.client.channels.fetch(duo.threadId); await this.sendAsWeaver(channel, `Les fils du destin se sont croisés. **${duo.maleCharacter}** et **${duo.femaleCharacter}**, votre histoire peut commencer.`, [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`greyfate_scene_start:${duo.duoId}`).setLabel("Commencer la scène").setEmoji("🧵").setStyle(ButtonStyle.Primary))], executionState); repository.markWelcome(duo.duoId, now); } catch (error) { repository.markError(duo.duoId, error.message, now); failures.push(`${duo.duoId}: ${error.message}`); } } if (failures.length) throw new Error(`Accueil incomplet : ${failures.join(" | ")}`); }
