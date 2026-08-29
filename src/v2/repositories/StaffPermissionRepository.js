@@ -51,6 +51,17 @@ class StaffPermissionRepository {
         `).all(guildId, ...roleIds).map(row => row.permission_key);
     }
 
+    getPermissionSourcesForRoles(guildId, roleIds) {
+        if (!roleIds.length) return [];
+        const placeholders = roleIds.map(() => "?").join(",");
+        return db.prepare(`
+            SELECT role_id, permission_key
+            FROM GuildStaffRolePermissionsV2
+            WHERE guild_id = ? AND role_id IN (${placeholders})
+            ORDER BY role_id, permission_key
+        `).all(guildId, ...roleIds);
+    }
+
     getUserPermissions(guildId, discordUserId) {
         return db.prepare(`
             SELECT permission_key

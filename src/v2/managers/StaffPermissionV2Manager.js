@@ -17,6 +17,13 @@ class StaffPermissionV2Manager {
         );
     }
 
+    getPermissionSourcesForRoles(guildId, roleIds) {
+        return repository.getPermissionSourcesForRoles(
+            guildId,
+            [...new Set(roleIds.map(String))]
+        );
+    }
+
     getUserPermissions(guildId, discordUserId) {
         return repository.getUserPermissions(guildId, discordUserId);
     }
