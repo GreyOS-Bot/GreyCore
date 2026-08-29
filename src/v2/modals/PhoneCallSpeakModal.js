@@ -28,6 +28,13 @@ const logger =
         "PhoneCallSpeakModal"
     );
 
+const {
+    toPublicErrorMessage,
+    PHONE_CALL_MESSAGES
+} = require(
+    "../core/services/PublicErrorMessageService"
+);
+
 class PhoneCallSpeakModal {
 
     characterParticipatesInCall(
@@ -209,9 +216,11 @@ class PhoneCallSpeakModal {
 
             return editOrReplyError(
                 interaction,
-                error.message
-                ||
-                "Impossible d’ouvrir la réponse."
+                toPublicErrorMessage(
+                    error,
+                    "Impossible d’ouvrir la réponse.",
+                    PHONE_CALL_MESSAGES
+                )
             );
 
         }

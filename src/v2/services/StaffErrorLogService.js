@@ -9,6 +9,13 @@ const logger =
     require("../core/services/TechnicalLogger")
         .create("StaffErrorLogService");
 
+const {
+    sanitizeText,
+    sanitizeError
+} = require(
+    "../core/services/TechnicalErrorSanitizer"
+);
+
 class StaffErrorLogService {
 
     constructor({
@@ -107,11 +114,16 @@ function buildErrorEmbed({
     error,
     interaction
 }) {
+    const sanitizedError =
+        sanitizeError(error);
+
     const fields = [
         {
             name: "Erreur",
             value: toCodeBlock(
-                getErrorSummary(error),
+                getErrorSummary(
+                    sanitizedError
+                ),
                 1_024
             ),
             inline: false
@@ -119,8 +131,13 @@ function buildErrorEmbed({
         {
             name: "Origine",
             value: truncate(
-                scope
-                || "Interaction Discord",
+                sanitizeText(
+                    scope
+                    || "Interaction Discord",
+                    {
+                        maximum: 1_024
+                    }
+                ),
                 1_024
             ),
             inline: true
@@ -167,7 +184,10 @@ function buildErrorEmbed({
         });
     }
 
-    const trace = getTechnicalTrace(error);
+    const trace =
+        getTechnicalTrace(
+            sanitizedError
+        );
 
     if (trace) {
         fields.push({
@@ -200,15 +220,10 @@ function getErrorSummary(error) {
 }
 
 function getErrorMessage(error) {
-    const message =
-        error instanceof Error
-            ? error.message
-            : error;
-
     return String(
-        message
+        error?.message
         || "Erreur inconnue."
-    ).replace(/`/g, "'");
+    );
 }
 
 function getTechnicalTrace(error) {
@@ -217,9 +232,7 @@ function getTechnicalTrace(error) {
     }
 
     const trace =
-        String(error.stack)
-            .replace(/`/g, "'")
-            .trim();
+        String(error.stack).trim();
 
     return trace || null;
 }
@@ -229,11 +242,14 @@ function getAction(interaction) {
         return null;
     }
 
-    return (
+    return sanitizeText(
         interaction.commandName
         || interaction.customId
         || interaction.type
-        || null
+        || "",
+        {
+            maximum: 1_024
+        }
     );
 }
 
@@ -253,9 +269,14 @@ function getChannel(interaction) {
             ? `#${channel.name}`
             : "Salon inconnu";
 
-    return channelId
+    return sanitizeText(
+        channelId
         ? `${name} (${channelId})`
-        : name;
+        : name,
+        {
+            maximum: 1_024
+        }
+    );
 }
 
 function getGuild(interaction) {
@@ -273,9 +294,14 @@ function getGuild(interaction) {
         guild?.name
         || "Serveur inconnu";
 
-    return guildId
+    return sanitizeText(
+        guildId
         ? `${name} (${guildId})`
-        : name;
+        : name,
+        {
+            maximum: 1_024
+        }
+    );
 }
 
 function getUser(interaction) {
@@ -288,9 +314,14 @@ function getUser(interaction) {
         || interaction.user.username
         || "Utilisateur inconnu";
 
-    return interaction.user.id
+    return sanitizeText(
+        interaction.user.id
         ? `${name} (${interaction.user.id})`
-        : name;
+        : name,
+        {
+            maximum: 1_024
+        }
+    );
 }
 
 function toCodeBlock(value, maximum) {

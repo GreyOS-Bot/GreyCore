@@ -47,6 +47,15 @@ const avatarCropService =
         "../../../../v2/services/media/AvatarCropService"
     );
 
+const logger = require(
+    "../../../../v2/core/services/TechnicalLogger"
+).create("InstallationAvatarUpload");
+const {
+    sanitizeError
+} = require(
+    "../../../../v2/core/services/TechnicalErrorSanitizer"
+);
+
 module.exports =
     async function installationAvatarUploadHandler(
         message,
@@ -189,17 +198,13 @@ module.exports =
                     )
             );
         } catch (error) {
-            console.error(
+            logger.error(
                 "❌ Erreur avatar local installation V2 :",
-                error
+                sanitizeError(error)
             );
 
             await message.reply(
-                `❌ ${
-                    error.message
-                    ||
-                    "Impossible d’enregistrer l’avatar de cette installation."
-                }`
+                "❌ Le fichier d’avatar n’a pas pu être traité."
             );
         }
     };

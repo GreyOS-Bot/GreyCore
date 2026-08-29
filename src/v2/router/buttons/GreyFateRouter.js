@@ -1,6 +1,10 @@
 const { PermissionFlagsBits } = require("discord.js");
 const service = require("../../services/greyfate/GreyFateIntegrationService");
 const { replyPrivate } = require("../../core/services/InteractionResponseService");
+const {
+    toPublicErrorMessage,
+    GREYFATE_MESSAGES
+} = require("../../core/services/PublicErrorMessageService");
 module.exports = async interaction => {
     if (!interaction.isButton?.() || !interaction.customId?.startsWith("greyfate_")) return false;
     if (!service.enabled()) throw new Error("L’intégration GreyFate est temporairement désactivée.");
@@ -33,5 +37,15 @@ module.exports = async interaction => {
         }
         if (action === "greyfate_duo_close") { await service.closeDuo(duo, interaction.user.id); await interaction.editReply({ components: [] }); await service.sendAsWeaver(interaction.channel, "Le fil se referme. Cette scène est **clôturée**."); await replyPrivate(interaction, "🏁 Scène clôturée."); return true; }
         return false;
-    } catch (error) { await replyPrivate(interaction, `❌ ${error.message}`).catch(() => null); return true; }
+    } catch (error) {
+        await replyPrivate(
+            interaction,
+            `❌ ${toPublicErrorMessage(
+                error,
+                "L’action GreyFate n’a pas pu être effectuée.",
+                GREYFATE_MESSAGES
+            )}`
+        ).catch(() => null);
+        return true;
+    }
 };

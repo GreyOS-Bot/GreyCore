@@ -37,6 +37,21 @@ const originalMessageDeletionService =
         "../../../../v2/core/services/OriginalMessageDeletionService"
     );
 
+const logger = require(
+    "../../../../v2/core/services/TechnicalLogger"
+).create("PhoneMmsUpload");
+const {
+    sanitizeError
+} = require(
+    "../../../../v2/core/services/TechnicalErrorSanitizer"
+);
+const {
+    toPublicErrorMessage,
+    MMS_MESSAGES
+} = require(
+    "../../../../v2/core/services/PublicErrorMessageService"
+);
+
 module.exports =
     async function phoneMmsUploadHandler(
         message,
@@ -162,11 +177,17 @@ module.exports =
                 message.author.id
             );
         } catch (error) {
+            logger.error(
+                "Erreur envoi MMS :",
+                sanitizeError(error)
+            );
+
             await message.reply(
-                `❌ ${
-                    error.message
-                    || "Impossible d’envoyer ce MMS."
-                }`
+                `❌ ${toPublicErrorMessage(
+                    error,
+                    "Impossible d’envoyer ce MMS.",
+                    MMS_MESSAGES
+                )}`
             );
         }
     };

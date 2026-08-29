@@ -14,6 +14,11 @@ const narrativeEntityService = require("../../services/entities/NarrativeEntityS
 const staffPermissionPolicy = require("../../core/policies/StaffPermissionPolicy");
 const logger = require("../../core/services/TechnicalLogger")
     .create("SceneInteractionHandler");
+const {
+    sanitizeText
+} = require(
+    "../../core/services/TechnicalErrorSanitizer"
+);
 const threadAccessService = require(
     "../../core/services/DiscordThreadAccessService"
 );
@@ -774,7 +779,10 @@ async function sendNarrativeOrFallback({ channel, triggerKey, suffix, fallback }
     } catch (error) {
         logger.warn(
             "[NarrativeEntity] Envoi impossible, utilisation du message standard :",
-            error.message
+            sanitizeText(
+                error?.message
+                || "Erreur inconnue"
+            )
         );
     }
     return fallback && channel?.send

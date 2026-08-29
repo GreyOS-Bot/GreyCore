@@ -37,6 +37,15 @@ const avatarCropService =
         "../../../../v2/services/media/AvatarCropService"
     );
 
+const logger = require(
+    "../../../../v2/core/services/TechnicalLogger"
+).create("CharacterAvatarUpload");
+const {
+    sanitizeError
+} = require(
+    "../../../../v2/core/services/TechnicalErrorSanitizer"
+);
+
 module.exports =
     async function characterAvatarUploadHandler(
         message,
@@ -157,17 +166,13 @@ module.exports =
                     )
             );
         } catch (error) {
-            console.error(
+            logger.error(
                 "❌ Erreur avatar personnage V2 :",
-                error
+                sanitizeError(error)
             );
 
             await message.reply(
-                `❌ ${
-                    error.message
-                    ||
-                    "Impossible d’enregistrer cet avatar."
-                }`
+                "❌ Le fichier d’avatar n’a pas pu être traité."
             );
         }
     };

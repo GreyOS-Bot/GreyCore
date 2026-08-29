@@ -12,6 +12,15 @@ const {
     getImageAttachment
 } = require("./ImageAttachment");
 
+const logger = require(
+    "../../../../v2/core/services/TechnicalLogger"
+).create("OutfitUpload");
+const {
+    sanitizeError
+} = require(
+    "../../../../v2/core/services/TechnicalErrorSanitizer"
+);
+
 module.exports =
     async function outfitUploadHandler(
         message,
@@ -55,13 +64,13 @@ Description : *aucune*
 La tenue est maintenant active.`
             });
         } catch (error) {
-            console.error(
+            logger.error(
                 "❌ Erreur tenue V2 :",
-                error
+                sanitizeError(error)
             );
 
             await message.reply(
-                `❌ ${error.message}`
+                "❌ Le fichier de tenue n’a pas pu être traité."
             );
         }
     };
