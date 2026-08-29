@@ -22,6 +22,8 @@ const initializePublicPlacesSchemaV2 =
     require("./schemaV2PublicPlaces");
 const initializeUserPlayBlockSchemaV2 =
     require("./schemaV2UserPlayBlocks");
+const initializeDiscordReferenceHealthSchema =
+    require("./schemaV2DiscordReferenceHealth");
 
 function columnExists(
     tableName,
@@ -283,6 +285,7 @@ function initializeSchemaV2() {
     initializeEntitySchemaV2();
     initializePublicPlacesSchemaV2();
     initializeUserPlayBlockSchemaV2();
+    initializeDiscordReferenceHealthSchema();
 
     console.log(
         "✅ Tables principales de Greycore Database V2 prêtes."

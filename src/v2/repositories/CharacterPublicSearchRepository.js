@@ -8,14 +8,16 @@ class CharacterPublicSearchRepository {
         focused
     ) {
         return db.prepare(`
-            SELECT DISTINCT
-                character.id,
+            WITH candidates AS (
+                SELECT
+                character.id AS character_id,
                 character.proxy_name,
                 COALESCE(
                     NULLIF(TRIM(profile.alias), ''),
                     character.proxy_name
                 ) AS display_name,
-                user.discord_user_id
+                user.discord_user_id,
+                installation.id AS installation_id
             FROM CharactersV2 character
             JOIN UsersV2 user
                 ON user.id = character.owner_user_id
@@ -34,7 +36,28 @@ class CharacterPublicSearchRepository {
                     character.proxy_name
                 )
             ) LIKE LOWER(?)
-            ORDER BY display_name COLLATE NOCASE
+            ),
+            ranked AS (
+                SELECT
+                    candidates.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY character_id
+                        ORDER BY
+                            display_name COLLATE NOCASE ASC,
+                            installation_id ASC
+                    ) AS rn
+                FROM candidates
+            )
+            SELECT
+                character_id AS id,
+                proxy_name,
+                display_name,
+                discord_user_id
+            FROM ranked
+            WHERE rn = 1
+            ORDER BY
+                display_name COLLATE NOCASE ASC,
+                character_id ASC
             LIMIT 25
         `).all(
             guildId,

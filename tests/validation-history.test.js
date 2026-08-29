@@ -149,6 +149,100 @@ test(
 );
 
 test(
+    "une approbation pending est atomique et conserve un historique unique",
+    () => {
+        const fixture = createPendingDecisionFixture();
+        try {
+            let sideEffectCount = 0;
+            const approved = fixture.repository.approve(1, {
+                approvedBy: "staff-a",
+                approvedAt: "2026-08-27T10:00:00.000Z"
+            });
+            sideEffectCount += 1;
+            assert.equal(approved.status, "approved");
+            assert.equal(sideEffectCount, 1);
+            assert.deepEqual(decisionHistory(fixture.repository), ["approved"]);
+        } finally {
+            fixture.cleanup();
+        }
+    }
+);
+
+test(
+    "deux approbations concurrentes ne produisent qu’une décision et qu’un effet",
+    () => {
+        const fixture = createPendingDecisionFixture();
+        try {
+            let sideEffectCount = 0;
+            const approve = staffId => {
+                const result = fixture.repository.approve(1, { approvedBy: staffId });
+                sideEffectCount += 1;
+                return result;
+            };
+            approve("staff-a");
+            assert.throws(() => approve("staff-b"), /déjà été traitée/);
+            assert.equal(fixture.repository.getInstallationById(1).approved_by, "staff-a");
+            assert.equal(sideEffectCount, 1);
+            assert.deepEqual(decisionHistory(fixture.repository), ["approved"]);
+        } finally {
+            fixture.cleanup();
+        }
+    }
+);
+
+test(
+    "approbation et refus concurrents ne produisent aucune décision contradictoire",
+    () => {
+        for (const firstDecision of ["approve", "reject"]) {
+            const fixture = createPendingDecisionFixture();
+            try {
+                const effects = [];
+                const secondDecision = firstDecision === "approve" ? "reject" : "approve";
+                runDecision(fixture.repository, firstDecision);
+                effects.push(firstDecision);
+                assert.throws(() => {
+                    runDecision(fixture.repository, secondDecision);
+                    effects.push(secondDecision);
+                }, /déjà été traitée/);
+                assert.equal(
+                    fixture.repository.getInstallationById(1).status,
+                    firstDecision === "approve" ? "approved" : "rejected"
+                );
+                assert.deepEqual(effects, [firstDecision]);
+                assert.deepEqual(
+                    decisionHistory(fixture.repository),
+                    [firstDecision === "approve" ? "approved" : "rejected"]
+                );
+            } finally {
+                fixture.cleanup();
+            }
+        }
+    }
+);
+
+test(
+    "une validation déjà approuvée ou rejetée refuse toute nouvelle décision",
+    () => {
+        for (const finalStatus of ["approved", "rejected"]) {
+            const fixture = createPendingDecisionFixture();
+            try {
+                runDecision(fixture.repository, finalStatus === "approved" ? "approve" : "reject");
+                for (const nextDecision of ["approve", "reject"]) {
+                    assert.throws(
+                        () => runDecision(fixture.repository, nextDecision),
+                        /déjà été traitée/
+                    );
+                }
+                assert.equal(fixture.repository.getInstallationById(1).status, finalStatus);
+                assert.equal(decisionHistory(fixture.repository).length, 1);
+            } finally {
+                fixture.cleanup();
+            }
+        }
+    }
+);
+
+test(
     "le bouton d’historique répond seulement au staff du bon serveur",
     async () => {
         const calls = [];
@@ -289,4 +383,39 @@ function createInstallationTables(
             '2026-07-27T09:00:00.000Z'
         );
     `);
+}
+
+function createPendingDecisionFixture() {
+    const isolated = createIsolatedDatabase();
+    createInstallationTables(isolated.database);
+    isolated.database.prepare(`
+        UPDATE CharacterGuildInstallationsV2
+        SET status = 'pending'
+        WHERE id = 1
+    `).run();
+    const repositoryPath = require.resolve(
+        "../src/v2/repositories/ValidationRepository"
+    );
+    delete require.cache[repositoryPath];
+    return {
+        repository: require("../src/v2/repositories/ValidationRepository"),
+        cleanup: isolated.cleanup
+    };
+}
+
+function runDecision(repository, decision) {
+    if (decision === "approve") {
+        return repository.approve(1, { approvedBy: "staff-approve" });
+    }
+    return repository.reject(1, {
+        rejectedBy: "staff-reject",
+        reason: "À corriger."
+    });
+}
+
+function decisionHistory(repository) {
+    return repository
+        .getHistory(1, 20)
+        .filter(entry => ["approved", "rejected"].includes(entry.event_type))
+        .map(entry => entry.event_type);
 }

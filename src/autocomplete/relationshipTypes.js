@@ -6,23 +6,12 @@ module.exports = async (interaction) => {
         .getFocused()
         .toLowerCase();
 
-    const types = relationshipTypeManager.getTypesByGuild(
-        interaction.guild.id
-    );
-
-    const filtered = types
-        .filter(type =>
-            type.label_a_to_b
-                .toLowerCase()
-                .includes(focusedValue) ||
-            type.label_b_to_a
-                .toLowerCase()
-                .includes(focusedValue) ||
-            type.key
-                .toLowerCase()
-                .includes(focusedValue)
-        )
-        .slice(0, 25);
+    const filtered =
+        relationshipTypeManager.searchRelationshipTypes(
+            interaction.guild.id,
+            focusedValue,
+            25
+        );
 
     return interaction.respond(
         filtered.map(type => ({

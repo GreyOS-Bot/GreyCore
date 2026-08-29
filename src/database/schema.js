@@ -127,6 +127,14 @@ if (!hasValidatedAtColumn) {
     )
 `).run();
 
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS ProxyMessageClaims (
+            discord_message_id TEXT PRIMARY KEY,
+            claim_token TEXT NOT NULL,
+            claimed_at TEXT NOT NULL
+        )
+    `).run();
+
     migrateProxyMessagesToVersionedCharacters();
 
 db.prepare(`

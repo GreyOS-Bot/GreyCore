@@ -168,6 +168,14 @@ function createProxyMessage(
             async () => webhook
     };
 
+    const channel = {
+        id:
+            "channel",
+        client,
+        isThread:
+            () => false
+    };
+
     return {
         id:
             "original-message",
@@ -183,13 +191,12 @@ function createProxyMessage(
                 cache: new Map([
                     [
                         "channel",
-                        {
-                            client
-                        }
+                        channel
                     ]
                 ])
             }
         },
+        channel,
         client
     };
 }

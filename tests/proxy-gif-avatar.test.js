@@ -41,22 +41,35 @@ test(
         stubModule(
             "src/managers/ProxyMessageManager.js",
             {
-                save: () => {}
+                claim: () => "claim",
+                refreshClaim: () => ({
+                    changes: 1
+                }),
+                completeClaim: () => true,
+                releaseClaim: () => {},
+                deleteIfMatches: () => ({
+                    changes: 1
+                })
             }
         );
         stubModule(
             "src/webhooks/webhookManager.js",
             {
-                getOrCreateWebhook: async () => ({
-                    id: "webhook",
-                    send: async payload => {
+                sendWithWebhook: async (
+                    channel,
+                    payload
+                ) => {
                         sentPayload = payload;
 
-                        return {
+                    return {
+                        webhook: {
+                            id: "webhook"
+                        },
+                        webhookMessage: {
                             id: "message"
-                        };
-                    }
-                })
+                        }
+                    };
+                }
             }
         );
         stubModule(

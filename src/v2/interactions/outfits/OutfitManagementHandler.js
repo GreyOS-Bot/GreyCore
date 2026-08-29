@@ -5,6 +5,12 @@ const logger =
         "OutfitManagementHandler"
     );
 
+const {
+    sanitizeError
+} = require(
+    "../../core/services/TechnicalErrorSanitizer"
+);
+
 const outfitManager =
     require(
         "../../managers/OutfitV2Manager"
@@ -405,12 +411,12 @@ async function deleteConfirmed(
     } catch (error) {
         logger.error(
             "❌ Erreur suppression tenue :",
-            error
+            sanitizeError(error)
         );
 
         return interaction.update({
             content:
-                `❌ ${error.message}`,
+                "❌ Impossible de supprimer cette tenue.",
             embeds:
                 [],
             components:

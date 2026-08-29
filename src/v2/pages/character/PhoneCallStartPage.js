@@ -46,6 +46,13 @@ const installationAccessPolicy =
         "../../core/policies/InstallationAccessPolicy"
     );
 
+const {
+    toPublicErrorMessage,
+    PHONE_CALL_MESSAGES
+} = require(
+    "../../core/services/PublicErrorMessageService"
+);
+
 class PhoneCallStartPage {
 
     errorPayload(
@@ -443,9 +450,11 @@ class PhoneCallStartPage {
 
             return this.sendError(
                 interaction,
-                error.message
-                ||
-                "Impossible de lancer cet appel."
+                toPublicErrorMessage(
+                    error,
+                    "Impossible de lancer cet appel.",
+                    PHONE_CALL_MESSAGES
+                )
             );
 
         }

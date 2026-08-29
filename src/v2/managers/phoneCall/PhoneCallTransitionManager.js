@@ -20,6 +20,17 @@ function expireStaleRingingCalls(
         });
 }
 
+function reconcileInterruptedCalls(
+    startupCutoff,
+    recoveryAt = new Date().toISOString()
+) {
+    return repository
+        .reconcileInterruptedCalls({
+            startupCutoff,
+            recoveryAt
+        });
+}
+
 function acceptCall(
     callId
 ) {
@@ -165,6 +176,7 @@ function transition({
 
 module.exports = {
     expireStaleRingingCalls,
+    reconcileInterruptedCalls,
     acceptCall,
     refuseCall,
     cancelCall,

@@ -28,12 +28,13 @@ test("la diffusion conserve l’identité de l’Entité et le titre d’un foru
         })
     });
     stubModule("src/webhooks/webhookManager.js", {
-        getOrCreateWebhook: async () => ({
-            send: async value => {
-                payload = value;
-                return { id: "message" };
-            }
-        })
+        sendWithWebhook: async (channel, value) => {
+            payload = value;
+            return {
+                webhook: { id: "webhook" },
+                webhookMessage: { id: "message" }
+            };
+        }
     });
     const servicePath = require.resolve("../src/v2/services/entities/NarrativeEntityService");
     delete require.cache[servicePath];

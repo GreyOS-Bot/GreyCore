@@ -14,6 +14,26 @@ const { startGreyOSProjectionPublisher } = require(
 const greyCoreDatabase = require("./database/database");
 const logger = require("./v2/core/services/TechnicalLogger")
     .create("GreyOSProjection");
+const shutdownLogger =
+    require("./v2/core/services/TechnicalLogger")
+        .create("GracefulShutdown");
+const {
+    GracefulShutdownService
+} = require(
+    "./v2/core/services/GracefulShutdownService"
+);
+const sceneInactivityService = require(
+    "./v2/services/scenes/SceneInactivityService"
+);
+const narrativeEntityEventScheduler = require(
+    "./v2/services/entities/NarrativeEntityEventScheduler"
+);
+const greyFateIntegrationService = require(
+    "./v2/services/greyfate/GreyFateIntegrationService"
+);
+const databaseBackupService = require(
+    "./database/DatabaseBackupService"
+);
 
 const client = new Client({
     intents: [
@@ -33,6 +53,25 @@ loadEvents(client);
 loadCommands(client);
 
 let greyOSProjectionPublisher;
+
+const gracefulShutdown =
+    new GracefulShutdownService({
+        greyFateService:
+            greyFateIntegrationService,
+        sceneInactivityService,
+        narrativeEntityScheduler:
+            narrativeEntityEventScheduler,
+        databaseBackupService,
+        getProductProjectionPublisher:
+            () => greyOSProjectionPublisher,
+        client,
+        database:
+            greyCoreDatabase,
+        log:
+            shutdownLogger
+    });
+
+gracefulShutdown.installProcessHandlers();
 
 const startProjectionPublisher = () => {
     try {
@@ -61,13 +100,6 @@ if (client.isReady()) {
     startProjectionPublisher();
 } else {
     client.once("clientReady", startProjectionPublisher);
-}
-
-for (const signal of ["SIGINT", "SIGTERM"]) {
-    process.once(signal, () => {
-        greyOSProjectionPublisher?.stop();
-        client.destroy();
-    });
 }
 
 client.login(process.env.TOKEN);

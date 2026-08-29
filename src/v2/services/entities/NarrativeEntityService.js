@@ -1,7 +1,6 @@
 const { EmbedBuilder } = require("discord.js");
 const manager = require("../../managers/NarrativeEntityV2Manager");
 const webhookManager = require("../../../webhooks/webhookManager");
-const { withThreadId } = require("../../core/services/ProxyThreadContext");
 
 class NarrativeEntityService {
     constructor() {
@@ -24,18 +23,26 @@ class NarrativeEntityService {
             (text, [key, value]) => text.replaceAll(`{${key}}`, String(value)),
             String(content || message.content)
         );
-        const webhook = await webhookManager.getOrCreateWebhook(channel);
-        return webhook.send(withThreadId(channel, {
+        const sent = await webhookManager.sendWithWebhook(channel, {
             username: entity.name,
             avatarURL: entity.avatar_url || undefined,
             embeds: [new EmbedBuilder().setColor(entity.embed_color).setDescription(
                 [rendered, suffix].filter(Boolean).join("\n\n")
             )],
             allowedMentions: { parse: [] }
-        }));
+        });
+        return sent.webhookMessage;
     }
 
-    async sendEntity({ channel, entityId, content = null, suffix = null, variables = {}, threadName = null }) {
+    async sendEntity({
+        channel,
+        entityId,
+        content = null,
+        suffix = null,
+        variables = {},
+        threadName = null,
+        onBeforeSendAttempt = null
+    }) {
         const entity = manager.getById(channel.guildId, entityId);
         if (!entity || !entity.is_enabled) return null;
         const messages = entity.messages.filter(message => Number(message.is_enabled) === 1);
@@ -45,7 +52,6 @@ class NarrativeEntityService {
         const rendered = Object.entries(variables).reduce(
             (text, [key, value]) => text.replaceAll(`{${key}}`, String(value)), source
         );
-        const webhook = await webhookManager.getOrCreateWebhook(channel);
         const payload = {
             username: entity.name,
             avatarURL: entity.avatar_url || undefined,
@@ -55,7 +61,10 @@ class NarrativeEntityService {
             allowedMentions: { parse: [] }
         };
         if (threadName) payload.threadName = threadName.slice(0, 100);
-        return webhook.send(withThreadId(channel, payload));
+        const sent = await webhookManager.sendWithWebhook(channel, payload, {
+            onBeforeSendAttempt
+        });
+        return sent.webhookMessage;
     }
 
     async processInvocation(message) {
@@ -116,15 +125,15 @@ class NarrativeEntityService {
     }
 
     async sendSelection(channel, selection) {
-        const webhook = await webhookManager.getOrCreateWebhook(channel);
-        return webhook.send(withThreadId(channel, {
+        const sent = await webhookManager.sendWithWebhook(channel, {
             username: selection.entity.name,
             avatarURL: selection.entity.avatar_url || undefined,
             embeds: [new EmbedBuilder()
                 .setColor(selection.entity.embed_color)
                 .setDescription(selection.message.content)],
             allowedMentions: { parse: [] }
-        }));
+        });
+        return sent.webhookMessage;
     }
 
     pruneCooldowns(now) {

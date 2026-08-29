@@ -75,6 +75,26 @@ async function replyPrivate(
         );
 
     if (
+        interaction.deferred
+        && !interaction.replied
+        && !isDeferredComponentUpdate(
+            interaction
+        )
+        && typeof interaction.editReply ===
+            "function"
+    ) {
+        const editPayload = {
+            ...payload
+        };
+
+        delete editPayload.flags;
+
+        return interaction.editReply(
+            editPayload
+        );
+    }
+
+    if (
         (
             interaction.deferred
             || interaction.replied
@@ -90,6 +110,65 @@ async function replyPrivate(
     return interaction.reply(
         payload
     );
+}
+
+function isDeferredComponentUpdate(
+    interaction
+) {
+    if (
+        fastInteractionAcknowledgementService
+            .wasComponentUpdateDeferred?.(
+                interaction
+            )
+    ) {
+        return true;
+    }
+
+    return Boolean(
+        interaction.deferred
+        && !interaction.replied
+        && interaction.ephemeral == null
+        && interaction.isMessageComponent?.()
+    );
+}
+
+function isGreyCoreComponent(
+    interaction
+) {
+    const customId = String(
+        interaction?.customId
+        || ""
+    );
+
+    if (
+        !customId.startsWith("v2_")
+        && !customId.startsWith("page:")
+    ) {
+        return false;
+    }
+
+    return Boolean(
+        interaction.isButton?.()
+        || interaction.isAnySelectMenu?.()
+        || interaction.isStringSelectMenu?.()
+        || interaction.isChannelSelectMenu?.()
+        || interaction.isModalSubmit?.()
+    );
+}
+
+async function replyInactiveInterface(
+    interaction
+) {
+    if (!isGreyCoreComponent(interaction)) {
+        return false;
+    }
+
+    await replyPrivate(
+        interaction,
+        "Cette interface n’est plus active. Rouvrez GreyCore pour continuer."
+    );
+
+    return true;
 }
 
 function deferPrivate(interaction) {
@@ -241,6 +320,8 @@ function updateError(
 module.exports = {
     canUseEphemeral,
     privatePayload,
+    isGreyCoreComponent,
+    replyInactiveInterface,
     deferPrivate,
     replyPrivate,
     replyError,

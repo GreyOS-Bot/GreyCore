@@ -14,6 +14,12 @@ const maintenanceModeService =
         "../services/MaintenanceModeService"
     );
 
+const {
+    replyInactiveInterface
+} = require(
+    "../core/services/InteractionResponseService"
+);
+
 module.exports =
     async function interactionRouter(
         interaction
@@ -44,5 +50,7 @@ module.exports =
             }
         }
 
-        return false;
+        return replyInactiveInterface(
+            interaction
+        );
     };

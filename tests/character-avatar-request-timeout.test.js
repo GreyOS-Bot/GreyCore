@@ -13,21 +13,29 @@ test(
         stubModule(
             "src/v2/managers/CharacterV2Manager.js",
             {
-                getById: () => ({
-                    id: "character",
-                    discord_user_id: "owner"
-                })
+                getById: () => {
+                    order.push("character-loaded");
+
+                    return {
+                        id: "character",
+                        discord_user_id: "owner"
+                    };
+                }
             }
         );
         stubModule(
             "src/v2/managers/InstallationV2Manager.js",
             {
-                getById: () => ({
-                    id: 546,
-                    character_id: "character",
-                    continuity_id: "continuity",
-                    guild_id: "guild"
-                })
+                getById: () => {
+                    order.push("installation-loaded");
+
+                    return {
+                        id: 546,
+                        character_id: "character",
+                        continuity_id: "continuity",
+                        guild_id: "guild"
+                    };
+                }
             }
         );
         stubModule(
@@ -88,6 +96,8 @@ test(
             order,
             [
                 "acknowledged",
+                "character-loaded",
+                "installation-loaded",
                 "pending-created",
                 "instructions-sent"
             ]

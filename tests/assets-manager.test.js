@@ -19,7 +19,8 @@ test(
 
             const {
                 typeManager,
-                assetManager
+                assetManager,
+                assetRepository
             } = loadManagers();
 
             const types = typeManager.ensureDefaults("guild-a");
@@ -97,6 +98,73 @@ test(
                 ]
             );
 
+            const staleAsset = assetRepository.getById(asset.id);
+
+            const transferredAgain = assetManager.transfer(asset.id, {
+                toContinuityId: "continuity-a",
+                expectedContinuityId: "continuity-b",
+                transferredBy: "discord-b"
+            });
+
+            assert.equal(
+                transferredAgain.continuity_id,
+                "continuity-a"
+            );
+
+            assert.throws(
+                () => assetRepository.transfer(staleAsset, {
+                    toContinuityId: "continuity-a",
+                    expectedContinuityId: "continuity-b",
+                    transferredBy: "discord-b",
+                    note: null,
+                    createdAt: "2026-08-27T11:30:00.000Z"
+                }),
+                /modifié ou transféré entre-temps/
+            );
+
+            assert.throws(
+                () => assetRepository.transfer(staleAsset, {
+                    toContinuityId: "continuity-c",
+                    expectedContinuityId: "continuity-b",
+                    transferredBy: "discord-b",
+                    note: null,
+                    createdAt: "2026-08-27T12:00:00.000Z"
+                }),
+                /modifié ou transféré entre-temps/
+            );
+
+            assert.equal(
+                assetManager.getById(asset.id).continuity_id,
+                "continuity-a"
+            );
+
+            assert.deepEqual(
+                assetManager.getTransfers(asset.id).map(
+                    transfer => [
+                        transfer.from_continuity_id,
+                        transfer.to_continuity_id
+                    ]
+                ),
+                [
+                    ["continuity-b", "continuity-a"],
+                    ["continuity-a", "continuity-b"]
+                ]
+            );
+
+            assert.throws(
+                () => assetManager.transfer(asset.id, {
+                    toContinuityId: "continuity-c",
+                    expectedContinuityId: "continuity-b",
+                    transferredBy: "discord-b"
+                }),
+                /modifié ou transféré entre-temps/
+            );
+
+            assert.equal(
+                assetManager.getTransfers(asset.id).length,
+                2
+            );
+
             const customType = typeManager.create({
                 guildId: "guild-a",
                 label: "Bateau",
@@ -139,6 +207,9 @@ function loadManagers() {
         ),
         assetManager: require(
             "../src/v2/managers/AssetV2Manager"
+        ),
+        assetRepository: require(
+            "../src/v2/repositories/AssetRepository"
         )
     };
 }
@@ -224,7 +295,8 @@ function createAssetTables(database) {
         INSERT INTO UsersV2 (id, discord_user_id)
         VALUES
             (1, 'discord-a'),
-            (2, 'discord-b');
+            (2, 'discord-b'),
+            (3, 'discord-c');
 
         INSERT INTO CharactersV2 (
             id,
@@ -234,7 +306,8 @@ function createAssetTables(database) {
         )
         VALUES
             ('character-a', 1, 'Alba', 0),
-            ('character-b', 2, 'Vega', 0);
+            ('character-b', 2, 'Vega', 0),
+            ('character-c', 3, 'Nora', 0);
 
         INSERT INTO CharacterContinuitiesV2 (
             id,
@@ -244,7 +317,8 @@ function createAssetTables(database) {
         )
         VALUES
             ('continuity-a', 'character-a', 'GreyOS', 0),
-            ('continuity-b', 'character-b', 'GreyOS', 0);
+            ('continuity-b', 'character-b', 'GreyOS', 0),
+            ('continuity-c', 'character-c', 'GreyOS', 0);
 
         INSERT INTO CharacterGuildInstallationsV2 (
             id,
@@ -256,6 +330,7 @@ function createAssetTables(database) {
         )
         VALUES
             (1, 'character-a', 'continuity-a', 'guild-a', 'approved', 1),
-            (2, 'character-b', 'continuity-b', 'guild-a', 'approved', 1);
+            (2, 'character-b', 'continuity-b', 'guild-a', 'approved', 1),
+            (3, 'character-c', 'continuity-c', 'guild-a', 'approved', 1);
     `);
 }

@@ -10,6 +10,9 @@ const manager =
         "../../managers/SceneAssistantV2Manager"
     );
 const guildSettingsManager = require("../../managers/GuildSettingsV2Manager");
+const threadAccessService = require(
+    "../../core/services/DiscordThreadAccessService"
+);
 
 const DAY_IN_MILLISECONDS =
     24 * 60 * 60 * 1_000;
@@ -552,7 +555,19 @@ class SceneAssistantService {
         if (!previous || previous.id === scene.id) return null;
         if (!manager.claimTimelineWarning(previous.id, scene.id, characterId)) return null;
 
-        await message.channel.send(
+        const access =
+            await threadAccessService.ensureWritable(
+                message.channel
+            );
+
+        if (!access.ready) {
+            throw threadAccessService.errorFor(
+                access,
+                "scene_timeline_warning"
+            );
+        }
+
+        await (access.channel || message.channel).send(
             `⚠️ <@${message.author.id}>, ce personnage participe déjà à la scène **${previous.title}**. Cette nouvelle scène peut créer une incohérence de timeline, mais aucun blocage n’est appliqué.`
         );
 

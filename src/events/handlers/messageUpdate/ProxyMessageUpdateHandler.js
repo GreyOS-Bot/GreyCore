@@ -21,10 +21,14 @@ const proxyMessageHandler =
         "../messageCreate/ProxyMessageHandler"
     );
 
-const {
-    withThreadId
-} = require(
-    "../../../v2/core/services/ProxyThreadContext"
+const historicalWebhookService = require(
+    "../../../v2/core/services/ProxyHistoricalWebhookService"
+);
+
+const logger = require(
+    "../../../v2/core/services/TechnicalLogger"
+).create(
+    "ProxyMessageUpdateHandler"
 );
 
 module.exports =
@@ -98,35 +102,43 @@ module.exports =
             return false;
         }
 
-        const channel =
-            message.channel?.id ===
-                proxyRecord.channel_id
-                ? message.channel
-                : message.guild.channels.cache
-                    .get(
-                        proxyRecord.channel_id
-                    );
-
-        if (!channel) {
-            return false;
-        }
-
-        const webhook =
-            await channel.client
-                .fetchWebhook(
-                    proxyRecord.webhook_id
-                );
-
-        await webhook.editMessage(
-            proxyRecord.webhook_message_id,
-            withThreadId(
-                channel,
-                {
+        const result =
+            await historicalWebhookService.edit({
+                client:
+                    message.client,
+                guild:
+                    message.guild,
+                channelId:
+                    proxyRecord.channel_id,
+                currentChannel:
+                    message.channel || null,
+                webhookId:
+                    proxyRecord.webhook_id,
+                webhookMessageId:
+                    proxyRecord.webhook_message_id,
+                payload: {
                     content:
                         proxy.content
                 }
-            )
-        );
+            });
 
-        return true;
+        if (!result.success) {
+            logger.warn(
+                "Édition Proxy historique impossible.",
+                {
+                    discordMessageId:
+                        message.id,
+                    proxyWebhookMessageId:
+                        proxyRecord.webhook_message_id,
+                    channelId:
+                        proxyRecord.channel_id,
+                    classification:
+                        result.status,
+                    discordCode:
+                        result.discordCode
+                }
+            );
+        }
+
+        return result.success;
     };

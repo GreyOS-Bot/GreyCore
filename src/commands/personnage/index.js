@@ -346,14 +346,19 @@ module.exports = {
 
         let characters;
         if (subcommand === "type") {
-            characters = require("../../v2/services/character/CharacterTypeCorrectionService")
-                .search(interaction.guildId, focused);
             const isStaff = require("../../v2/core/policies/StaffPermissionPolicy")
                 .canManageCharacters(interaction);
-            if (!isStaff) {
-                characters = characters.filter(character =>
-                    String(character.discord_user_id) === String(interaction.user.id));
-            }
+            characters = require("../../v2/services/character/CharacterTypeCorrectionService")
+                .search(
+                    interaction.guildId,
+                    focused,
+                    {
+                        ownerDiscordUserId:
+                            isStaff
+                                ? null
+                                : interaction.user.id
+                    }
+                );
             characters = characters.map(character => ({
                 ...character,
                 display_name: character.display_name || character.firstname || character.proxy_name

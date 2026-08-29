@@ -207,34 +207,133 @@ class SceneAssistantRepository {
         return this.getActiveSceneByChannel(guildId, channelId);
     }
 
-    moveScene({
+    moveSceneIfCurrent({
         sceneId,
         guildId,
-        sourceChannelId,
+        expectedSourceChannelId,
         destinationChannelId,
         transitionMessageId,
         createdBy,
         movedAt
     }) {
-        const transaction = db.transaction(() => {
-            db.prepare(`
-                UPDATE SceneChannelsV2
-                SET unlinked_at = ?
-                WHERE scene_id = ? AND channel_id = ? AND unlinked_at IS NULL
-            `).run(movedAt, sceneId, sourceChannelId);
+        if (
+            expectedSourceChannelId
+            === destinationChannelId
+        ) {
+            return {
+                moved: false,
+                reason: "same_channel"
+            };
+        }
 
-            return this.linkChannel({
-                sceneId,
-                guildId,
-                channelId: destinationChannelId,
-                sourceChannelId,
-                transitionMessageId,
-                createdBy,
-                linkedAt: movedAt
+        const destinationOccupied =
+            new Error(
+                "SCENE_DESTINATION_OCCUPIED"
+            );
+        destinationOccupied.code =
+            "SCENE_DESTINATION_OCCUPIED";
+
+        const transaction =
+            db.transaction(() => {
+                const claimed =
+                    db.prepare(`
+                        UPDATE SceneChannelsV2
+                        SET unlinked_at = ?
+                        WHERE scene_id = ?
+                        AND guild_id = ?
+                        AND channel_id = ?
+                        AND unlinked_at IS NULL
+                        AND EXISTS (
+                            SELECT 1
+                            FROM ScenesV2
+                            WHERE id = ?
+                            AND guild_id = ?
+                            AND status IN (
+                                'active',
+                                'conclude'
+                            )
+                        )
+                    `).run(
+                        movedAt,
+                        sceneId,
+                        guildId,
+                        expectedSourceChannelId,
+                        sceneId,
+                        guildId
+                    );
+
+                if (claimed.changes !== 1) {
+                    return {
+                        moved: false,
+                        reason: "stale_source"
+                    };
+                }
+
+                const occupied =
+                    db.prepare(`
+                        SELECT scene_id
+                        FROM SceneChannelsV2
+                        WHERE guild_id = ?
+                        AND channel_id = ?
+                        AND unlinked_at IS NULL
+                        LIMIT 1
+                    `).get(
+                        guildId,
+                        destinationChannelId
+                    );
+
+                if (occupied) {
+                    throw destinationOccupied;
+                }
+
+                const inserted =
+                    db.prepare(`
+                        INSERT INTO SceneChannelsV2 (
+                            scene_id,
+                            guild_id,
+                            channel_id,
+                            linked_at,
+                            source_channel_id,
+                            transition_message_id,
+                            created_by
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    `).run(
+                        sceneId,
+                        guildId,
+                        destinationChannelId,
+                        movedAt,
+                        expectedSourceChannelId,
+                        transitionMessageId,
+                        createdBy
+                    );
+
+                return {
+                    moved: true,
+                    reason: null,
+                    linkId:
+                        inserted.lastInsertRowid,
+                    scene:
+                        this.getScene(sceneId)
+                };
             });
-        });
 
-        return transaction();
+        try {
+            return transaction();
+        } catch (error) {
+            if (
+                error.code
+                === "SCENE_DESTINATION_OCCUPIED"
+            ) {
+                return {
+                    moved: false,
+                    reason:
+                        "destination_occupied"
+                };
+            }
+
+            throw error;
+        }
     }
 
     recordSceneMessage(sceneId, occurredAt) {
@@ -379,13 +478,44 @@ class SceneAssistantRepository {
         `).run(occurredAt, occurredAt, sceneId);
     }
 
-    closeScene(sceneId, endedAt) {
+    closeScene(
+        sceneId,
+        endedAt,
+        requirePendingPrompt = false
+    ) {
         const transaction = db.transaction(() => {
-            db.prepare(`
+            const claimed = db.prepare(`
                 UPDATE ScenesV2
                 SET status = 'closed', ended_at = ?, updated_at = ?
                 WHERE id = ?
-            `).run(endedAt, endedAt, sceneId);
+                AND status IN ('active', 'conclude')
+                AND (
+                    ? = 0
+                    OR EXISTS (
+                        SELECT 1
+                        FROM SceneClosurePromptsV2
+                        WHERE scene_id = ?
+                        AND status = 'pending'
+                    )
+                )
+            `).run(
+                endedAt,
+                endedAt,
+                sceneId,
+                requirePendingPrompt ? 1 : 0,
+                sceneId
+            );
+
+            if (claimed.changes !== 1) {
+                return null;
+            }
+
+            db.prepare(`
+                UPDATE SceneClosurePromptsV2
+                SET status = 'closed', resolved_at = ?
+                WHERE scene_id = ? AND status = 'pending'
+            `).run(endedAt, sceneId);
+
             db.prepare(`
                 UPDATE SceneChannelsV2
                 SET unlinked_at = ?
@@ -396,9 +526,10 @@ class SceneAssistantRepository {
                 SET left_at = ?
                 WHERE scene_id = ? AND left_at IS NULL
             `).run(endedAt, sceneId);
+
+            return this.getScene(sceneId);
         });
-        transaction();
-        return this.getScene(sceneId);
+        return transaction();
     }
 
     markSceneConclude(sceneId, notifiedAt) {

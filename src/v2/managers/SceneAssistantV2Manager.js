@@ -152,11 +152,15 @@ class SceneAssistantV2Manager {
         );
     }
 
-    moveScene(data) {
-        return repository.moveScene({
-            ...data,
-            movedAt: data.movedAt || new Date().toISOString()
-        });
+    moveSceneIfCurrent(data) {
+        return repository
+            .moveSceneIfCurrent({
+                ...data,
+                movedAt:
+                    data.movedAt
+                    || new Date()
+                        .toISOString()
+            });
     }
 
     recordSceneMessage(sceneId, occurredAt = new Date().toISOString()) {
@@ -209,10 +213,18 @@ class SceneAssistantV2Manager {
         return repository.getScene(sceneId);
     }
 
-    closeScene(sceneId) {
+    closeScene(
+        sceneId,
+        {
+            requirePendingPrompt = false
+        } = {}
+    ) {
         const now = new Date().toISOString();
-        repository.resolveClosurePrompt(sceneId, "closed", now);
-        return repository.closeScene(sceneId, now);
+        return repository.closeScene(
+            sceneId,
+            now,
+            requirePendingPrompt
+        );
     }
 
     markSceneConclude(sceneId, notifiedAt = new Date().toISOString()) {

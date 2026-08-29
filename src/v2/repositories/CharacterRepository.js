@@ -3,6 +3,22 @@ const db =
         "../../database/database"
     );
 
+const InstallationStatus =
+    require(
+        "../core/constants/InstallationStatus"
+    );
+
+db.function(
+    "greycore_lower",
+    {
+        deterministic:
+            true
+    },
+    value =>
+        String(value || "")
+            .toLowerCase()
+);
+
 class CharacterRepository {
 
     getById(
@@ -58,6 +74,57 @@ class CharacterRepository {
                     COLLATE NOCASE ASC
         `).all(
             discordUserId
+        );
+    }
+
+    searchOwnedPlayableCharacters({
+        discordUserId,
+        guildId,
+        query,
+        limit = 25
+    }) {
+        const normalizedLimit =
+            Math.max(
+                0,
+                Math.min(
+                    25,
+                    Number(limit) || 0
+                )
+            );
+
+        if (!normalizedLimit) {
+            return [];
+        }
+
+        return db.prepare(`
+            SELECT character.*
+            FROM CharactersV2 AS character
+            JOIN UsersV2 AS user
+                ON user.id = character.owner_user_id
+            WHERE user.discord_user_id = ?
+            AND character.is_archived = 0
+            AND INSTR(
+                greycore_lower(character.proxy_name),
+                ?
+            ) > 0
+            AND EXISTS (
+                SELECT 1
+                FROM CharacterGuildInstallationsV2 AS installation
+                WHERE installation.character_id = character.id
+                AND installation.guild_id = ?
+                AND installation.status = ?
+                AND installation.proxy_enabled = 1
+            )
+            ORDER BY
+                character.proxy_name COLLATE NOCASE ASC,
+                character.id ASC
+            LIMIT ?
+        `).all(
+            String(discordUserId),
+            String(query || "").toLowerCase(),
+            String(guildId),
+            InstallationStatus.APPROVED,
+            normalizedLimit
         );
     }
 

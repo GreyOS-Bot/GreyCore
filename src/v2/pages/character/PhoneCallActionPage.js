@@ -33,6 +33,13 @@ const logger =
         "PhoneCallActionPage"
     );
 
+const {
+    toPublicErrorMessage,
+    PHONE_CALL_MESSAGES
+} = require(
+    "../../core/services/PublicErrorMessageService"
+);
+
 class PhoneCallActionPage {
 
     registerReceiverMessage(
@@ -249,9 +256,11 @@ if (!dashboardData) {
 
             return updateError(
                 interaction,
-                error.message
-                ||
-                "Impossible de décrocher."
+                toPublicErrorMessage(
+                    error,
+                    "Impossible de décrocher.",
+                    PHONE_CALL_MESSAGES
+                )
             );
 
         }
@@ -346,9 +355,11 @@ if (!dashboardData) {
 
             return updateError(
                 interaction,
-                error.message
-                ||
-                "Impossible de refuser l’appel."
+                toPublicErrorMessage(
+                    error,
+                    "Impossible de refuser l’appel.",
+                    PHONE_CALL_MESSAGES
+                )
             );
 
         }
@@ -493,9 +504,11 @@ if (!dashboardData) {
 
             return updateError(
                 interaction,
-                error.message
-                ||
-                "Impossible de raccrocher."
+                toPublicErrorMessage(
+                    error,
+                    "Impossible de raccrocher.",
+                    PHONE_CALL_MESSAGES
+                )
             );
 
         }

@@ -91,6 +91,7 @@ test(
             ,"NarrativeEntityScopesV2"
             ,"NarrativeEntityExpressionsV2"
             ,"NarrativeEntityChannelWelcomesV2"
+            ,"DiscordReferenceHealth"
         ];
 
         const tableNames =

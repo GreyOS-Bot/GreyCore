@@ -1,4 +1,5 @@
 const db = require("../../database/database");
+const { randomUUID } = require("node:crypto");
 
 class NarrativeEntityEventRepository {
     getByGuild(guildId) {
@@ -72,28 +73,89 @@ class NarrativeEntityEventRepository {
     }
 
     claimRun(eventId, runKey, channelId, now) {
-        return db.prepare(`
+        const attemptToken = randomUUID();
+        const claimed = db.prepare(`
             INSERT OR IGNORE INTO NarrativeEntityEventRunsV2
-                (event_id, run_key, channel_id, status, created_at)
-            VALUES (?, ?, ?, 'running', ?)
-        `).run(eventId, runKey, channelId, now).changes > 0;
+                (event_id, run_key, channel_id, status, attempt_token,
+                 external_effect_attempted, lease_at, created_at)
+            VALUES (?, ?, ?, 'running', ?, 0, ?, ?)
+        `).run(eventId, runKey, channelId, attemptToken, now, now).changes > 0;
+        return claimed ? attemptToken : null;
     }
 
-    completeRun(eventId, runKey, channelId, messageId, now) {
-        db.prepare(`UPDATE NarrativeEntityEventRunsV2
+    markExternalEffectAttempted(eventId, runKey, channelId, attemptToken, now) {
+        return db.prepare(`UPDATE NarrativeEntityEventRunsV2
+            SET external_effect_attempted = 1, lease_at = ?
+            WHERE event_id = ? AND run_key = ? AND channel_id = ?
+              AND status = 'running' AND attempt_token = ?
+        `).run(now, eventId, runKey, channelId, attemptToken).changes === 1;
+    }
+
+    completeRun(eventId, runKey, channelId, attemptToken, messageId, now) {
+        const completed = db.prepare(`UPDATE NarrativeEntityEventRunsV2
             SET status = 'sent', message_id = ?, error_message = NULL
             WHERE event_id = ? AND run_key = ? AND channel_id = ?
-        `).run(messageId || null, eventId, runKey, channelId);
-        db.prepare(`UPDATE NarrativeEntityEventsV2 SET last_run_key = ?, updated_at = ?
-            WHERE id = ?`).run(runKey, now, eventId);
+              AND status = 'running' AND attempt_token = ?
+        `).run(messageId || null, eventId, runKey, channelId, attemptToken).changes === 1;
+        if (completed) {
+            db.prepare(`UPDATE NarrativeEntityEventsV2 SET last_run_key = ?, updated_at = ?
+                WHERE id = ?`).run(runKey, now, eventId);
+        }
+        return completed;
     }
 
-    failRun(eventId, runKey, channelId, error, now) {
-        db.prepare(`UPDATE NarrativeEntityEventRunsV2
-            SET status = 'failed', error_message = ?
+    failRun(eventId, runKey, channelId, attemptToken, error, now, uncertain = false) {
+        const failed = db.prepare(`UPDATE NarrativeEntityEventRunsV2
+            SET status = ?, error_message = ?
             WHERE event_id = ? AND run_key = ? AND channel_id = ?
-        `).run(String(error || "Erreur inconnue").slice(0, 1000), eventId, runKey, channelId);
-        db.prepare(`UPDATE NarrativeEntityEventsV2 SET updated_at = ? WHERE id = ?`).run(now, eventId);
+              AND status = 'running' AND attempt_token = ?
+        `).run(
+            uncertain ? "failed_uncertain" : "failed",
+            String(error || "Erreur inconnue").slice(0, 1000),
+            eventId, runKey, channelId, attemptToken
+        ).changes === 1;
+        if (failed) {
+            db.prepare(`UPDATE NarrativeEntityEventsV2 SET updated_at = ? WHERE id = ?`).run(now, eventId);
+        }
+        return failed;
+    }
+
+    getStaleRunningRuns(staleBefore) {
+        return db.prepare(`
+            SELECT run.*, event.guild_id
+            FROM NarrativeEntityEventRunsV2 run
+            LEFT JOIN NarrativeEntityEventsV2 event ON event.id = run.event_id
+            WHERE run.status = 'running'
+              AND (run.lease_at IS NULL OR run.lease_at <= ?)
+            ORDER BY run.id
+        `).all(staleBefore);
+    }
+
+    recoverRun(runId, previousToken, staleBefore, now) {
+        const attemptToken = randomUUID();
+        const recovered = db.prepare(`
+            UPDATE NarrativeEntityEventRunsV2
+            SET attempt_token = ?, lease_at = ?
+            WHERE id = ? AND status = 'running'
+              AND attempt_token = ?
+              AND external_effect_attempted = 0
+              AND lease_at <= ?
+        `).run(attemptToken, now, runId, previousToken, staleBefore).changes === 1;
+        return recovered ? attemptToken : null;
+    }
+
+    markStaleRunUncertain(runId, staleBefore, now) {
+        return db.prepare(`
+            UPDATE NarrativeEntityEventRunsV2
+            SET status = 'failed_uncertain',
+                error_message = ?, lease_at = ?
+            WHERE id = ? AND status = 'running'
+              AND (lease_at IS NULL OR lease_at <= ?)
+              AND (external_effect_attempted IS NULL OR external_effect_attempted = 1)
+        `).run(
+            "Exécution interrompue avec effet externe inconnu ou déjà tenté; revue manuelle requise.",
+            now, runId, staleBefore
+        ).changes === 1;
     }
 
     delete(guildId, eventId) {

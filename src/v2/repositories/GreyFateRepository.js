@@ -1,4 +1,8 @@
 const db = require("../../database/database");
+const { randomUUID } = require("node:crypto");
+
+const CLAIM_PROCESSING = "processing";
+const CLAIM_FAILED_UNCERTAIN = "failed_uncertain";
 
 class GreyFateRepository {
     initializeSchema() {
@@ -31,6 +35,15 @@ class GreyFateRepository {
                 event_type TEXT NOT NULL,
                 processed_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS GreyFateOperationClaims (
+                operation_key TEXT PRIMARY KEY,
+                event_type TEXT NOT NULL,
+                claim_token TEXT NOT NULL,
+                status TEXT NOT NULL,
+                claimed_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                last_error TEXT
+            );
         `);
         const columns = new Set(
             db.prepare("PRAGMA table_info(GreyFateDuos)").all().map(column => column.name)
@@ -51,6 +64,66 @@ class GreyFateRepository {
     storeOperation(operationKey, eventType, processedAt) {
         db.prepare("INSERT INTO GreyFateOperations(operation_key,event_type,processed_at) VALUES(?,?,?)")
             .run(operationKey, eventType, processedAt);
+    }
+
+    claimOperation(operationKey, eventType, now = new Date().toISOString()) {
+        return db.transaction(() => {
+            const completed = db.prepare("SELECT event_type FROM GreyFateOperations WHERE operation_key=?").get(operationKey);
+            if (completed) return { state: completed.event_type === eventType ? "completed" : "key_conflict" };
+
+            const existing = db.prepare("SELECT event_type,status FROM GreyFateOperationClaims WHERE operation_key=?").get(operationKey);
+            if (existing) return { state: existing.event_type === eventType ? existing.status : "key_conflict" };
+
+            const claimToken = randomUUID();
+            const result = db.prepare(`
+                INSERT OR IGNORE INTO GreyFateOperationClaims(
+                    operation_key,event_type,claim_token,status,claimed_at,updated_at
+                ) VALUES(?,?,?,'processing',?,?)
+            `).run(operationKey, eventType, claimToken, now, now);
+            if (result.changes === 1) return { state: "claimed", claimToken };
+
+            const winner = db.prepare("SELECT event_type,status FROM GreyFateOperationClaims WHERE operation_key=?").get(operationKey);
+            return { state: winner?.event_type === eventType ? winner.status : "key_conflict" };
+        })();
+    }
+
+    completeOperation(operationKey, eventType, claimToken, now = new Date().toISOString()) {
+        return db.transaction(() => {
+            const claim = db.prepare(`
+                SELECT 1 FROM GreyFateOperationClaims
+                WHERE operation_key=? AND event_type=? AND claim_token=? AND status=?
+            `).get(operationKey, eventType, claimToken, CLAIM_PROCESSING);
+            if (!claim) return false;
+
+            db.prepare("INSERT INTO GreyFateOperations(operation_key,event_type,processed_at) VALUES(?,?,?)")
+                .run(operationKey, eventType, now);
+            const removed = db.prepare(`
+                DELETE FROM GreyFateOperationClaims
+                WHERE operation_key=? AND event_type=? AND claim_token=? AND status=?
+            `).run(operationKey, eventType, claimToken, CLAIM_PROCESSING);
+            if (removed.changes !== 1) throw new Error("GREYFATE_CLAIM_FINALIZATION_FAILED");
+            return true;
+        })();
+    }
+
+    releaseClaim(operationKey, claimToken) {
+        return db.prepare("DELETE FROM GreyFateOperationClaims WHERE operation_key=? AND claim_token=?")
+            .run(operationKey, claimToken).changes === 1;
+    }
+
+    markClaimUncertain(operationKey, claimToken, error, now = new Date().toISOString()) {
+        return db.prepare(`
+            UPDATE GreyFateOperationClaims SET status=?,updated_at=?,last_error=?
+            WHERE operation_key=? AND claim_token=? AND status=?
+        `).run(CLAIM_FAILED_UNCERTAIN, now, this.safeDiagnostic(error), operationKey, claimToken, CLAIM_PROCESSING).changes === 1;
+    }
+
+    safeDiagnostic(error) {
+        let message = String(error?.message || error || "Erreur inconnue")
+            .replace(/Bearer\s+\S+/gi, "Bearer [REDACTED]");
+        const secret = String(process.env.GREYFATE_SHARED_SECRET || "");
+        if (secret) message = message.split(secret).join("[REDACTED]");
+        return message.slice(0, 500);
     }
 
     upsertEvent(payload, now) {
@@ -87,9 +160,12 @@ class GreyFateRepository {
             .run(now, now, duoId);
     }
 
-    markContinued(duoId, now) {
-        db.prepare("UPDATE GreyFateDuos SET closure_prompt_sent_at=NULL,last_error=NULL,updated_at=? WHERE duo_id=?")
-            .run(now, duoId);
+    markContinuedIfOccurrence(duoId, occurrence, now) {
+        return db.prepare(`
+            UPDATE GreyFateDuos
+            SET closure_prompt_sent_at=NULL,last_error=NULL,updated_at=?
+            WHERE duo_id=? AND closure_prompt_sent_at=?
+        `).run(now, duoId, occurrence).changes === 1;
     }
 
     markClosed(duoId, now) {

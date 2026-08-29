@@ -17,10 +17,8 @@ const {
     "../../core/services/InteractionResponseService"
 );
 
-const {
-    withThreadId
-} = require(
-    "../../core/services/ProxyThreadContext"
+const historicalWebhookService = require(
+    "../../core/services/ProxyHistoricalWebhookService"
 );
 
 module.exports =
@@ -77,24 +75,48 @@ module.exports =
                 );
             }
 
-            const webhook =
-                await interaction.client
-                    .fetchWebhook(
-                        proxyRecord
-                            .webhook_id
-                    );
-
-            await webhook.editMessage(
-                proxyRecord
-                    .webhook_message_id,
-                withThreadId(
-                    interaction.channel,
-                    {
+            const result =
+                await historicalWebhookService.edit({
+                    client:
+                        interaction.client,
+                    guild:
+                        interaction.guild || null,
+                    channelId:
+                        proxyRecord.channel_id,
+                    currentChannel:
+                        interaction.channel || null,
+                    webhookId:
+                        proxyRecord.webhook_id,
+                    webhookMessageId:
+                        proxyRecord.webhook_message_id,
+                    payload: {
                         content:
                             newContent
                     }
-                )
-            );
+                });
+
+            if (!result.success) {
+                logger.warn(
+                    "Édition Proxy historique impossible.",
+                    {
+                        discordMessageId,
+                        proxyWebhookMessageId:
+                            proxyRecord.webhook_message_id,
+                        channelId:
+                            proxyRecord.channel_id,
+                        classification:
+                            result.status,
+                        discordCode:
+                            result.discordCode
+                    }
+                );
+
+                return replyError(
+                    interaction,
+                    historicalWebhookService
+                        .userMessage(result, "edit")
+                );
+            }
 
             return replyPrivate(
                 interaction,

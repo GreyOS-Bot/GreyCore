@@ -42,6 +42,13 @@ const {
     "../../core/services/InteractionResponseService"
 );
 
+const {
+    toPublicErrorMessage,
+    PHONE_CALL_MESSAGES
+} = require(
+    "../../core/services/PublicErrorMessageService"
+);
+
 class PhoneCallSpeakV2 {
 
     getParticipantContext(
@@ -349,17 +356,6 @@ class PhoneCallSpeakV2 {
                 )
             );
 
-PhoneCallV2Manager
-    .createMessage({
-        callId:
-            call.id,
-
-        speakerPhoneId:
-            phone.id,
-
-        content
-    });
-
 await PhoneCallServiceV2
     .sendSpeech({
                     client:
@@ -380,7 +376,20 @@ await PhoneCallServiceV2
 
                     contactName,
 
-                    content
+                    content,
+
+                    onChannelReady: () => {
+                        PhoneCallV2Manager
+                            .createMessage({
+                                callId:
+                                    call.id,
+
+                                speakerPhoneId:
+                                    phone.id,
+
+                                content
+                            });
+                    }
                 });
 
             /*
@@ -404,8 +413,11 @@ await PhoneCallServiceV2
 
             return editOrReplyError(
                 interaction,
-                error.message
-                || "Impossible de publier les paroles."
+                toPublicErrorMessage(
+                    error,
+                    "Impossible de publier les paroles.",
+                    PHONE_CALL_MESSAGES
+                )
             );
 
         }

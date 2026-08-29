@@ -10,7 +10,13 @@ test("le premier message d’un fil de forum déclenche l’accueil de l’Entit
         chooseForInvocation: () => null
     });
     stubModule("src/webhooks/webhookManager.js", {
-        getOrCreateWebhook: async () => ({ send: async payload => sent.push(payload) })
+        sendWithWebhook: async (channel, payload) => {
+            sent.push({ ...payload, threadId: channel.id });
+            return {
+                webhook: { id: "webhook" },
+                webhookMessage: { id: "message" }
+            };
+        }
     });
     const servicePath = require.resolve("../src/v2/services/entities/NarrativeEntityService");
     delete require.cache[servicePath];

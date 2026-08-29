@@ -20,6 +20,15 @@ const messageManager =
 
 class PhoneCallV2Manager {
 
+    reconcileInterruptedCalls(
+        startupCutoff
+    ) {
+        return transitionManager
+            .reconcileInterruptedCalls(
+                startupCutoff
+            );
+    }
+
     expireStaleRingingCalls(
         maximumAgeSeconds = 30
     ) {

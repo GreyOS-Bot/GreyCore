@@ -36,12 +36,6 @@ const validationStaffPolicy =
         "../../../v2/core/policies/ValidationStaffPolicy"
     );
 
-const {
-    withThreadId
-} = require(
-    "../../../v2/core/services/ProxyThreadContext"
-);
-
 const originalMessageDeletionService =
     require(
         "../../../v2/core/services/OriginalMessageDeletionService"
@@ -127,90 +121,180 @@ module.exports =
             return false;
         }
 
-        const webhook =
-            await webhookManager
-                .getOrCreateWebhook(
-                    message.channel
-                );
-
-        const files =
-            await downloadAttachments(
-                message.attachments
+        const claimToken =
+            proxyMessageManager.claim(
+                message.id
             );
 
-        const embeds =
-            await buildReplyEmbeds(
-                message
-            );
-
-        const avatarUrl =
-            await discordAttachmentUrlService
-                .resolve(
-                    message.client,
-                    character.avatar
-                );
-
-        const webhookMessage =
-            await webhook.send(
-                withThreadId(
-                    message.channel,
-                    {
-                        content:
-                            proxy.content
-                            ||
-                            undefined,
-                        username:
-                            character.name,
-                        avatarURL:
-                            avatarUrl
-                            ||
-                            null,
-                        files,
-                        embeds
-                    }
-                )
-            );
-
-        markInternalDelete(
-            message.id
-        );
-
-        try {
-            await originalMessageDeletionService
-                .delete(message);
-        } catch (error) {
-            await webhook.deleteMessage(
-                webhookMessage.id,
-                withThreadId(
-                    message.channel,
-                    {}
-                )
-            ).catch(() => null);
-
-            throw new Error(
-                "Le proxy n’a pas été publié car le message original n’a pas pu être supprimé.",
-                {
-                    cause: error
-                }
-            );
+        if (!claimToken) {
+            return true;
         }
 
-        proxyMessageManager.save({
-            discordMessageId:
-                message.id,
-            webhookMessageId:
-                webhookMessage.id,
-            webhookId:
-                webhook.id,
-            channelId:
-                message.channel.id,
-            guildId:
-                message.guild.id,
-            authorId:
-                message.author.id,
-            characterId:
-                character.id
-        });
+        let webhook = null;
+        let webhookMessage = null;
+        let finalized = false;
+        let originalDeletionError = null;
+
+        try {
+            const files =
+                await downloadAttachments(
+                    message.attachments
+                );
+
+            const embeds =
+                await buildReplyEmbeds(
+                    message
+                );
+
+            const avatarUrl =
+                await discordAttachmentUrlService
+                    .resolve(
+                        message.client,
+                        character.avatar
+                    );
+
+            const refreshedClaim =
+                proxyMessageManager
+                    .refreshClaim(
+                        message.id,
+                        claimToken
+                    );
+
+            if (refreshedClaim.changes !== 1) {
+                throw new Error(
+                    "La réservation de ce message proxy n’est plus active."
+                );
+            }
+
+            const delivery =
+                await webhookManager
+                    .sendWithWebhook(
+                        message.channel,
+                        {
+                            content:
+                                proxy.content
+                                ||
+                                undefined,
+                            username:
+                                character.name,
+                            avatarURL:
+                                avatarUrl
+                                ||
+                                null,
+                            files,
+                            embeds
+                        }
+                    );
+
+            webhook = delivery.webhook;
+            webhookMessage =
+                delivery.webhookMessage;
+
+            proxyMessageManager.completeClaim({
+                discordMessageId:
+                    message.id,
+                webhookMessageId:
+                    webhookMessage.id,
+                webhookId:
+                    webhook.id,
+                channelId:
+                    message.channel.id,
+                guildId:
+                    message.guild.id,
+                authorId:
+                    message.author.id,
+                characterId:
+                    character.id
+            }, claimToken);
+
+            finalized = true;
+
+            markInternalDelete(
+                message.id
+            );
+
+            try {
+                await originalMessageDeletionService
+                    .delete(message);
+            } catch (error) {
+                originalDeletionError =
+                    error;
+                throw error;
+            }
+        } catch (error) {
+            let webhookCompensated = false;
+
+            if (
+                webhook
+                && webhookMessage
+            ) {
+                try {
+                    await webhook.deleteMessage(
+                        webhookMessage.id,
+                        message.channel.isThread?.()
+                            ? message.channel.id
+                            : undefined
+                    );
+                    webhookCompensated = true;
+                } catch (compensationError) {
+                    if (
+                        compensationError.code === 10008
+                    ) {
+                        webhookCompensated = true;
+                    } else {
+                        console.error(
+                            "❌ Échec de compensation du message proxy :",
+                            compensationError
+                        );
+                    }
+                }
+            }
+
+            if (
+                finalized
+                && webhookCompensated
+            ) {
+                const rollback =
+                    proxyMessageManager
+                        .deleteIfMatches({
+                            discordMessageId:
+                                message.id,
+                            webhookMessageId:
+                                webhookMessage.id,
+                            webhookId:
+                                webhook.id
+                        });
+
+                if (rollback.changes !== 1) {
+                    console.warn(
+                        "⚠️ Rollback Proxy ignoré : la ligne ne correspond plus à cette opération."
+                    );
+                }
+            }
+
+            if (
+                !webhookMessage
+                || webhookCompensated
+                || finalized
+            ) {
+                proxyMessageManager.releaseClaim(
+                    message.id,
+                    claimToken
+                );
+            }
+
+            if (originalDeletionError) {
+                throw new Error(
+                    "Le proxy n’a pas été publié car le message original n’a pas pu être supprimé.",
+                    {
+                        cause:
+                            originalDeletionError
+                    }
+                );
+            }
+
+            throw error;
+        }
 
         if (
             v2Installation?.character_id

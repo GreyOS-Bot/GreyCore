@@ -263,6 +263,11 @@ module.exports =
             ] = interaction.customId
                 .split(":");
 
+            await fastInteractionAcknowledgementService
+                .deferComponentUpdate(
+                    interaction
+                );
+
             const characterManager =
                 require(
                     "../../managers/CharacterV2Manager"
@@ -316,11 +321,6 @@ module.exports =
 
             }
 
-            await fastInteractionAcknowledgementService
-                .deferComponentUpdate(
-                    interaction
-                );
-
             pendingActionManager.create({
                 userId:
                     interaction.user.id,
@@ -367,6 +367,11 @@ module.exports =
                 installationId
             ] = interaction.customId
                 .split(":");
+
+            await fastInteractionAcknowledgementService
+                .deferComponentUpdate(
+                    interaction
+                );
 
             const characterManager =
                 require(
@@ -426,11 +431,6 @@ module.exports =
                 return true;
 
             }
-
-            await fastInteractionAcknowledgementService
-                .deferComponentUpdate(
-                    interaction
-                );
 
             pendingActionManager.create({
                 userId:

@@ -9,6 +9,7 @@ const v2 =
     require("../../index");
 
 const {
+    deferPrivate,
     replyError,
     replyPrivate
 } = require(
@@ -76,6 +77,21 @@ module.exports = async interaction => {
                 interaction,
                 "Cette demande doit être envoyée depuis le serveur où l’installation a été créée."
             );
+        }
+
+        const isButtonInteraction =
+            Boolean(
+                interaction.message
+                && interaction.isButton()
+            );
+
+        if (isButtonInteraction) {
+            await fastInteractionAcknowledgementService
+                .deferComponentUpdate(
+                    interaction
+                );
+        } else {
+            await deferPrivate(interaction);
         }
 
         const guild =
@@ -166,16 +182,6 @@ module.exports = async interaction => {
             );
         }
 
-        if (
-            interaction.message
-            && interaction.isButton()
-        ) {
-            await fastInteractionAcknowledgementService
-                .deferComponentUpdate(
-                    interaction
-                );
-        }
-
         const validationChannel =
             await guild.channels
                 .fetch(
@@ -217,8 +223,7 @@ module.exports = async interaction => {
                 });
 
         if (
-            interaction.message &&
-            interaction.isButton()
+            isButtonInteraction
         ) {
             return interaction.editReply(
                 response

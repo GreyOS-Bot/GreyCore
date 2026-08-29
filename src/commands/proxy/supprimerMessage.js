@@ -7,10 +7,8 @@ const {
 const proxyMessageManager =
     require("../../managers/ProxyMessageManager");
 
-const {
-    getThreadId
-} = require(
-    "../../v2/core/services/ProxyThreadContext"
+const historicalWebhookService = require(
+    "../../v2/core/services/ProxyHistoricalWebhookService"
 );
 
 module.exports = {
@@ -48,35 +46,38 @@ module.exports = {
             flags: MessageFlags.Ephemeral
         });
 
-        const webhook =
-            await interaction.client
-                .fetchWebhook(
-                    proxyRecord.webhook_id
-                );
+        const result =
+            await historicalWebhookService.delete({
+                client: interaction.client,
+                guild:
+                    interaction.guild
+                    || interaction.targetMessage.guild
+                    || null,
+                channelId:
+                    proxyRecord.channel_id,
+                currentChannel:
+                    interaction.targetMessage.channel,
+                webhookId:
+                    proxyRecord.webhook_id,
+                webhookMessageId:
+                    proxyRecord.webhook_message_id
+            });
 
-        const threadId =
-            getThreadId(
-                interaction.targetMessage.channel
-            );
-
-        if (threadId) {
-            await webhook.deleteMessage(
-                proxyRecord.webhook_message_id,
-                threadId
-            );
-        } else {
-            await webhook.deleteMessage(
-                proxyRecord.webhook_message_id
+        if (
+            result.status === "success"
+            || result.status === "message_missing"
+        ) {
+            proxyMessageManager.delete(
+                proxyRecord.discord_message_id
             );
         }
 
-        proxyMessageManager.delete(
-            proxyRecord.discord_message_id
-        );
-
         return interaction.editReply({
             content:
-                "🗑️ Message proxy supprimé."
+                result.status === "success"
+                    ? "🗑️ Message proxy supprimé."
+                    : historicalWebhookService
+                        .userMessage(result, "delete")
         });
     }
 };

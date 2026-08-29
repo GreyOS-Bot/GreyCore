@@ -280,7 +280,7 @@ class ValidationManagerV2 {
             )
         ) {
             throw new Error(
-                "Cette installation ne peut pas être validée."
+                "Cette validation a déjà été traitée."
             );
         }
 
@@ -343,7 +343,7 @@ class ValidationManagerV2 {
             )
         ) {
             throw new Error(
-                "Cette installation ne peut pas être refusée."
+                "Cette validation a déjà été traitée."
             );
         }
 

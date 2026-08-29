@@ -157,17 +157,25 @@ class AssetRepository {
 
     transfer(asset, data) {
         const execute = db.transaction(() => {
-            db.prepare(`
+            const result = db.prepare(`
                 UPDATE ContinuityAssetsV2
                 SET
                     continuity_id = ?,
                     updated_at = ?
                 WHERE id = ?
+                AND continuity_id = ?
             `).run(
                 data.toContinuityId,
                 data.createdAt,
-                asset.id
+                asset.id,
+                data.expectedContinuityId
             );
+
+            if (result.changes !== 1) {
+                throw new Error(
+                    "Ce bien a été modifié ou transféré entre-temps. Actualisez la fiche avant de réessayer."
+                );
+            }
 
             db.prepare(`
                 INSERT INTO ContinuityAssetTransfersV2 (
@@ -183,7 +191,7 @@ class AssetRepository {
             `).run(
                 asset.id,
                 asset.guild_id,
-                asset.continuity_id,
+                data.expectedContinuityId,
                 data.toContinuityId,
                 data.transferredBy,
                 data.note,

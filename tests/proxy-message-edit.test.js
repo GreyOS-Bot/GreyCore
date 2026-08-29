@@ -24,6 +24,8 @@ test(
                     () => ({
                         author_id:
                             "owner",
+                        channel_id:
+                            "channel",
                         webhook_id:
                             "webhook",
                         webhook_message_id:
@@ -167,6 +169,12 @@ function createInteraction({
         },
         client: {
             fetchWebhook
+        },
+        channel: {
+            id:
+                "channel",
+            isThread:
+                () => false
         },
         inGuild:
             () => true,
