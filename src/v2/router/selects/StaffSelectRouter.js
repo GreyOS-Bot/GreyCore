@@ -7,7 +7,7 @@ const { replyError } = require(
 
 module.exports = async interaction => {
     if (interaction.customId === "v2_staff_scenes_public_forum_select") {
-        if (!policy.canAccess(interaction, "scenes", { write: false })) {
+        if (!policy.canAccess(interaction, "scenes", { write: true })) {
             await replyError(interaction, "Tu n’as pas accès aux cycles de scènes.");
             return true;
         }

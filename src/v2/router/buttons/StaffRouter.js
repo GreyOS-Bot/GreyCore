@@ -936,7 +936,7 @@ const owners = Array.from(new Set(
     }
 
     if (interaction.customId.startsWith("v2_staff_public_places_refresh:")) {
-        if (!require("../../core/policies/StaffPermissionPolicy").canAccess(interaction, "scenes", { write: false })) {
+        if (!require("../../core/policies/StaffPermissionPolicy").canAccess(interaction, "scenes", { write: true })) {
             await require("../../core/services/InteractionResponseService").replyError(interaction, "Tu n’as pas accès aux cycles de scènes.");
             return true;
         }
