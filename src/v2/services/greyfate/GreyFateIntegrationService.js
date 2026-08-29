@@ -16,21 +16,192 @@ const SUPPORTED_EVENTS = new Set([
 ]);
 
 class GreyFateIntegrationService {
-    constructor() { this.client = null; this.server = null; this.available = false; }
+    constructor() {
+        this.client = null;
+        this.server = null;
+        this.available = false;
+        this.starting = false;
+        this.stopRequested = false;
+    }
     enabled() { return String(process.env.GREYFATE_INTEGRATION_ENABLED || "false").toLowerCase() === "true"; }
     initializeSchema() { repository.initializeSchema(); }
     start(client) {
         this.client = client;
         if (!this.enabled()) { logger.info("GreyFate integration disabled by feature flag."); return; }
+
+        if (this.server) {
+            return this.server;
+        }
+
         try {
             this.initializeSchema();
             if (!process.env.GREYFATE_SHARED_SECRET) throw new Error("GREYFATE_SHARED_SECRET absent");
             const host = process.env.GREYCORE_FATE_HOST || "127.0.0.1", port = Number(process.env.GREYCORE_FATE_PORT || 8790);
             if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("GREYCORE_FATE_PORT invalide");
-            this.server = http.createServer((req, res) => this.handleHttp(req, res));
-            this.server.on("error", error => { this.available = false; logger.error("GreyFate receiver isolated error:", error); });
-            this.server.listen(port, host, () => { this.available = true; logger.info(`GreyFate receiver active on ${host}:${port}`); });
-        } catch (error) { this.available = false; logger.error("GreyFate integration isolated; GreyCore remains available:", error); }
+            this.starting = true;
+            this.stopRequested = false;
+
+            const server = http.createServer(
+                (req, res) => {
+                    Promise.resolve()
+                        .then(
+                            () => this.handleHttp(
+                                req,
+                                res
+                            )
+                        )
+                        .catch(
+                            error =>
+                                this.handleUnexpectedHttpError(
+                                    error,
+                                    res
+                                )
+                        );
+                }
+            );
+
+            this.server = server;
+
+            server.on(
+                "error",
+                error => {
+                    this.available = false;
+                    this.starting = false;
+
+                    logger.error(
+                        "GreyFate receiver isolated error:",
+                        String(
+                            error?.code
+                            || error?.message
+                            || "Erreur inconnue"
+                        )
+                    );
+
+                    if (this.server === server) {
+                        this.server = null;
+                    }
+                }
+            );
+
+            server.listen(
+                port,
+                host,
+                () => {
+                    this.starting = false;
+
+                    if (
+                        this.stopRequested
+                        || this.server !== server
+                    ) {
+                        this.closeServer(
+                            server
+                        );
+                        return;
+                    }
+
+                    this.available = true;
+                    logger.info(
+                        `GreyFate receiver active on ${host}:${port}`
+                    );
+                }
+            );
+
+            return server;
+        } catch (error) {
+            this.available = false;
+            this.starting = false;
+            this.server = null;
+            logger.error(
+                "GreyFate integration isolated; GreyCore remains available:",
+                String(
+                    error?.message
+                    || "Erreur inconnue"
+                )
+            );
+            return null;
+        }
+    }
+    handleUnexpectedHttpError(error, res) {
+        logger.error(
+            "GreyFate HTTP handler failed:",
+            String(
+                error?.message
+                || "Erreur inconnue"
+            )
+        );
+
+        if (
+            res.headersSent
+            || res.writableEnded
+        ) {
+            return;
+        }
+
+        this.respond(
+            res,
+            500,
+            {
+                ok: false,
+                error: "INTERNAL_ERROR"
+            }
+        );
+    }
+    closeServer(server) {
+        if (!server) {
+            return Promise.resolve(false);
+        }
+
+        return new Promise(
+            resolve => {
+                const done = () => {
+                    if (this.server === server) {
+                        this.server = null;
+                    }
+                    this.available = false;
+                    this.starting = false;
+                    resolve(true);
+                };
+
+                try {
+                    server.close(done);
+                } catch (error) {
+                    if (
+                        error?.code !==
+                        "ERR_SERVER_NOT_RUNNING"
+                    ) {
+                        logger.error(
+                            "GreyFate receiver close failed:",
+                            String(
+                                error?.code
+                                || error?.message
+                                || "Erreur inconnue"
+                            )
+                        );
+                    }
+                    done();
+                }
+            }
+        );
+    }
+    stop() {
+        this.stopRequested = true;
+        this.available = false;
+
+        const server =
+            this.server;
+
+        if (!server) {
+            this.starting = false;
+            return Promise.resolve(false);
+        }
+
+        if (!server.listening) {
+            return Promise.resolve(false);
+        }
+
+        return this.closeServer(
+            server
+        );
     }
     authenticate(req) { const a = Buffer.from(String(req.headers.authorization || "")), b = Buffer.from(`Bearer ${process.env.GREYFATE_SHARED_SECRET || ""}`); return a.length === b.length && crypto.timingSafeEqual(a, b); }
     read(req) { return new Promise((resolve, reject) => { let body = ""; req.on("data", c => { body += c; if (body.length > 262144) { reject(new Error("Payload trop volumineux")); req.destroy(); } }); req.on("end", () => { try { resolve(JSON.parse(body || "{}")); } catch { reject(new Error("JSON invalide")); } }); req.on("error", reject); }); }

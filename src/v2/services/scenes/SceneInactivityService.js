@@ -12,27 +12,73 @@ const referenceResolver = require(
 class SceneInactivityService {
     constructor() {
         this.client = null;
-        this.timer = null;
+        this.startupTimer = null;
+        this.intervalTimer = null;
+        this.running = false;
     }
 
     start(client) {
         this.client = client;
-        if (this.timer) {
+        if (
+            this.startupTimer
+            || this.intervalTimer
+        ) {
             return;
         }
 
-        this.timer = setInterval(
-            () => this.check().catch(error =>
-                logger.error("Vérification impossible :", error)
-            ),
+        this.intervalTimer = setInterval(
+            () => this.runOnceSafely(),
             5 * 60 * 1000
         );
-        this.timer.unref?.();
+        this.intervalTimer.unref?.();
 
-        setTimeout(
-            () => this.check().catch(() => null),
+        this.startupTimer = setTimeout(
+            () => {
+                this.startupTimer = null;
+                return this.runOnceSafely();
+            },
             10_000
-        ).unref?.();
+        );
+        this.startupTimer.unref?.();
+    }
+
+    stop() {
+        if (this.startupTimer) {
+            clearTimeout(
+                this.startupTimer
+            );
+            this.startupTimer = null;
+        }
+
+        if (this.intervalTimer) {
+            clearInterval(
+                this.intervalTimer
+            );
+            this.intervalTimer = null;
+        }
+    }
+
+    async runOnceSafely() {
+        if (this.running) {
+            return [];
+        }
+
+        this.running = true;
+
+        try {
+            return await this.check();
+        } catch (error) {
+            logger.error(
+                "Vérification impossible :",
+                String(
+                    error?.message
+                    || "Erreur inconnue"
+                )
+            );
+            return [];
+        } finally {
+            this.running = false;
+        }
     }
 
     async check(now = new Date()) {
@@ -42,63 +88,73 @@ class SceneInactivityService {
 
         const prompted = [];
         for (const scene of manager.getInactiveScenes(now)) {
-            const reference = {
-                domain: "scene",
-                ownerKey: `scene:${scene.id}`,
-                resourceKind: "channel",
-                discordId: scene.channel_id,
-                guildId: scene.guild_id
-            };
-            const resolution = await referenceResolver.resolve(
-                reference,
-                { client: this.client },
-                { now }
-            );
-            if (!resolution.available) continue;
-            const channel = resolution.channel;
-
-            if (!channel?.isTextBased?.()) {
-                continue;
-            }
-
-            const access =
-                await threadAccessService.ensureWritable(
-                    channel
-                );
-
-            if (!access.ready) {
-                referenceResolver.recordFailure(
+            try {
+                const reference = {
+                    domain: "scene",
+                    ownerKey: `scene:${scene.id}`,
+                    resourceKind: "channel",
+                    discordId: scene.channel_id,
+                    guildId: scene.guild_id
+                };
+                const resolution = await referenceResolver.resolve(
                     reference,
-                    access.error || access,
-                    now
+                    { client: this.client },
+                    { now }
                 );
-                logger.warn(
-                    "Prompt d’inactivité impossible :",
-                    threadAccessService.errorFor(
-                        access,
-                        "scene_inactivity"
+                if (!resolution.available) continue;
+                const channel = resolution.channel;
+
+                if (!channel?.isTextBased?.()) {
+                    continue;
+                }
+
+                const access =
+                    await threadAccessService.ensureWritable(
+                        channel
+                    );
+
+                if (!access.ready) {
+                    referenceResolver.recordFailure(
+                        reference,
+                        access.error || access,
+                        now
+                    );
+                    logger.warn(
+                        "Prompt d’inactivité impossible :",
+                        threadAccessService.errorFor(
+                            access,
+                            "scene_inactivity"
+                        )
+                    );
+                    continue;
+                }
+
+                const writableChannel =
+                    access.channel || channel;
+
+                const message = await writableChannel.send(
+                    sceneAssistantService.buildClosurePrompt(
+                        scene,
+                        scene.inactivity_hours
                     )
                 );
-                continue;
+
+                manager.saveClosurePrompt({
+                    sceneId: scene.id,
+                    guildId: scene.guild_id,
+                    channelId: scene.channel_id,
+                    messageId: message.id
+                });
+                prompted.push(scene.id);
+            } catch (error) {
+                logger.error(
+                    "Traitement d’une scène inactive impossible :",
+                    String(
+                        error?.message
+                        || "Erreur inconnue"
+                    )
+                );
             }
-
-            const writableChannel =
-                access.channel || channel;
-
-            const message = await writableChannel.send(
-                sceneAssistantService.buildClosurePrompt(
-                    scene,
-                    scene.inactivity_hours
-                )
-            );
-
-            manager.saveClosurePrompt({
-                sceneId: scene.id,
-                guildId: scene.guild_id,
-                channelId: scene.channel_id,
-                messageId: message.id
-            });
-            prompted.push(scene.id);
         }
 
         return prompted;
