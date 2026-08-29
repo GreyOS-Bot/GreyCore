@@ -1,6 +1,7 @@
 const { PermissionFlagsBits } = require("discord.js");
 const manager = require("../../managers/StaffPermissionV2Manager");
 const validationStaffPolicy = require("./ValidationStaffPolicy");
+const decisionService = require("../services/StaffPermissionDecisionService");
 
 class StaffPermissionPolicy {
     isServerOwner(interaction) {
@@ -67,11 +68,12 @@ class StaffPermissionPolicy {
     }
 
     canAccess(interaction, permissionKey, { write = false } = {}) {
-        const granted = this.getGrantedPermissions(interaction);
-        if (granted.includes("*") || granted.includes(permissionKey)) {
-            return true;
-        }
-        return !write && granted.includes("read_only");
+        return decisionService.decide({
+            interaction,
+            permission: permissionKey,
+            write,
+            legacyCanAccessParity: true
+        }).allowed;
     }
 
     canOpenCenter(interaction) {

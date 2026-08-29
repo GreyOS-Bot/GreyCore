@@ -10,6 +10,16 @@ const REASONS = Object.freeze({
     USER_PERMISSION: "USER_PERMISSION",
     VALIDATION_LEGACY_ACCESS: "VALIDATION_LEGACY_ACCESS",
     READ_ONLY: "READ_ONLY",
+    LEGACY_READ_ONLY_UNKNOWN_PERMISSION:
+        "LEGACY_READ_ONLY_UNKNOWN_PERMISSION",
+    LEGACY_VALIDATION_UNKNOWN_PERMISSION:
+        "LEGACY_VALIDATION_UNKNOWN_PERMISSION",
+    LEGACY_ROLE_UNKNOWN_PERMISSION:
+        "LEGACY_ROLE_UNKNOWN_PERMISSION",
+    LEGACY_USER_UNKNOWN_PERMISSION:
+        "LEGACY_USER_UNKNOWN_PERMISSION",
+    LEGACY_STORED_WILDCARD_PERMISSION:
+        "LEGACY_STORED_WILDCARD_PERMISSION",
     NO_PERMISSION: "NO_PERMISSION"
 });
 
@@ -20,7 +30,8 @@ class StaffPermissionDecisionService {
         member,
         userId,
         permission,
-        write = false
+        write = false,
+        legacyCanAccessParity = false
     }) {
         const interaction = providedInteraction || {
             guild,
@@ -64,7 +75,8 @@ class StaffPermissionDecisionService {
             });
         }
 
-        if (!this.isKnownPermission(permission) || !guildId) {
+        const knownPermission = this.isKnownPermission(permission);
+        if ((!knownPermission && !legacyCanAccessParity) || !guildId) {
             return this.denied(permission, mode);
         }
 
@@ -80,6 +92,20 @@ class StaffPermissionDecisionService {
             manager.getValidationChannelAccess(guildId)
             && validationStaffPolicy.canManageServerTools(interaction)
         );
+
+        if (legacyCanAccessParity) {
+            return this.decideWithLegacyCanAccessParity({
+                guildId,
+                resolvedUserId,
+                permission,
+                mode,
+                write,
+                knownPermission,
+                roleRows,
+                userPermissions,
+                validationLegacyAccess
+            });
+        }
 
         const roleSources = roleRows
             .filter(row => row.permission_key === permission)
@@ -152,6 +178,118 @@ class StaffPermissionDecisionService {
         }
 
         return this.denied(permission, mode);
+    }
+
+    decideWithLegacyCanAccessParity({
+        guildId,
+        resolvedUserId,
+        permission,
+        mode,
+        write,
+        knownPermission,
+        roleRows,
+        userPermissions,
+        validationLegacyAccess
+    }) {
+        const validationSources = validationLegacyAccess
+            ? [{
+                type: "VALIDATION_LEGACY_ACCESS",
+                guildId,
+                permission: "*"
+            }]
+            : [];
+        const storedWildcardSources = [
+            ...roleRows
+                .filter(row => row.permission_key === "*")
+                .map(row => ({
+                    type: "ROLE_PERMISSION",
+                    roleId: String(row.role_id),
+                    permission: "*",
+                    compatibility: "legacy"
+                })),
+            ...(userPermissions.includes("*") ? [{
+                type: "USER_PERMISSION",
+                userId: resolvedUserId,
+                permission: "*",
+                compatibility: "legacy"
+            }] : [])
+        ];
+        const exactRoleSources = roleRows
+            .filter(row => row.permission_key === permission)
+            .map(row => ({
+                type: "ROLE_PERMISSION",
+                roleId: String(row.role_id),
+                permission: row.permission_key,
+                ...(!knownPermission && { compatibility: "legacy" })
+            }));
+        const exactUserSources = userPermissions.includes(permission)
+            ? [{
+                type: "USER_PERMISSION",
+                userId: resolvedUserId,
+                permission,
+                ...(!knownPermission && { compatibility: "legacy" })
+            }]
+            : [];
+        const readOnlySources = !write
+            ? [
+                ...roleRows
+                    .filter(row => row.permission_key === "read_only")
+                    .map(row => ({
+                        type: "ROLE_PERMISSION",
+                        roleId: String(row.role_id),
+                        permission: "read_only",
+                        ...(!knownPermission && {
+                            compatibility: "legacy"
+                        })
+                    })),
+                ...(userPermissions.includes("read_only") ? [{
+                    type: "USER_PERMISSION",
+                    userId: resolvedUserId,
+                    permission: "read_only",
+                    ...(!knownPermission && { compatibility: "legacy" })
+                }] : [])
+            ]
+            : [];
+        const sources = [
+            ...validationSources,
+            ...storedWildcardSources,
+            ...exactRoleSources,
+            ...exactUserSources,
+            ...readOnlySources
+        ];
+
+        let reason = null;
+        if (validationSources.length) {
+            reason = knownPermission
+                ? REASONS.VALIDATION_LEGACY_ACCESS
+                : REASONS.LEGACY_VALIDATION_UNKNOWN_PERMISSION;
+        } else if (storedWildcardSources.length) {
+            reason = REASONS.LEGACY_STORED_WILDCARD_PERMISSION;
+        } else if (exactRoleSources.length) {
+            reason = knownPermission
+                ? REASONS.ROLE_PERMISSION
+                : REASONS.LEGACY_ROLE_UNKNOWN_PERMISSION;
+        } else if (exactUserSources.length) {
+            reason = knownPermission
+                ? REASONS.USER_PERMISSION
+                : REASONS.LEGACY_USER_UNKNOWN_PERMISSION;
+        } else if (readOnlySources.length) {
+            reason = knownPermission
+                ? REASONS.READ_ONLY
+                : REASONS.LEGACY_READ_ONLY_UNKNOWN_PERMISSION;
+        }
+
+        if (!reason) {
+            return this.denied(permission, mode);
+        }
+
+        return this.createDecision({
+            allowed: true,
+            permission,
+            mode,
+            reason,
+            sources
+        });
     }
 
     isKnownPermission(permission) {

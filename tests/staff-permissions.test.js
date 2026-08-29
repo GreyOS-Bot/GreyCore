@@ -16,6 +16,7 @@ test("les permissions GreyCore sont déléguées par rôle et isolées par serve
         "../src/v2/repositories/GuildSettingsRepository",
         "../src/v2/managers/GuildSettingsV2Manager",
         "../src/v2/core/policies/ValidationStaffPolicy",
+        "../src/v2/core/services/StaffPermissionDecisionService",
         "../src/v2/core/policies/StaffPermissionPolicy"
     ]) {
         delete require.cache[require.resolve(modulePath)];
@@ -68,6 +69,7 @@ test("la lecture seule ouvre toutes les pages sans autoriser leur écriture", co
         "../src/v2/repositories/GuildSettingsRepository",
         "../src/v2/managers/GuildSettingsV2Manager",
         "../src/v2/core/policies/ValidationStaffPolicy",
+        "../src/v2/core/services/StaffPermissionDecisionService",
         "../src/v2/core/policies/StaffPermissionPolicy"
     ]) {
         delete require.cache[require.resolve(modulePath)];
@@ -112,6 +114,7 @@ test("un utilisateur particulier peut recevoir ses propres domaines", context =>
         "../src/v2/repositories/GuildSettingsRepository",
         "../src/v2/managers/GuildSettingsV2Manager",
         "../src/v2/core/policies/ValidationStaffPolicy",
+        "../src/v2/core/services/StaffPermissionDecisionService",
         "../src/v2/core/policies/StaffPermissionPolicy"
     ]) {
         delete require.cache[require.resolve(modulePath)];

@@ -209,3 +209,191 @@ test("2A produit des sources déterministes indépendamment de l'ordre des rôle
         ["role-a", "role-z"]
     );
 });
+
+test("2B.1 conserve l'oracle historique de canAccess sans assouplir le mode strict", context => {
+    const isolated = createIsolatedDatabase({ initializeSchema: true });
+    context.after(() => isolated.cleanup());
+    for (const id of ["guild-a", "guild-b"]) {
+        isolated.database.prepare(`
+            INSERT INTO Guilds (id, name, created_at) VALUES (?, ?, ?)
+        `).run(id, id, "2026-08-29");
+    }
+    const { manager, settings, legacy, decisions } = reloadPermissionModules();
+    const now = "2026-08-29T00:00:00.000Z";
+    const insertRole = isolated.database.prepare(`
+        INSERT INTO GuildStaffRolePermissionsV2 (
+            guild_id, role_id, permission_key, granted_by,
+            created_at, updated_at
+        ) VALUES (?, ?, ?, 'fixture', ?, ?)
+    `);
+    const insertUser = isolated.database.prepare(`
+        INSERT INTO GuildStaffUserPermissionsV2 (
+            guild_id, discord_user_id, permission_key, granted_by,
+            created_at, updated_at
+        ) VALUES (?, ?, ?, 'fixture', ?, ?)
+    `);
+
+    for (const [guildId, roleId, permission] of [
+        ["guild-a", "role-reader", "read_only"],
+        ["guild-a", "role-unknown", "some_old_permission"],
+        ["guild-a", "role-star", "*"],
+        ["guild-a", "role-empty", ""],
+        ["guild-a", "role-spaces", "   "],
+        ["guild-b", "role-foreign", "some_old_permission"]
+    ]) {
+        insertRole.run(guildId, roleId, permission, now, now);
+    }
+    for (const [userId, permission] of [
+        ["user-reader", "read_only"],
+        ["user-unknown", "some_old_permission"],
+        ["user-star", "*"]
+    ]) {
+        insertUser.run("guild-a", userId, permission, now, now);
+    }
+    manager.setValidationChannelAccess({
+        guildId: "guild-a", enabled: false, updatedBy: "owner"
+    });
+    manager.setValidationChannelAccess({
+        guildId: "guild-b", enabled: false, updatedBy: "owner"
+    });
+
+    function historicalOracle(currentInteraction, permission, write = false) {
+        const granted = legacy.getGrantedPermissions(currentInteraction);
+        if (granted.includes("*") || granted.includes(permission)) {
+            return true;
+        }
+        return !write && granted.includes("read_only");
+    }
+
+    function assertParity(currentInteraction, permission, write = false) {
+        assert.equal(
+            legacy.canAccess(currentInteraction, permission, { write }),
+            historicalOracle(currentInteraction, permission, write)
+        );
+    }
+
+    const unknownCases = [
+        [interaction({ userId: "owner" }), "unknown", false],
+        [interaction({ administrator: true }), "unknown", true],
+        [interaction({ roleIds: ["role-reader"] }), "unknown", false],
+        [interaction({ roleIds: ["role-reader"] }), "unknown", true],
+        [interaction({ userId: "user-reader" }), "unknown", false],
+        [interaction({ roleIds: ["role-unknown"] }), "some_old_permission", false],
+        [interaction({ roleIds: ["role-unknown"] }), "some_old_permission", true],
+        [interaction({ userId: "user-unknown" }), "some_old_permission", true],
+        [interaction({ roleIds: ["role-star"] }), "unknown", true],
+        [interaction({ userId: "user-star" }), undefined, true],
+        [interaction({ roleIds: ["role-reader"] }), null, false],
+        [interaction({ roleIds: ["role-empty"] }), "", true],
+        [interaction({ roleIds: ["role-spaces"] }), "   ", true],
+        [interaction(), "unknown", false],
+        [interaction({ roleIds: ["role-foreign"] }), "some_old_permission", true]
+    ];
+    for (const [currentInteraction, permission, write] of unknownCases) {
+        assertParity(currentInteraction, permission, write);
+    }
+
+    assert.equal(
+        decisions.decide({
+            interaction: interaction({ roleIds: ["role-reader"] }),
+            permission: "unknown"
+        }).allowed,
+        false
+    );
+    assert.equal(
+        legacy.canAccess(
+            interaction({ roleIds: ["role-reader"] }),
+            "unknown"
+        ),
+        true
+    );
+    assert.equal(
+        legacy.canAccess(
+            interaction({ roleIds: ["role-reader"] }),
+            "unknown",
+            { write: true }
+        ),
+        false
+    );
+
+    settings.setValidationChannel("guild-a", "validation");
+    manager.setValidationChannelAccess({
+        guildId: "guild-a", enabled: true, updatedBy: "owner"
+    });
+    const validation = interaction({ validationAccess: true });
+    assertParity(validation, "unknown", false);
+    assertParity(validation, "unknown", true);
+    assert.equal(
+        decisions.decide({
+            interaction: validation,
+            permission: "unknown",
+            legacyCanAccessParity: true
+        }).reason,
+        "LEGACY_VALIDATION_UNKNOWN_PERMISSION"
+    );
+    manager.setValidationChannelAccess({
+        guildId: "guild-a", enabled: false, updatedBy: "owner"
+    });
+    assert.equal(legacy.canAccess(validation, "unknown"), false);
+
+    const knownPermissions = [
+        "characters", "scenes", "phone", "bank", "relationships",
+        "universe", "entities", "automations", "modules", "logs",
+        "settings"
+    ];
+    manager.replaceRolePermissions({
+        guildId: "guild-a",
+        roleId: "role-known",
+        permissionKeys: [...knownPermissions, "read_only"],
+        grantedBy: "owner"
+    });
+    const knownInteraction = interaction({ roleIds: ["role-known"] });
+    for (const permission of knownPermissions) {
+        assertParity(knownInteraction, permission, false);
+        assertParity(knownInteraction, permission, true);
+    }
+    assert.equal(legacy.canAccess(knownInteraction, "read_only"), true);
+    assert.equal(
+        legacy.canAccess(knownInteraction, "settings", { write: true }),
+        true
+    );
+
+    assert.equal(legacy.canManageCharacters(knownInteraction), true);
+    assert.equal(legacy.canManagePermissions(knownInteraction), false);
+    assert.equal(
+        legacy.canManagePermissions(interaction({ userId: "owner" })),
+        true
+    );
+    assert.equal(legacy.canOpenCenter(knownInteraction), true);
+    assert.deepEqual(
+        new Set(legacy.getGrantedPermissions(knownInteraction)),
+        new Set([...knownPermissions, "read_only"])
+    );
+});
+
+test("2B.1 canAccess effectue exactement une décision ciblée", () => {
+    const decisionService = require(
+        "../src/v2/core/services/StaffPermissionDecisionService"
+    );
+    const policy = require("../src/v2/core/policies/StaffPermissionPolicy");
+    const originalDecide = decisionService.decide;
+    const calls = [];
+    decisionService.decide = options => {
+        calls.push(options);
+        return { allowed: true };
+    };
+    try {
+        const currentInteraction = interaction();
+        assert.equal(
+            policy.canAccess(currentInteraction, "scenes", { write: true }),
+            true
+        );
+        assert.equal(calls.length, 1);
+        assert.equal(calls[0].interaction, currentInteraction);
+        assert.equal(calls[0].permission, "scenes");
+        assert.equal(calls[0].write, true);
+        assert.equal(calls[0].legacyCanAccessParity, true);
+    } finally {
+        decisionService.decide = originalDecide;
+    }
+});
