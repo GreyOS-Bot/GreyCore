@@ -52,7 +52,7 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId?.startsWith("v2_staff_public_place_pick:")) {
-        if (!policy.canAccess(interaction, "scenes", { write: true })) {
+        if (!policy.canAccess(interaction, "scenes", { write: false })) {
             await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }
@@ -377,7 +377,7 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId === "v2_staff_characters_manage_character") {
-        if (!policy.canManageCharacters(interaction)) {
+        if (!policy.canAccess(interaction, "characters", { write: false })) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
