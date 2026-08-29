@@ -228,6 +228,50 @@ function expireStaleRingingCalls({
     ).changes;
 }
 
+function reconcileInterruptedCalls({
+    startupCutoff,
+    recoveryAt
+}) {
+    return db.transaction(
+        () => {
+            const ringing =
+                db.prepare(`
+                    UPDATE PhoneCallsV2
+                    SET
+                        status = 'missed',
+                        ended_at = ?,
+                        updated_at = ?
+                    WHERE status = 'ringing'
+                    AND created_at < ?
+                `).run(
+                    recoveryAt,
+                    recoveryAt,
+                    startupCutoff
+                ).changes;
+
+            const accepted =
+                db.prepare(`
+                    UPDATE PhoneCallsV2
+                    SET
+                        status = 'ended',
+                        ended_at = ?,
+                        updated_at = ?
+                    WHERE status = 'accepted'
+                    AND created_at < ?
+                `).run(
+                    recoveryAt,
+                    recoveryAt,
+                    startupCutoff
+                ).changes;
+
+            return {
+                ringing,
+                accepted
+            };
+        }
+    )();
+}
+
 function insertMessage({
     callId,
     speakerPhoneId,
@@ -304,6 +348,7 @@ module.exports = {
     insertCall,
     transitionCall,
     expireStaleRingingCalls,
+    reconcileInterruptedCalls,
     insertMessage,
     getMessageById,
     getMessages
