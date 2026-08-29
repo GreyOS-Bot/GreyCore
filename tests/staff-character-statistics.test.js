@@ -95,6 +95,9 @@ test("la sélection staff limite les statistiques au seul utilisateur choisi", a
     stubModule("src/v2/managers/CharacterRosterV2Manager.js", {
         getRoster: () => roster
     });
+    stubModule("src/v2/core/policies/StaffPermissionPolicy.js", {
+        canAccess: () => true
+    });
     const routerPath = require.resolve("../src/v2/router/selects/StaffSelectRouter");
     delete require.cache[routerPath];
     const router = require(routerPath);

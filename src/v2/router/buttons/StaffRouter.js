@@ -436,6 +436,27 @@ module.exports = async interaction => {
         return true;
     }
 
+    const characterReadAction = [
+        "v2_staff_characters_pending",
+        "v2_staff_characters_roster",
+        "v2_staff_characters_statistics_global",
+        "v2_staff_characters_statistics_user",
+        "v2_staff_characters_genders",
+        "v2_staff_characters_users"
+    ].includes(interaction.customId)
+        || interaction.customId.startsWith("v2_staff_characters_roster_page:")
+        || interaction.customId.startsWith("v2_staff_characters_statistics_users_page:")
+        || interaction.customId.startsWith("v2_staff_character_genders_page:")
+        || interaction.customId.startsWith("v2_staff_character_gender_quick:");
+    if (characterReadAction) {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canAccess(interaction, "characters", { write: false })) {
+            await replyError(interaction, "Tu n’as pas accès à la gestion des personnages.");
+            return true;
+        }
+    }
+
     if (interaction.customId === "v2_staff_characters_pending") {
         const manager = require("../../services/validation/ValidationManagerV2");
         const view = require("../../views/validation/PendingValidationsView");

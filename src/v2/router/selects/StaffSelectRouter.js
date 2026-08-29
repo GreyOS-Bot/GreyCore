@@ -6,6 +6,14 @@ const { replyError } = require(
 );
 
 module.exports = async interaction => {
+    const characterReadAction = interaction.customId?.startsWith("v2_staff_character_gender_select:")
+        || interaction.customId === "v2_staff_characters_statistics_user_select"
+        || interaction.customId === "v2_staff_characters_user_select";
+    if (characterReadAction && !policy.canAccess(interaction, "characters", { write: false })) {
+        await replyError(interaction, "Tu n’as pas accès à la gestion des personnages.");
+        return true;
+    }
+
     if (interaction.customId === "v2_staff_scenes_public_forum_select") {
         if (!policy.canAccess(interaction, "scenes", { write: true })) {
             await replyError(interaction, "Tu n’as pas accès aux cycles de scènes.");
