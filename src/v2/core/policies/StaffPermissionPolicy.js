@@ -1,6 +1,4 @@
 const { PermissionFlagsBits } = require("discord.js");
-const manager = require("../../managers/StaffPermissionV2Manager");
-const validationStaffPolicy = require("./ValidationStaffPolicy");
 const decisionService = require("../services/StaffPermissionDecisionService");
 
 class StaffPermissionPolicy {
@@ -27,44 +25,8 @@ class StaffPermissionPolicy {
             || this.isDiscordAdministrator(interaction);
     }
 
-    getRoleIds(interaction) {
-        const cache = interaction.member?.roles?.cache;
-        if (cache?.keys) {
-            return [...cache.keys()].map(String);
-        }
-        if (Array.isArray(interaction.member?.roles)) {
-            return interaction.member.roles.map(String);
-        }
-        return [];
-    }
-
     getGrantedPermissions(interaction) {
-        if (this.canManagePermissions(interaction)) {
-            return ["*"];
-        }
-
-        const guildId = interaction.guildId || interaction.guild?.id;
-        if (!guildId) return [];
-
-        const permissions = new Set(manager.getPermissionsForRoles(
-            guildId,
-            this.getRoleIds(interaction)
-        ));
-        for (const permission of manager.getUserPermissions(
-            guildId,
-            interaction.user?.id
-        )) {
-            permissions.add(permission);
-        }
-
-        if (
-            manager.getValidationChannelAccess(guildId)
-            && validationStaffPolicy.canManageServerTools(interaction)
-        ) {
-            permissions.add("*");
-        }
-
-        return [...permissions];
+        return decisionService.getGrantedPermissions({ interaction });
     }
 
     canAccess(interaction, permissionKey, { write = false } = {}) {

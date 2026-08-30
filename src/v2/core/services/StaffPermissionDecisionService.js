@@ -42,6 +42,64 @@ class StaffPermissionDecisionService {
         requests = [],
         legacyCanAccessParity = false
     }) {
+        const normalizedRequests = requests.map(request => ({
+            permission: request?.permission,
+            write: request?.write === true
+        }));
+        const includeSources = legacyCanAccessParity
+            || normalizedRequests.some(request =>
+                this.isKnownPermission(request.permission)
+            );
+        const snapshot = this.resolvePermissionSnapshot({
+            interaction: providedInteraction,
+            guild,
+            member,
+            userId
+        }, includeSources);
+
+        if (snapshot.rootReason) {
+            return this.createDecisionBatch(normalizedRequests, request => ({
+                reason: snapshot.rootReason,
+                sources: snapshot.rootSources
+            }));
+        }
+        if (!snapshot.sourcesResolved) {
+            return Object.freeze({
+                decisions: Object.freeze(normalizedRequests.map(request =>
+                    this.denied(
+                        request.permission,
+                        request.write ? "write" : "read"
+                    )
+                ))
+            });
+        }
+        return Object.freeze({
+            decisions: Object.freeze(normalizedRequests.map(request =>
+                this.evaluate(snapshot, request, legacyCanAccessParity)
+            ))
+        });
+    }
+
+    getGrantedPermissions(options) {
+        const snapshot = this.resolvePermissionSnapshot(options, true);
+        if (snapshot.rootReason) return ["*"];
+        if (!snapshot.sourcesResolved) return [];
+        const permissions = new Set(
+            snapshot.roleRows.map(row => row.permission_key)
+        );
+        for (const permission of snapshot.userPermissions) {
+            permissions.add(permission);
+        }
+        if (snapshot.validationLegacyAccess) permissions.add("*");
+        return [...permissions];
+    }
+
+    resolvePermissionSnapshot({
+        interaction: providedInteraction,
+        guild,
+        member,
+        userId
+    }, includeSources) {
         const interaction = providedInteraction || {
             guild,
             guildId: guild?.id,
@@ -56,52 +114,39 @@ class StaffPermissionDecisionService {
         const guildId = String(
             interaction.guildId || resolvedGuild?.id || ""
         );
-        const normalizedRequests = requests.map(request => ({
-            permission: request?.permission,
-            write: request?.write === true
-        }));
-
+        let rootReason = null;
+        let rootSources = [];
         if (
             resolvedGuild?.ownerId
             && resolvedUserId === String(resolvedGuild.ownerId)
         ) {
-            return this.createDecisionBatch(normalizedRequests, request => ({
-                reason: REASONS.GUILD_OWNER,
-                sources: [{ type: "GUILD_OWNER", userId: resolvedUserId }]
-            }));
+            rootReason = REASONS.GUILD_OWNER;
+            rootSources = [{ type: "GUILD_OWNER", userId: resolvedUserId }];
+        } else if (this.isAdministrator(interaction, resolvedMember)) {
+            rootReason = REASONS.DISCORD_ADMINISTRATOR;
+            rootSources = [{
+                type: "DISCORD_ADMINISTRATOR",
+                userId: resolvedUserId || null
+            }];
         }
-
-        if (this.isAdministrator(interaction, resolvedMember)) {
-            return this.createDecisionBatch(normalizedRequests, request => ({
-                reason: REASONS.DISCORD_ADMINISTRATOR,
-                sources: [{
-                    type: "DISCORD_ADMINISTRATOR",
-                    userId: resolvedUserId || null
-                }]
-            }));
-        }
-
-        const requiresSources = Boolean(guildId) && (
-            legacyCanAccessParity
-            || normalizedRequests.some(request =>
-                this.isKnownPermission(request.permission)
-            )
-        );
-        if (!requiresSources) {
+        if (rootReason || !guildId || !includeSources) {
             return Object.freeze({
-                decisions: Object.freeze(normalizedRequests.map(request =>
-                    this.denied(
-                        request.permission,
-                        request.write ? "write" : "read"
-                    )
-                ))
+                guildId,
+                resolvedUserId,
+                rootReason,
+                rootSources: Object.freeze(rootSources.map(source =>
+                    Object.freeze(source)
+                )),
+                roleRows: Object.freeze([]),
+                userPermissions: Object.freeze([]),
+                validationLegacyAccess: false,
+                sourcesResolved: false
             });
         }
 
-        const roleIds = this.getRoleIds(resolvedMember);
         const roleRows = manager.getPermissionSourcesForRoles(
             guildId,
-            roleIds
+            this.getRoleIds(resolvedMember)
         );
         const userPermissions = resolvedUserId
             ? manager.getUserPermissions(guildId, resolvedUserId)
@@ -110,10 +155,11 @@ class StaffPermissionDecisionService {
             manager.getValidationChannelAccess(guildId)
             && validationStaffPolicy.canManageServerTools(interaction)
         );
-
-        const snapshot = Object.freeze({
+        return Object.freeze({
             guildId,
             resolvedUserId,
+            rootReason: null,
+            rootSources: Object.freeze([]),
             roleRows: Object.freeze(roleRows
                 .map(row => ({
                     role_id: String(row.role_id),
@@ -131,12 +177,8 @@ class StaffPermissionDecisionService {
                     String(left).localeCompare(String(right))
                 )
             ),
-            validationLegacyAccess
-        });
-        return Object.freeze({
-            decisions: Object.freeze(normalizedRequests.map(request =>
-                this.evaluate(snapshot, request, legacyCanAccessParity)
-            ))
+            validationLegacyAccess,
+            sourcesResolved: true
         });
     }
 
