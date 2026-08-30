@@ -6,13 +6,25 @@ const {
 } = require("discord.js");
 const catalog = require("../../core/permissions/StaffPermissionCatalog");
 const policy = require("../../core/policies/StaffPermissionPolicy");
+const decisionService = require(
+    "../../core/services/StaffPermissionDecisionService"
+);
 
 const SECTIONS = catalog.all().filter(item => item.key !== "read_only");
+const SECTION_READ_REQUESTS = SECTIONS.map(section => Object.freeze({
+    permission: section.key,
+    write: false
+}));
 
 class StaffCenterPage {
     build(interaction) {
-        const visible = SECTIONS.filter(section =>
-            policy.canAccess(interaction, section.key)
+        const { decisions } = decisionService.decideMany({
+            interaction,
+            requests: SECTION_READ_REQUESTS,
+            legacyCanAccessParity: true
+        });
+        const visible = SECTIONS.filter((_section, index) =>
+            decisions[index].allowed
         );
 
         if (policy.canManagePermissions(interaction)) {
@@ -23,7 +35,10 @@ class StaffCenterPage {
             });
         }
 
-        if (policy.canAccess(interaction, "settings")) {
+        const settingsIndex = SECTIONS.findIndex(
+            section => section.key === "settings"
+        );
+        if (decisions[settingsIndex].allowed) {
             visible.unshift({
                 key: "setup",
                 label: "Démarrage",
