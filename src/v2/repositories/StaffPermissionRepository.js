@@ -62,6 +62,26 @@ class StaffPermissionRepository {
         `).all(guildId, ...roleIds);
     }
 
+    getRolePermissionAssignments(guildId, roleId) {
+        return db.prepare(`
+            SELECT role_id, permission_key, effect
+            FROM GuildStaffRolePermissionsV2
+            WHERE guild_id = ? AND role_id = ?
+            ORDER BY permission_key
+        `).all(guildId, roleId).map(mapRoleAssignment);
+    }
+
+    getPermissionAssignmentsForRoles(guildId, roleIds) {
+        if (!roleIds.length) return [];
+        const placeholders = roleIds.map(() => "?").join(",");
+        return db.prepare(`
+            SELECT role_id, permission_key, effect
+            FROM GuildStaffRolePermissionsV2
+            WHERE guild_id = ? AND role_id IN (${placeholders})
+            ORDER BY role_id, permission_key
+        `).all(guildId, ...roleIds).map(mapRoleAssignment);
+    }
+
     getUserPermissions(guildId, discordUserId) {
         return db.prepare(`
             SELECT permission_key
@@ -69,6 +89,58 @@ class StaffPermissionRepository {
             WHERE guild_id = ? AND discord_user_id = ?
             ORDER BY permission_key
         `).all(guildId, discordUserId).map(row => row.permission_key);
+    }
+
+    getUserPermissionAssignments(guildId, discordUserId) {
+        return db.prepare(`
+            SELECT permission_key, effect
+            FROM GuildStaffUserPermissionsV2
+            WHERE guild_id = ? AND discord_user_id = ?
+            ORDER BY permission_key
+        `).all(guildId, discordUserId).map(row => ({
+            permissionKey: row.permission_key,
+            effect: row.effect
+        }));
+    }
+
+    getPermissionDefaults(guildId) {
+        return db.prepare(`
+            SELECT permission_key, effect, updated_by, updated_at
+            FROM GuildStaffPermissionDefaultsV2
+            WHERE guild_id = ?
+            ORDER BY permission_key
+        `).all(guildId).map(mapDefaultAssignment);
+    }
+
+    getPermissionDefault(guildId, permissionKey) {
+        const row = db.prepare(`
+            SELECT permission_key, effect, updated_by, updated_at
+            FROM GuildStaffPermissionDefaultsV2
+            WHERE guild_id = ? AND permission_key = ?
+        `).get(guildId, permissionKey);
+        return row ? mapDefaultAssignment(row) : null;
+    }
+
+    setPermissionDefault({
+        guildId, permissionKey, effect, updatedBy, updatedAt
+    }) {
+        db.prepare(`
+            INSERT INTO GuildStaffPermissionDefaultsV2 (
+                guild_id, permission_key, effect, updated_by, updated_at
+            ) VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(guild_id, permission_key) DO UPDATE SET
+                effect = excluded.effect,
+                updated_by = excluded.updated_by,
+                updated_at = excluded.updated_at
+        `).run(guildId, permissionKey, effect, updatedBy, updatedAt);
+        return this.getPermissionDefault(guildId, permissionKey);
+    }
+
+    clearPermissionDefault(guildId, permissionKey) {
+        return db.prepare(`
+            DELETE FROM GuildStaffPermissionDefaultsV2
+            WHERE guild_id = ? AND permission_key = ?
+        `).run(guildId, permissionKey).changes > 0;
     }
 
     getValidationChannelAccess(guildId) {
@@ -109,9 +181,9 @@ class StaffPermissionRepository {
 
             const insert = db.prepare(`
                 INSERT INTO GuildStaffRolePermissionsV2 (
-                    guild_id, role_id, permission_key, granted_by,
+                    guild_id, role_id, permission_key, effect, granted_by,
                     created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, 'allow', ?, ?, ?)
             `);
             for (const key of permissionKeys) {
                 insert.run(
@@ -126,6 +198,31 @@ class StaffPermissionRepository {
         });
         transaction();
         return this.getRolePermissions(guildId, roleId);
+    }
+
+    replaceRolePermissionAssignments({
+        guildId, roleId, assignments, grantedBy, updatedAt
+    }) {
+        const transaction = db.transaction(() => {
+            db.prepare(`
+                DELETE FROM GuildStaffRolePermissionsV2
+                WHERE guild_id = ? AND role_id = ?
+            `).run(guildId, roleId);
+            const insert = db.prepare(`
+                INSERT INTO GuildStaffRolePermissionsV2 (
+                    guild_id, role_id, permission_key, effect, granted_by,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            `);
+            for (const assignment of assignments) {
+                insert.run(
+                    guildId, roleId, assignment.permissionKey,
+                    assignment.effect, grantedBy, updatedAt, updatedAt
+                );
+            }
+        });
+        transaction();
+        return this.getRolePermissionAssignments(guildId, roleId);
     }
 
     replaceRolePermissionsForMany({
@@ -160,9 +257,9 @@ class StaffPermissionRepository {
             `).run(guildId, discordUserId);
             const insert = db.prepare(`
                 INSERT INTO GuildStaffUserPermissionsV2 (
-                    guild_id, discord_user_id, permission_key,
+                    guild_id, discord_user_id, permission_key, effect,
                     granted_by, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, 'allow', ?, ?, ?)
             `);
             for (const key of permissionKeys) {
                 insert.run(
@@ -177,6 +274,31 @@ class StaffPermissionRepository {
         });
         transaction();
         return this.getUserPermissions(guildId, discordUserId);
+    }
+
+    replaceUserPermissionAssignments({
+        guildId, discordUserId, assignments, grantedBy, updatedAt
+    }) {
+        const transaction = db.transaction(() => {
+            db.prepare(`
+                DELETE FROM GuildStaffUserPermissionsV2
+                WHERE guild_id = ? AND discord_user_id = ?
+            `).run(guildId, discordUserId);
+            const insert = db.prepare(`
+                INSERT INTO GuildStaffUserPermissionsV2 (
+                    guild_id, discord_user_id, permission_key, effect,
+                    granted_by, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            `);
+            for (const assignment of assignments) {
+                insert.run(
+                    guildId, discordUserId, assignment.permissionKey,
+                    assignment.effect, grantedBy, updatedAt, updatedAt
+                );
+            }
+        });
+        transaction();
+        return this.getUserPermissionAssignments(guildId, discordUserId);
     }
 
     replaceUserPermissionsForMany({
@@ -195,6 +317,23 @@ class StaffPermissionRepository {
             permissionKeys: this.getUserPermissions(guildId, discordUserId)
         }));
     }
+}
+
+function mapRoleAssignment(row) {
+    return {
+        roleId: String(row.role_id),
+        permissionKey: row.permission_key,
+        effect: row.effect
+    };
+}
+
+function mapDefaultAssignment(row) {
+    return {
+        permissionKey: row.permission_key,
+        effect: row.effect,
+        updatedBy: row.updated_by,
+        updatedAt: row.updated_at
+    };
 }
 
 module.exports = new StaffPermissionRepository();
