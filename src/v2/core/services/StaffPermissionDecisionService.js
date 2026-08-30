@@ -24,13 +24,22 @@ const REASONS = Object.freeze({
 });
 
 class StaffPermissionDecisionService {
-    decide({
+    decide(options) {
+        return this.decideMany({
+            ...options,
+            requests: [{
+                permission: options.permission,
+                write: options.write === true
+            }]
+        }).decisions[0];
+    }
+
+    decideMany({
         interaction: providedInteraction,
         guild,
         member,
         userId,
-        permission,
-        write = false,
+        requests = [],
         legacyCanAccessParity = false
     }) {
         const interaction = providedInteraction || {
@@ -47,37 +56,46 @@ class StaffPermissionDecisionService {
         const guildId = String(
             interaction.guildId || resolvedGuild?.id || ""
         );
-        const mode = write ? "write" : "read";
+        const normalizedRequests = requests.map(request => ({
+            permission: request?.permission,
+            write: request?.write === true
+        }));
 
         if (
             resolvedGuild?.ownerId
             && resolvedUserId === String(resolvedGuild.ownerId)
         ) {
-            return this.createDecision({
-                allowed: true,
-                permission,
-                mode,
+            return this.createDecisionBatch(normalizedRequests, request => ({
                 reason: REASONS.GUILD_OWNER,
                 sources: [{ type: "GUILD_OWNER", userId: resolvedUserId }]
-            });
+            }));
         }
 
         if (this.isAdministrator(interaction, resolvedMember)) {
-            return this.createDecision({
-                allowed: true,
-                permission,
-                mode,
+            return this.createDecisionBatch(normalizedRequests, request => ({
                 reason: REASONS.DISCORD_ADMINISTRATOR,
                 sources: [{
                     type: "DISCORD_ADMINISTRATOR",
                     userId: resolvedUserId || null
                 }]
-            });
+            }));
         }
 
-        const knownPermission = this.isKnownPermission(permission);
-        if ((!knownPermission && !legacyCanAccessParity) || !guildId) {
-            return this.denied(permission, mode);
+        const requiresSources = Boolean(guildId) && (
+            legacyCanAccessParity
+            || normalizedRequests.some(request =>
+                this.isKnownPermission(request.permission)
+            )
+        );
+        if (!requiresSources) {
+            return Object.freeze({
+                decisions: Object.freeze(normalizedRequests.map(request =>
+                    this.denied(
+                        request.permission,
+                        request.write ? "write" : "read"
+                    )
+                ))
+            });
         }
 
         const roleIds = this.getRoleIds(resolvedMember);
@@ -92,6 +110,49 @@ class StaffPermissionDecisionService {
             manager.getValidationChannelAccess(guildId)
             && validationStaffPolicy.canManageServerTools(interaction)
         );
+
+        const snapshot = Object.freeze({
+            guildId,
+            resolvedUserId,
+            roleRows: Object.freeze(roleRows
+                .map(row => ({
+                    role_id: String(row.role_id),
+                    permission_key: row.permission_key
+                }))
+                .sort((left, right) =>
+                    left.role_id.localeCompare(right.role_id)
+                    || String(left.permission_key).localeCompare(
+                        String(right.permission_key)
+                    )
+                )
+                .map(row => Object.freeze(row))),
+            userPermissions: Object.freeze(
+                [...new Set(userPermissions)].sort((left, right) =>
+                    String(left).localeCompare(String(right))
+                )
+            ),
+            validationLegacyAccess
+        });
+        return Object.freeze({
+            decisions: Object.freeze(normalizedRequests.map(request =>
+                this.evaluate(snapshot, request, legacyCanAccessParity)
+            ))
+        });
+    }
+
+    evaluate(snapshot, { permission, write }, legacyCanAccessParity) {
+        const mode = write ? "write" : "read";
+        const knownPermission = this.isKnownPermission(permission);
+        if (!knownPermission && !legacyCanAccessParity) {
+            return this.denied(permission, mode);
+        }
+        const {
+            guildId,
+            resolvedUserId,
+            roleRows,
+            userPermissions,
+            validationLegacyAccess
+        } = snapshot;
 
         if (legacyCanAccessParity) {
             return this.decideWithLegacyCanAccessParity({
@@ -178,6 +239,21 @@ class StaffPermissionDecisionService {
         }
 
         return this.denied(permission, mode);
+    }
+
+    createDecisionBatch(requests, resolveRoot) {
+        return Object.freeze({
+            decisions: Object.freeze(requests.map(request => {
+                const root = resolveRoot(request);
+                return this.createDecision({
+                    allowed: true,
+                    permission: request.permission,
+                    mode: request.write ? "write" : "read",
+                    reason: root.reason,
+                    sources: root.sources
+                });
+            }))
+        });
     }
 
     decideWithLegacyCanAccessParity({
