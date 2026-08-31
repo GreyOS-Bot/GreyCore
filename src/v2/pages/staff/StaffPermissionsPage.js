@@ -55,6 +55,13 @@ class StaffPermissionsPage {
                 ),
                 new ActionRowBuilder().addComponents(
                     new ButtonBuilder()
+                        .setCustomId("v3_staff_permission_defaults")
+                        .setLabel("Valeurs par défaut du serveur")
+                        .setEmoji("⚖️")
+                        .setStyle(ButtonStyle.Primary)
+                ),
+                new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
                         .setCustomId("v2_staff_permissions_toggle_validation")
                         .setLabel(
                             validationEnabled
@@ -159,6 +166,94 @@ class StaffPermissionsPage {
         };
     }
 
+    buildV3DefaultPermissionSelection(draft) {
+        const permissions = catalog.all();
+        if (permissions.length > 25) {
+            return this.buildCatalogOverflow();
+        }
+        return {
+            content: "",
+            embeds: [new EmbedBuilder()
+                .setColor(0x5865F2)
+                .setTitle("⚖️ Valeurs par défaut du serveur")
+                .setDescription([
+                    "Choisis une permission dont tu veux définir la valeur par défaut.",
+                    "Le default s’applique uniquement lorsqu’aucune règle utilisateur ou rôle ne décide déjà cette permission.",
+                    "**Non défini** permet encore le fallback Lecture seule. **Refusé** bloque ce fallback pour ce domaine."
+                ].join("\n\n"))],
+            components: [
+                new ActionRowBuilder().addComponents(
+                    new StringSelectMenuBuilder()
+                        .setCustomId(
+                            `v3_staff_permission_default_key:${draft.token}`
+                        )
+                        .setPlaceholder("Choisir une permission")
+                        .setMinValues(1)
+                        .setMaxValues(1)
+                        .addOptions(permissions.map(permission => ({
+                            label: permission.label,
+                            value: permission.key,
+                            emoji: permission.emoji
+                        })))
+                ),
+                navigationRow()
+            ]
+        };
+    }
+
+    buildV3DefaultPermissionState(draft, current, notice = "") {
+        const state = describeDefaultState(current);
+        const permission = catalog.get(draft.permissionKey);
+        const descriptions = [
+            `Permission : ${permission?.emoji || "⚖️"} **${permission?.label || draft.permissionKey}**`,
+            `État actuel : **${state.label}**`,
+            "Le default s’applique uniquement lorsqu’aucune règle utilisateur ou rôle ne décide déjà cette permission.",
+            "**Non défini** permet encore le fallback Lecture seule. **Refusé** bloque ce fallback pour ce domaine."
+        ];
+        if (draft.permissionKey === "read_only") {
+            descriptions.push(
+                "ℹ️ Un default Lecture seule ALLOW permet la consultation des domaines sans règle spécifique. DENY bloque ce fallback."
+            );
+        }
+        if (notice) descriptions.unshift(notice);
+        return {
+            content: "",
+            embeds: [new EmbedBuilder()
+                .setColor(state.color)
+                .setTitle("⚖️ Default de permission")
+                .setDescription(descriptions.join("\n\n"))],
+            components: [
+                new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `v3_staff_permission_default_set:${draft.token}:allow`
+                        )
+                        .setLabel("Autoriser par défaut")
+                        .setEmoji("✅")
+                        .setStyle(ButtonStyle.Success)
+                        .setDisabled(current?.effect === "allow"),
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `v3_staff_permission_default_set:${draft.token}:deny`
+                        )
+                        .setLabel("Refuser par défaut")
+                        .setEmoji("⛔")
+                        .setStyle(ButtonStyle.Danger)
+                        .setDisabled(current?.effect === "deny"),
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `v3_staff_permission_default_set:${draft.token}:unset`
+                        )
+                        .setLabel("Non défini")
+                        .setEmoji("➖")
+                        .setStyle(ButtonStyle.Secondary)
+                        .setDisabled(!current)
+                ),
+                navigationRow()
+            ]
+        };
+    }
+
     buildCatalogOverflow() {
         return {
             content: "⚠️ Le catalogue contient plus de 25 permissions. Cette interface doit être paginée avant utilisation.",
@@ -230,6 +325,14 @@ function describeState(assignment) {
         return { label: "⛔ Refusé", color: 0xED4245 };
     }
     return { label: "✅ Autorisé", color: 0x57F287 };
+}
+
+function describeDefaultState(current) {
+    if (!current) return { label: "➖ Aucun default / non défini", color: 0x99AAB5 };
+    if (current.effect === "deny") {
+        return { label: "⛔ Refusé par défaut", color: 0xED4245 };
+    }
+    return { label: "✅ Autorisé par défaut", color: 0x57F287 };
 }
 
 function navigationRow() {

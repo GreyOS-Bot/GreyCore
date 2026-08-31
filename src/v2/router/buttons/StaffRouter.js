@@ -2,6 +2,79 @@ module.exports = async interaction => {
     if (!interaction.isButton?.()) return false;
     if (!interaction.customId) return false;
 
+    if (interaction.customId === "v3_staff_permission_defaults") {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canManagePermissions(interaction)) {
+            await replyError(interaction, "Tu ne peux pas modifier les permissions GreyCore.");
+            return true;
+        }
+        const draft = require("../../services/permissions/StaffPermissionV3DraftService")
+            .startDefault({
+                guildId: interaction.guildId,
+                adminUserId: interaction.user.id
+            });
+        await interaction.update(
+            require("../../pages/staff/StaffPermissionsPage")
+                .buildV3DefaultPermissionSelection(draft)
+        );
+        return true;
+    }
+
+    if (interaction.customId.startsWith("v3_staff_permission_default_set:")) {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canManagePermissions(interaction)) {
+            await replyError(interaction, "Tu ne peux pas modifier les permissions GreyCore.");
+            return true;
+        }
+        const [, token, action] = interaction.customId.split(":");
+        if (!new Set(["allow", "deny", "unset"]).has(action)) {
+            await replyError(interaction, "Cette action de permission est invalide.");
+            return true;
+        }
+        const drafts = require("../../services/permissions/StaffPermissionV3DraftService");
+        const draft = drafts.get(token, interaction.guildId, interaction.user.id);
+        if (draft?.subjectType !== "guild-default"
+            || !draft.permissionKey || !draft.expected) {
+            await replyError(
+                interaction,
+                "Cette interface de permissions a expiré. Rouvre le centre staff."
+            );
+            return true;
+        }
+        const manager = require("../../managers/StaffPermissionV2Manager");
+        const common = {
+            guildId: draft.guildId,
+            permissionKey: draft.permissionKey,
+            actorId: interaction.user.id,
+            expected: draft.expected
+        };
+        const result = action === "unset"
+            ? manager.clearPermissionDefaultOptimistic(common)
+            : manager.setPermissionDefaultOptimistic({
+                ...common, effect: action
+            });
+        const current = manager.getPermissionDefault(
+            draft.guildId, draft.permissionKey
+        );
+        drafts.rotate(draft, current ? {
+            present: true,
+            effect: current.effect,
+            updatedAt: current.updatedAt
+        } : { present: false });
+        const notice = result.status === "stale"
+            ? "⚠️ Cette valeur par défaut a été modifiée entre-temps. L’état actuel a été rechargé."
+            : result.status === "noop"
+                ? "ℹ️ Cette valeur par défaut était déjà non définie."
+                : "✅ Valeur par défaut mise à jour.";
+        await interaction.update(
+            require("../../pages/staff/StaffPermissionsPage")
+                .buildV3DefaultPermissionState(draft, current, notice)
+        );
+        return true;
+    }
+
     if (interaction.customId.startsWith("v3_staff_permissions_set:")) {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");

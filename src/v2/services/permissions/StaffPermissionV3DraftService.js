@@ -26,6 +26,22 @@ class StaffPermissionV3DraftService {
         return draft;
     }
 
+    startDefault({ guildId, adminUserId }) {
+        const draft = {
+            version: 3,
+            token: this.createToken(),
+            guildId: String(guildId),
+            adminUserId: String(adminUserId),
+            subjectType: "guild-default",
+            subjectId: null,
+            permissionKey: null,
+            expected: null,
+            expiresAt: Date.now() + TTL_MS
+        };
+        this.drafts.set(draft.token, draft);
+        return draft;
+    }
+
     get(token, guildId, adminUserId) {
         const draft = this.drafts.get(String(token));
         if (!draft || draft.version !== 3

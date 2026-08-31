@@ -70,6 +70,34 @@ module.exports = async interaction => {
         return true;
     }
 
+    if (interaction.customId?.startsWith("v3_staff_permission_default_key:")) {
+        if (!policy.canManagePermissions(interaction)) {
+            await replyError(interaction, "Tu ne peux pas modifier les permissions GreyCore.");
+            return true;
+        }
+        const token = interaction.customId.split(":")[1];
+        const drafts = require("../../services/permissions/StaffPermissionV3DraftService");
+        const draft = drafts.get(token, interaction.guildId, interaction.user.id);
+        if (!draft || draft.subjectType !== "guild-default") {
+            await replyError(interaction, expiredPermissionsMessage());
+            return true;
+        }
+        const permissionKey = interaction.values?.[0];
+        const catalog = require("../../core/permissions/StaffPermissionCatalog");
+        if (interaction.values?.length !== 1 || !catalog.has(permissionKey)) {
+            await replyError(interaction, "Cette permission GreyCore n’est pas disponible.");
+            return true;
+        }
+        const current = manager.getPermissionDefault(
+            draft.guildId, permissionKey
+        );
+        drafts.selectPermission(draft, permissionKey, toExpected(current));
+        await interaction.update(
+            page.buildV3DefaultPermissionState(draft, current)
+        );
+        return true;
+    }
+
     if (interaction.customId === "v2_staff_scenes_public_forum_select") {
         if (!policy.canAccess(interaction, "scenes", { write: true })) {
             await replyError(interaction, "Tu n’as pas accès aux cycles de scènes.");
