@@ -184,6 +184,24 @@ class StaffPermissionRepository {
         `).all(guildId).map(mapDefaultAssignment);
     }
 
+    getAssignmentKeyCounts(guildId) {
+        return db.prepare(`
+            SELECT 'role' AS subject_type, permission_key, COUNT(*) AS count
+            FROM GuildStaffRolePermissionsV2
+            WHERE guild_id = ?
+            GROUP BY permission_key
+            UNION ALL
+            SELECT 'user' AS subject_type, permission_key, COUNT(*) AS count
+            FROM GuildStaffUserPermissionsV2
+            WHERE guild_id = ?
+            GROUP BY permission_key
+        `).all(guildId, guildId).map(row => ({
+            subjectType: row.subject_type,
+            permissionKey: row.permission_key,
+            count: Number(row.count)
+        }));
+    }
+
     getPermissionDefault(guildId, permissionKey) {
         const row = db.prepare(`
             SELECT permission_key, effect, updated_by, updated_at

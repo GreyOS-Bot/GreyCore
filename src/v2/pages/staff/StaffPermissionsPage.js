@@ -10,6 +10,8 @@ const {
 const catalog = require("../../core/permissions/StaffPermissionCatalog");
 const policy = require("../../core/policies/StaffPermissionPolicy");
 const manager = require("../../managers/StaffPermissionV2Manager");
+const logger = require("../../core/services/TechnicalLogger")
+    .create("StaffPermissionsPage");
 
 class StaffPermissionsPage {
     execute(interaction) {
@@ -29,6 +31,19 @@ class StaffPermissionsPage {
     buildAccessSelection(guildId) {
         const validationEnabled =
             manager.getValidationChannelAccess(guildId);
+        let legacyDiagnostic = null;
+        let diagnosticUnavailable = false;
+        try {
+            legacyDiagnostic = manager.getLegacyAssignmentDiagnostic(guildId);
+        } catch {
+            diagnosticUnavailable = true;
+            logger.warn("Diagnostic des permissions historiques indisponible.");
+        }
+        const diagnosticLine = diagnosticUnavailable
+            ? "⚠️ Diagnostic des assignations historiques indisponible."
+            : legacyDiagnostic?.total > 0
+                ? `⚠️ **${legacyDiagnostic.total} assignation(s) historique(s) non reconnue(s)** sont conservées (rôles : ${legacyDiagnostic.roles}, utilisateurs : ${legacyDiagnostic.users}).`
+                : "✅ Aucune assignation historique non reconnue détectée.";
         return {
             embeds: [new EmbedBuilder()
                 .setColor(0x5865F2)
@@ -36,7 +51,8 @@ class StaffPermissionsPage {
                 .setDescription([
                     "Attribue des droits à un rôle ou directement à une personne.",
                     `Accès par le salon de validation : **${validationEnabled ? "activé ✅" : "désactivé ❌"}**.`,
-                    "Le propriétaire du serveur et les administrateurs Discord conservent toujours l'accès complet."
+                    "Le propriétaire du serveur et les administrateurs Discord conservent toujours l'accès complet.",
+                    diagnosticLine
                 ].join("\n\n"))],
             components: [
                 new ActionRowBuilder().addComponents(
@@ -262,58 +278,6 @@ class StaffPermissionsPage {
         };
     }
 
-    buildPermissionSelection(guildId, subjectIds, subjectType = "role") {
-        const normalizedIds = Array.isArray(subjectIds)
-            ? subjectIds.map(String)
-            : [String(subjectIds)];
-        const permissionSets = normalizedIds.map(subjectId => new Set(
-            subjectType === "user"
-                ? manager.getUserPermissions(guildId, subjectId)
-                : manager.getRolePermissions(guildId, subjectId)
-        ));
-        const granted = new Set(
-            [...(permissionSets[0] || [])].filter(key =>
-                permissionSets.every(set => set.has(key))
-            )
-        );
-        const options = catalog.all().map(permission => ({
-            label: permission.label,
-            value: permission.key,
-            emoji: permission.emoji,
-            default: granted.has(permission.key)
-        }));
-        options.push({
-            label: "Aucun accès — retirer les droits",
-            value: "__none__",
-            emoji: "🚫"
-        });
-
-        return {
-            embeds: [new EmbedBuilder()
-                .setColor(0x5865F2)
-                .setTitle("🔐 Autorisations GreyCore")
-                .setDescription([
-                    subjectType === "user"
-                        ? `Utilisateurs sélectionnés : ${normalizedIds.map(id => `<@${id}>`).join(" ")}`
-                        : `Rôles sélectionnés : ${normalizedIds.map(id => `<@&${id}>`).join(" ")}`,
-                    "Sélectionne tous les domaines puis valide. Les mêmes autorisations seront appliquées à toute la sélection.",
-                    "**Lecture seule** permet de consulter les pages sans effectuer de modification."
-                ].join("\n\n"))],
-            components: [
-                new ActionRowBuilder().addComponents(
-                    new StringSelectMenuBuilder()
-                        .setCustomId(
-                            `v2_staff_permissions_save:${subjectType}`
-                        )
-                        .setPlaceholder("Choisir les autorisations")
-                        .setMinValues(1)
-                        .setMaxValues(options.length)
-                        .addOptions(options)
-                ),
-                navigationRow()
-            ]
-        };
-    }
 }
 
 function describeState(assignment) {

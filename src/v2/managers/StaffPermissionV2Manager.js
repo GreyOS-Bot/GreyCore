@@ -100,6 +100,18 @@ class StaffPermissionV2Manager {
         return repository.getPermissionDefaults(guildId);
     }
 
+    getLegacyAssignmentDiagnostic(guildId) {
+        this.assertRequired("guildId", guildId);
+        const diagnostic = { roles: 0, users: 0, total: 0 };
+        for (const row of repository.getAssignmentKeyCounts(String(guildId))) {
+            if (catalog.has(row.permissionKey)) continue;
+            if (row.subjectType === "role") diagnostic.roles += row.count;
+            if (row.subjectType === "user") diagnostic.users += row.count;
+            diagnostic.total += row.count;
+        }
+        return diagnostic;
+    }
+
     getPermissionDefault(guildId, permissionKey) {
         this.assertKnownPermission(permissionKey);
         return repository.getPermissionDefault(guildId, permissionKey);

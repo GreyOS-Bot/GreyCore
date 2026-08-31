@@ -478,112 +478,15 @@ module.exports = async interaction => {
         return true;
     }
 
-    if (interaction.customId === "v2_staff_permissions_role") {
-        if (!policy.canManagePermissions(interaction)) {
-            await replyError(
-                interaction,
-                "Tu ne peux pas modifier les permissions GreyCore."
-            );
-            return true;
-        }
-        require("../../services/permissions/StaffPermissionDraftService").start(
-            interaction.guildId, interaction.user.id, "role", interaction.values
+    if (
+        interaction.customId === "v2_staff_permissions_role"
+        || interaction.customId === "v2_staff_permissions_user"
+        || interaction.customId?.startsWith("v2_staff_permissions_save:")
+    ) {
+        await replyError(
+            interaction,
+            "Cette interface de permissions a expiré. Rouvre le centre staff pour utiliser la nouvelle gestion des permissions."
         );
-        await interaction.update(
-            page.buildPermissionSelection(
-                interaction.guildId,
-                interaction.values,
-                "role"
-            )
-        );
-        return true;
-    }
-
-    if (interaction.customId === "v2_staff_permissions_user") {
-        if (!policy.canManagePermissions(interaction)) {
-            await replyError(
-                interaction,
-                "Tu ne peux pas modifier les permissions GreyCore."
-            );
-            return true;
-        }
-        require("../../services/permissions/StaffPermissionDraftService").start(
-            interaction.guildId, interaction.user.id, "user", interaction.values
-        );
-        await interaction.update(
-            page.buildPermissionSelection(
-                interaction.guildId,
-                interaction.values,
-                "user"
-            )
-        );
-        return true;
-    }
-
-    if (interaction.customId?.startsWith("v2_staff_permissions_save:")) {
-        if (!policy.canManagePermissions(interaction)) {
-            await replyError(
-                interaction,
-                "Tu ne peux pas modifier les permissions GreyCore."
-            );
-            return true;
-        }
-
-        const [, subjectType, legacySubjectId] =
-            interaction.customId.split(":");
-        const drafts = require("../../services/permissions/StaffPermissionDraftService");
-        const draft = drafts.get(interaction.guildId, interaction.user.id, subjectType);
-        const subjectIds = draft?.subjectIds
-            || (legacySubjectId ? [legacySubjectId] : []);
-        if (!subjectIds.length) {
-            await replyError(interaction, "Cette sélection a expiré. Choisis de nouveau les rôles ou utilisateurs.");
-            return true;
-        }
-        const selected = interaction.values.includes("__none__")
-            ? []
-            : interaction.values;
-        const saved = subjectType === "user"
-            ? manager.replaceUserPermissionsForMany({
-                guildId: interaction.guildId,
-                discordUserIds: subjectIds,
-                permissionKeys: selected,
-                grantedBy: interaction.user.id
-            })
-            : manager.replaceRolePermissionsForMany({
-                guildId: interaction.guildId,
-                roleIds: subjectIds,
-                permissionKeys: selected,
-                grantedBy: interaction.user.id
-            });
-        drafts.clear(interaction.guildId, interaction.user.id, subjectType);
-        const subjectMention = subjectType === "user"
-            ? subjectIds.map(id => `<@${id}>`).join(" ")
-            : subjectIds.map(id => `<@&${id}>`).join(" ");
-
-        await interaction.update({
-            content: selected.length
-                ? `✅ Permissions de ${subjectMention} enregistrées : **${selected.length}** domaine(s) pour **${saved.length}** sélection(s).`
-                : `✅ Toutes les permissions GreyCore de ${subjectMention} ont été retirées.`,
-            embeds: [],
-            components: [
-                require("discord.js").ActionRowBuilder.from({
-                    type: 1,
-                    components: [{
-                        type: 2,
-                        custom_id: "page:staff:section:permissions",
-                        label: "Configurer un autre rôle",
-                        emoji: { name: "🔐" },
-                        style: 2
-                    }, {
-                        type: 2,
-                        custom_id: "page:staff:home:root",
-                        label: "Accueil",
-                        emoji: { name: "🏠" },
-                        style: 2
-                    }]
-                })
-            ]
-        });
         return true;
     }
 
