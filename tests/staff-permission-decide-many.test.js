@@ -101,13 +101,13 @@ test("2B.3a évalue un batch mixte avec une seule résolution ponctuelle", conte
     assert.deepEqual(
         result.decisions.map(item => [item.permission, item.mode, item.allowed, item.reason]),
         [
-            ["characters", "read", true, "USER_PERMISSION"],
-            ["scenes", "write", false, "NO_PERMISSION"],
+            ["characters", "read", true, "USER_ALLOW"],
+            ["scenes", "write", false, "IMPLICIT_DENY"],
             ["logs", "read", true, "READ_ONLY"],
-            ["unknown", "read", false, "NO_PERMISSION"]
+            ["unknown", "read", false, "UNKNOWN_PERMISSION"]
         ]
     );
-    assert.deepEqual(counts, { roles: 1, user: 1, setting: 1, validation: 1 });
+    assert.deepEqual(counts, { roles: 0, user: 0, setting: 0, validation: 0 });
     assert.equal(Object.isFrozen(result), true);
     assert.equal(Object.isFrozen(result.decisions), true);
 });

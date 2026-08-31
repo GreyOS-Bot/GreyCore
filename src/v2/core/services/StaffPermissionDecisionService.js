@@ -55,6 +55,19 @@ class StaffPermissionDecisionService {
             permission: request?.permission,
             write: request?.write === true
         }));
+        if (legacyCanAccessParity !== true) {
+            const strictSnapshot = this.resolveStrictSnapshot({
+                interaction: providedInteraction,
+                guild,
+                member,
+                userId
+            });
+            return Object.freeze({
+                decisions: Object.freeze(normalizedRequests.map(request =>
+                    this.evaluateStrictPermission(strictSnapshot, request)
+                ))
+            });
+        }
         const includeSources = legacyCanAccessParity
             || normalizedRequests.some(request =>
                 this.isKnownPermission(request.permission)

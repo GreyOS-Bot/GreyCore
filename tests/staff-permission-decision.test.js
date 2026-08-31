@@ -109,7 +109,7 @@ test("2A reproduit les décisions staff historiques et explique leur source", co
     assert.equal(admin.reason, "DISCORD_ADMINISTRATOR");
 
     const role = compare(interaction({ roleIds: ["role-scenes"] }), "scenes", true);
-    assert.equal(role.reason, "ROLE_PERMISSION");
+    assert.equal(role.reason, "ROLE_ALLOW");
     assert.deepEqual(role.sources.map(source => source.roleId), ["role-scenes"]);
 
     const rolesInteraction = interaction({
@@ -119,7 +119,7 @@ test("2A reproduit les décisions staff historiques et explique leur source", co
     assert.equal(compare(rolesInteraction, "phone", true).allowed, true);
 
     const direct = compare(interaction({ userId: "direct-user" }), "bank", true);
-    assert.equal(direct.reason, "USER_PERMISSION");
+    assert.equal(direct.reason, "USER_ALLOW");
 
     const mixed = interaction({
         userId: "direct-user", roleIds: ["role-scenes"]
@@ -132,7 +132,7 @@ test("2A reproduit les décisions staff historiques et explique leur source", co
     assert.equal(compare(reader, "universe", true).allowed, false);
 
     const none = interaction();
-    assert.equal(compare(none, "logs").reason, "NO_PERMISSION");
+    assert.equal(compare(none, "logs").reason, "IMPLICIT_DENY");
 
     const unknown = decisions.decide({
         interaction: interaction({ roleIds: ["role-scenes"] }),
@@ -143,7 +143,7 @@ test("2A reproduit les décisions staff historiques et explique leur source", co
         allowed: false,
         permission: "phase_3_unknown",
         mode: "read",
-        reason: "NO_PERMISSION",
+        reason: "UNKNOWN_PERMISSION",
         sources: []
     });
     assert.equal(
@@ -169,8 +169,16 @@ test("2A reproduit les décisions staff historiques et explique leur source", co
     });
     const validation = interaction({ validationAccess: true });
     assert.equal(
-        compare(validation, "automations", true).reason,
-        "VALIDATION_LEGACY_ACCESS"
+        decisions.decide({
+            interaction: validation,
+            permission: "automations",
+            write: true
+        }).reason,
+        "IMPLICIT_DENY"
+    );
+    assert.equal(
+        legacy.canAccess(validation, "automations", { write: true }),
+        true
     );
     manager.setValidationChannelAccess({
         guildId: "guild-a", enabled: false, updatedBy: "owner"
