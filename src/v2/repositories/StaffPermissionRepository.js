@@ -71,6 +71,42 @@ class StaffPermissionRepository {
         `).all(guildId, roleId).map(mapRoleAssignment);
     }
 
+    getRolePermissionAssignment(guildId, roleId, permissionKey) {
+        const row = db.prepare(`
+            SELECT role_id, permission_key, effect, granted_by,
+                   created_at, updated_at
+            FROM GuildStaffRolePermissionsV2
+            WHERE guild_id = ? AND role_id = ? AND permission_key = ?
+        `).get(guildId, roleId, permissionKey);
+        return row ? mapExactRoleAssignment(row) : null;
+    }
+
+    setRolePermissionAssignment(data) {
+        return this.mutateSubjectPermission({
+            ...data,
+            subjectType: "role",
+            tableName: "GuildStaffRolePermissionsV2",
+            subjectColumn: "role_id",
+            subjectId: data.roleId,
+            readCurrent: () => this.getRolePermissionAssignment(
+                data.guildId, data.roleId, data.permissionKey
+            )
+        });
+    }
+
+    clearRolePermissionAssignment(data) {
+        return this.clearSubjectPermission({
+            ...data,
+            subjectType: "role",
+            tableName: "GuildStaffRolePermissionsV2",
+            subjectColumn: "role_id",
+            subjectId: data.roleId,
+            readCurrent: () => this.getRolePermissionAssignment(
+                data.guildId, data.roleId, data.permissionKey
+            )
+        });
+    }
+
     getPermissionAssignmentsForRoles(guildId, roleIds) {
         if (!roleIds.length) return [];
         const placeholders = roleIds.map(() => "?").join(",");
@@ -101,6 +137,42 @@ class StaffPermissionRepository {
             permissionKey: row.permission_key,
             effect: row.effect
         }));
+    }
+
+    getUserPermissionAssignment(guildId, discordUserId, permissionKey) {
+        const row = db.prepare(`
+            SELECT discord_user_id, permission_key, effect, granted_by,
+                   created_at, updated_at
+            FROM GuildStaffUserPermissionsV2
+            WHERE guild_id = ? AND discord_user_id = ? AND permission_key = ?
+        `).get(guildId, discordUserId, permissionKey);
+        return row ? mapExactUserAssignment(row) : null;
+    }
+
+    setUserPermissionAssignment(data) {
+        return this.mutateSubjectPermission({
+            ...data,
+            subjectType: "user",
+            tableName: "GuildStaffUserPermissionsV2",
+            subjectColumn: "discord_user_id",
+            subjectId: data.discordUserId,
+            readCurrent: () => this.getUserPermissionAssignment(
+                data.guildId, data.discordUserId, data.permissionKey
+            )
+        });
+    }
+
+    clearUserPermissionAssignment(data) {
+        return this.clearSubjectPermission({
+            ...data,
+            subjectType: "user",
+            tableName: "GuildStaffUserPermissionsV2",
+            subjectColumn: "discord_user_id",
+            subjectId: data.discordUserId,
+            readCurrent: () => this.getUserPermissionAssignment(
+                data.guildId, data.discordUserId, data.permissionKey
+            )
+        });
     }
 
     getPermissionDefaults(guildId) {
@@ -141,6 +213,160 @@ class StaffPermissionRepository {
             DELETE FROM GuildStaffPermissionDefaultsV2
             WHERE guild_id = ? AND permission_key = ?
         `).run(guildId, permissionKey).changes > 0;
+    }
+
+    setPermissionDefaultOptimistic({
+        guildId, permissionKey, effect, actorId, expected, updatedAt
+    }) {
+        const transaction = db.transaction(() => {
+            if (!expected.present) {
+                const inserted = db.prepare(`
+                    INSERT INTO GuildStaffPermissionDefaultsV2 (
+                        guild_id, permission_key, effect, updated_by, updated_at
+                    ) VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(guild_id, permission_key) DO NOTHING
+                `).run(guildId, permissionKey, effect, actorId, updatedAt);
+                const current = this.getPermissionDefault(guildId, permissionKey);
+                return mutationResult({
+                    status: inserted.changes ? "created" : "stale",
+                    subjectType: "default", subjectId: null,
+                    permissionKey, actorId,
+                    previous: inserted.changes ? null : current, current
+                });
+            }
+
+            const previous = this.getPermissionDefault(guildId, permissionKey);
+            const updated = db.prepare(`
+                UPDATE GuildStaffPermissionDefaultsV2
+                SET effect = ?, updated_by = ?, updated_at = ?
+                WHERE guild_id = ? AND permission_key = ?
+                  AND effect IS ? AND updated_at = ?
+            `).run(
+                effect, actorId, updatedAt, guildId, permissionKey,
+                expected.effect, expected.updatedAt
+            );
+            const current = this.getPermissionDefault(guildId, permissionKey);
+            return mutationResult({
+                status: updated.changes ? "updated" : "stale",
+                subjectType: "default", subjectId: null,
+                permissionKey, actorId,
+                previous,
+                current
+            });
+        });
+        return transaction();
+    }
+
+    clearPermissionDefaultOptimistic({
+        guildId, permissionKey, actorId, expected
+    }) {
+        const transaction = db.transaction(() => {
+            if (!expected.present) {
+                const current = this.getPermissionDefault(guildId, permissionKey);
+                return mutationResult({
+                    status: current ? "stale" : "noop",
+                    subjectType: "default", subjectId: null,
+                    permissionKey, actorId, previous: current, current
+                });
+            }
+            const previous = this.getPermissionDefault(guildId, permissionKey);
+            const removed = db.prepare(`
+                DELETE FROM GuildStaffPermissionDefaultsV2
+                WHERE guild_id = ? AND permission_key = ?
+                  AND effect IS ? AND updated_at = ?
+            `).run(
+                guildId, permissionKey, expected.effect, expected.updatedAt
+            );
+            const current = this.getPermissionDefault(guildId, permissionKey);
+            return mutationResult({
+                status: removed.changes ? "cleared" : "stale",
+                subjectType: "default", subjectId: null,
+                permissionKey, actorId,
+                previous,
+                current
+            });
+        });
+        return transaction();
+    }
+
+    mutateSubjectPermission({
+        guildId, subjectType, tableName, subjectColumn, subjectId,
+        permissionKey, effect, actorId, expected, updatedAt, readCurrent
+    }) {
+        const transaction = db.transaction(() => {
+            if (!expected.present) {
+                const inserted = db.prepare(`
+                    INSERT INTO ${tableName} (
+                        guild_id, ${subjectColumn}, permission_key, effect,
+                        granted_by, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(guild_id, ${subjectColumn}, permission_key)
+                    DO NOTHING
+                `).run(
+                    guildId, subjectId, permissionKey, effect,
+                    actorId, updatedAt, updatedAt
+                );
+                const current = readCurrent();
+                return mutationResult({
+                    status: inserted.changes ? "created" : "stale",
+                    subjectType, subjectId, permissionKey, actorId,
+                    previous: inserted.changes ? null : current, current
+                });
+            }
+
+            const previous = readCurrent();
+            const updated = db.prepare(`
+                UPDATE ${tableName}
+                SET effect = ?, granted_by = ?, updated_at = ?
+                WHERE guild_id = ? AND ${subjectColumn} = ?
+                  AND permission_key = ? AND effect IS ? AND updated_at = ?
+            `).run(
+                effect, actorId, updatedAt, guildId, subjectId,
+                permissionKey, expected.effect, expected.updatedAt
+            );
+            const current = readCurrent();
+            return mutationResult({
+                status: updated.changes ? "updated" : "stale",
+                subjectType, subjectId, permissionKey, actorId,
+                previous,
+                current
+            });
+        });
+        return transaction();
+    }
+
+    clearSubjectPermission({
+        guildId, subjectType, tableName, subjectColumn, subjectId,
+        permissionKey, actorId, expected, readCurrent
+    }) {
+        const transaction = db.transaction(() => {
+            if (!expected.present) {
+                const current = readCurrent();
+                return mutationResult({
+                    status: current ? "stale" : "noop",
+                    subjectType, subjectId, permissionKey, actorId,
+                    previous: current, current
+                });
+            }
+
+            const previous = readCurrent();
+            const removed = db.prepare(`
+                DELETE FROM ${tableName}
+                WHERE guild_id = ? AND ${subjectColumn} = ?
+                  AND permission_key = ? AND effect IS ? AND updated_at = ?
+            `).run(
+                guildId, subjectId, permissionKey,
+                expected.effect, expected.updatedAt
+            );
+            const current = readCurrent();
+            return mutationResult({
+                status: removed.changes ? "cleared" : "stale",
+                subjectType, subjectId, permissionKey, actorId,
+                previous,
+                current
+            });
+        });
+        return transaction();
     }
 
     getValidationChannelAccess(guildId) {
@@ -325,6 +551,34 @@ function mapRoleAssignment(row) {
         permissionKey: row.permission_key,
         effect: row.effect
     };
+}
+
+function mapExactRoleAssignment(row) {
+    return {
+        roleId: String(row.role_id),
+        permissionKey: row.permission_key,
+        effect: row.effect,
+        actorId: row.granted_by,
+        grantedBy: row.granted_by,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+    };
+}
+
+function mapExactUserAssignment(row) {
+    return {
+        discordUserId: String(row.discord_user_id),
+        permissionKey: row.permission_key,
+        effect: row.effect,
+        actorId: row.granted_by,
+        grantedBy: row.granted_by,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+    };
+}
+
+function mutationResult(data) {
+    return { ...data };
 }
 
 function mapDefaultAssignment(row) {
