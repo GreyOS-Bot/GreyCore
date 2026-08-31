@@ -14,6 +14,62 @@ module.exports = async interaction => {
         return true;
     }
 
+    if (
+        interaction.customId === "v3_staff_permissions_role"
+        || interaction.customId === "v3_staff_permissions_user"
+    ) {
+        if (!policy.canManagePermissions(interaction)) {
+            await replyError(interaction, "Tu ne peux pas modifier les permissions GreyCore.");
+            return true;
+        }
+        if (!Array.isArray(interaction.values) || interaction.values.length !== 1) {
+            await replyError(interaction, "Choisis exactement un rôle ou un utilisateur.");
+            return true;
+        }
+        const subjectType = interaction.customId.endsWith("_user")
+            ? "user"
+            : "role";
+        const draft = require("../../services/permissions/StaffPermissionV3DraftService")
+            .start({
+                guildId: interaction.guildId,
+                adminUserId: interaction.user.id,
+                subjectType,
+                subjectId: interaction.values[0]
+            });
+        await interaction.update(page.buildV3PermissionSelection(draft));
+        return true;
+    }
+
+    if (interaction.customId?.startsWith("v3_staff_permissions_key:")) {
+        if (!policy.canManagePermissions(interaction)) {
+            await replyError(interaction, "Tu ne peux pas modifier les permissions GreyCore.");
+            return true;
+        }
+        const token = interaction.customId.split(":")[1];
+        const drafts = require("../../services/permissions/StaffPermissionV3DraftService");
+        const draft = drafts.get(token, interaction.guildId, interaction.user.id);
+        if (!draft) {
+            await replyError(interaction, expiredPermissionsMessage());
+            return true;
+        }
+        const permissionKey = interaction.values?.[0];
+        const catalog = require("../../core/permissions/StaffPermissionCatalog");
+        if (interaction.values?.length !== 1 || !catalog.has(permissionKey)) {
+            await replyError(interaction, "Cette permission GreyCore n’est pas disponible.");
+            return true;
+        }
+        const assignment = draft.subjectType === "user"
+            ? manager.getUserPermissionAssignment(
+                draft.guildId, draft.subjectId, permissionKey
+            )
+            : manager.getRolePermissionAssignment(
+                draft.guildId, draft.subjectId, permissionKey
+            );
+        drafts.selectPermission(draft, permissionKey, toExpected(assignment));
+        await interaction.update(page.buildV3PermissionState(draft, assignment));
+        return true;
+    }
+
     if (interaction.customId === "v2_staff_scenes_public_forum_select") {
         if (!policy.canAccess(interaction, "scenes", { write: true })) {
             await replyError(interaction, "Tu n’as pas accès aux cycles de scènes.");
@@ -505,3 +561,15 @@ module.exports = async interaction => {
 
     return false;
 };
+
+function toExpected(assignment) {
+    return assignment ? {
+        present: true,
+        effect: assignment.effect,
+        updatedAt: assignment.updatedAt
+    } : { present: false };
+}
+
+function expiredPermissionsMessage() {
+    return "Cette interface de permissions a expiré. Rouvre le centre staff.";
+}

@@ -142,6 +142,7 @@ function isGreyCoreComponent(
 
     if (
         !customId.startsWith("v2_")
+        && !customId.startsWith("v3_")
         && !customId.startsWith("page:")
     ) {
         return false;

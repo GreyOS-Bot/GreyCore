@@ -2,6 +2,77 @@ module.exports = async interaction => {
     if (!interaction.isButton?.()) return false;
     if (!interaction.customId) return false;
 
+    if (interaction.customId.startsWith("v3_staff_permissions_set:")) {
+        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const { replyError } = require("../../core/services/InteractionResponseService");
+        if (!policy.canManagePermissions(interaction)) {
+            await replyError(interaction, "Tu ne peux pas modifier les permissions GreyCore.");
+            return true;
+        }
+        const [, token, action] = interaction.customId.split(":");
+        if (!new Set(["allow", "deny", "unset"]).has(action)) {
+            await replyError(interaction, "Cette action de permission est invalide.");
+            return true;
+        }
+        const drafts = require("../../services/permissions/StaffPermissionV3DraftService");
+        const draft = drafts.get(token, interaction.guildId, interaction.user.id);
+        if (!draft?.permissionKey || !draft.expected) {
+            await replyError(
+                interaction,
+                "Cette interface de permissions a expiré. Rouvre le centre staff."
+            );
+            return true;
+        }
+        const manager = require("../../managers/StaffPermissionV2Manager");
+        const common = {
+            guildId: draft.guildId,
+            permissionKey: draft.permissionKey,
+            actorId: interaction.user.id,
+            expected: draft.expected
+        };
+        let result;
+        if (draft.subjectType === "user") {
+            result = action === "unset"
+                ? manager.clearUserPermissionAssignment({
+                    ...common, discordUserId: draft.subjectId
+                })
+                : manager.setUserPermissionAssignment({
+                    ...common, discordUserId: draft.subjectId, effect: action
+                });
+        } else {
+            result = action === "unset"
+                ? manager.clearRolePermissionAssignment({
+                    ...common, roleId: draft.subjectId
+                })
+                : manager.setRolePermissionAssignment({
+                    ...common, roleId: draft.subjectId, effect: action
+                });
+        }
+
+        const current = draft.subjectType === "user"
+            ? manager.getUserPermissionAssignment(
+                draft.guildId, draft.subjectId, draft.permissionKey
+            )
+            : manager.getRolePermissionAssignment(
+                draft.guildId, draft.subjectId, draft.permissionKey
+            );
+        drafts.rotate(draft, current ? {
+            present: true,
+            effect: current.effect,
+            updatedAt: current.updatedAt
+        } : { present: false });
+        const notice = result.status === "stale"
+            ? "⚠️ Cette permission a été modifiée entre-temps. L’état actuel a été rechargé."
+            : result.status === "noop"
+                ? "ℹ️ La permission héritait déjà de la configuration générale."
+                : "✅ Permission mise à jour.";
+        await interaction.update(
+            require("../../pages/staff/StaffPermissionsPage")
+                .buildV3PermissionState(draft, current, notice)
+        );
+        return true;
+    }
+
     if (interaction.customId.startsWith("v2_staff_domain_toggle:")) {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");

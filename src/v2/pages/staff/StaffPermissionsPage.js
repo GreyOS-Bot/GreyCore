@@ -41,17 +41,17 @@ class StaffPermissionsPage {
             components: [
                 new ActionRowBuilder().addComponents(
                     new RoleSelectMenuBuilder()
-                        .setCustomId("v2_staff_permissions_role")
-                        .setPlaceholder("Choisir un ou plusieurs rôles")
+                        .setCustomId("v3_staff_permissions_role")
+                        .setPlaceholder("Choisir un rôle")
                         .setMinValues(1)
-                        .setMaxValues(25)
+                        .setMaxValues(1)
                 ),
                 new ActionRowBuilder().addComponents(
                     new UserSelectMenuBuilder()
-                        .setCustomId("v2_staff_permissions_user")
-                        .setPlaceholder("Choisir un ou plusieurs utilisateurs")
+                        .setCustomId("v3_staff_permissions_user")
+                        .setPlaceholder("Choisir un utilisateur")
                         .setMinValues(1)
-                        .setMaxValues(25)
+                        .setMaxValues(1)
                 ),
                 new ActionRowBuilder().addComponents(
                     new ButtonBuilder()
@@ -70,6 +70,100 @@ class StaffPermissionsPage {
                 ),
                 navigationRow()
             ]
+        };
+    }
+
+    buildV3PermissionSelection(draft) {
+        const permissions = catalog.all();
+        if (permissions.length > 25) {
+            return this.buildCatalogOverflow();
+        }
+        const mention = draft.subjectType === "user"
+            ? `<@${draft.subjectId}>`
+            : `<@&${draft.subjectId}>`;
+        return {
+            content: "",
+            embeds: [new EmbedBuilder()
+                .setColor(0x5865F2)
+                .setTitle("🔐 Choisir une permission")
+                .setDescription([
+                    `Sujet : ${mention}`,
+                    "Choisis un seul domaine à examiner ou modifier.",
+                    "**Précédence :** utilisateur > rôles > valeur par défaut du serveur > lecture seule."
+                ].join("\n\n"))],
+            components: [
+                new ActionRowBuilder().addComponents(
+                    new StringSelectMenuBuilder()
+                        .setCustomId(`v3_staff_permissions_key:${draft.token}`)
+                        .setPlaceholder("Choisir une permission")
+                        .setMinValues(1)
+                        .setMaxValues(1)
+                        .addOptions(permissions.map(permission => ({
+                            label: permission.label,
+                            value: permission.key,
+                            emoji: permission.emoji
+                        })))
+                ),
+                navigationRow()
+            ]
+        };
+    }
+
+    buildV3PermissionState(draft, assignment, notice = "") {
+        const state = describeState(assignment);
+        const mention = draft.subjectType === "user"
+            ? `<@${draft.subjectId}>`
+            : `<@&${draft.subjectId}>`;
+        const permission = catalog.get(draft.permissionKey);
+        const descriptions = [
+            `Sujet : ${mention}`,
+            `Permission : ${permission?.emoji || "🔐"} **${permission?.label || draft.permissionKey}**`,
+            `État actuel : **${state.label}**`,
+            "**Précédence :** utilisateur > rôles > valeur par défaut du serveur > lecture seule."
+        ];
+        if (draft.permissionKey === "read_only") {
+            descriptions.push(
+                "ℹ️ Lecture seule s’applique uniquement lorsqu’aucune règle spécifique n’existe pour le domaine. Un allow ou deny explicite reste prioritaire."
+            );
+        }
+        if (notice) descriptions.unshift(notice);
+        return {
+            content: "",
+            embeds: [new EmbedBuilder()
+                .setColor(state.color)
+                .setTitle("🔐 Permission GreyCore")
+                .setDescription(descriptions.join("\n\n"))],
+            components: [
+                new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`v3_staff_permissions_set:${draft.token}:allow`)
+                        .setLabel("Autoriser")
+                        .setEmoji("✅")
+                        .setStyle(ButtonStyle.Success)
+                        .setDisabled(assignment?.effect === "allow"),
+                    new ButtonBuilder()
+                        .setCustomId(`v3_staff_permissions_set:${draft.token}:deny`)
+                        .setLabel("Refuser")
+                        .setEmoji("⛔")
+                        .setStyle(ButtonStyle.Danger)
+                        .setDisabled(assignment?.effect === "deny"),
+                    new ButtonBuilder()
+                        .setCustomId(`v3_staff_permissions_set:${draft.token}:unset`)
+                        .setLabel("Hériter / retirer")
+                        .setEmoji("➖")
+                        .setStyle(ButtonStyle.Secondary)
+                        .setDisabled(!assignment)
+                ),
+                navigationRow()
+            ]
+        };
+    }
+
+    buildCatalogOverflow() {
+        return {
+            content: "⚠️ Le catalogue contient plus de 25 permissions. Cette interface doit être paginée avant utilisation.",
+            embeds: [],
+            components: [navigationRow()]
         };
     }
 
@@ -125,6 +219,17 @@ class StaffPermissionsPage {
             ]
         };
     }
+}
+
+function describeState(assignment) {
+    if (!assignment) return { label: "➖ Hérité / non défini", color: 0x99AAB5 };
+    if (assignment.effect === null) {
+        return { label: "🕰️ Autorisé (legacy)", color: 0xFEE75C };
+    }
+    if (assignment.effect === "deny") {
+        return { label: "⛔ Refusé", color: 0xED4245 };
+    }
+    return { label: "✅ Autorisé", color: 0x57F287 };
 }
 
 function navigationRow() {
