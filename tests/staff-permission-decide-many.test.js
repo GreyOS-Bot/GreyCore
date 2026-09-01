@@ -9,6 +9,7 @@ const MODULES = [
     "../src/v2/managers/GuildSettingsV2Manager",
     "../src/v2/core/policies/GuildManagementPolicy",
     "../src/v2/core/policies/ValidationStaffPolicy",
+    "../src/v2/core/services/ValidationBridgeQualificationService",
     "../src/v2/core/services/StaffPermissionDecisionService"
 ];
 
@@ -107,7 +108,7 @@ test("2B.3a évalue un batch mixte avec une seule résolution ponctuelle", conte
             ["unknown", "read", false, "UNKNOWN_PERMISSION"]
         ]
     );
-    assert.deepEqual(counts, { roles: 0, user: 0, setting: 0, validation: 0 });
+    assert.deepEqual(counts, { roles: 0, user: 0, setting: 1, validation: 0 });
     assert.equal(Object.isFrozen(result), true);
     assert.equal(Object.isFrozen(result.decisions), true);
 });

@@ -4,6 +4,9 @@ const manager = require("../src/v2/managers/StaffPermissionV2Manager");
 const decisionService = require(
     "../src/v2/core/services/StaffPermissionDecisionService"
 );
+const bridgeService = require(
+    "../src/v2/core/services/ValidationBridgeQualificationService"
+);
 
 const { REASONS } = decisionService;
 
@@ -32,13 +35,13 @@ function withStrictData({ roles = [], users = [], defaults = [] }, callback) {
         roles: manager.getPermissionAssignmentsForRoles,
         users: manager.getUserPermissionAssignments,
         defaults: manager.getPermissionDefaults,
-        validation: manager.getValidationChannelAccess
+        bridge: bridgeService.qualify
     };
     const calls = {
         roles: 0,
         users: 0,
         defaults: 0,
-        validation: 0,
+        bridge: 0,
         guildIds: []
     };
     manager.getPermissionAssignmentsForRoles = (guildId, roleIds) => {
@@ -56,9 +59,15 @@ function withStrictData({ roles = [], users = [], defaults = [] }, callback) {
         calls.guildIds.push(guildId);
         return defaults;
     };
-    manager.getValidationChannelAccess = () => {
-        calls.validation += 1;
-        throw new Error("bridge de validation strict inattendu");
+    bridgeService.qualify = () => {
+        calls.bridge += 1;
+        return Object.freeze({
+            enabled: false,
+            qualified: false,
+            guildId: "guild-a",
+            channelId: null,
+            reason: "FLAG_DISABLED"
+        });
     };
     try {
         return callback(calls);
@@ -66,7 +75,7 @@ function withStrictData({ roles = [], users = [], defaults = [] }, callback) {
         manager.getPermissionAssignmentsForRoles = originals.roles;
         manager.getUserPermissionAssignments = originals.users;
         manager.getPermissionDefaults = originals.defaults;
-        manager.getValidationChannelAccess = originals.validation;
+        bridgeService.qualify = originals.bridge;
     }
 }
 
@@ -107,14 +116,14 @@ test("les racines strictes court-circuitent toutes les lectures SQLite", () => {
                 roles: 0,
                 users: 0,
                 defaults: 0,
-                validation: 0,
+                bridge: 0,
                 guildIds: []
             });
         });
     }
 });
 
-test("le snapshot non-root effectue exactement trois lectures groupées", () => {
+test("le snapshot non-root effectue trois lectures groupées et un bridge", () => {
     withStrictData({
         roles: [
             { roleId: "role-b", permissionKey: "scenes", effect: "allow" },
@@ -129,7 +138,7 @@ test("le snapshot non-root effectue exactement trois lectures groupées", () => 
         assert.equal(calls.roles, 1);
         assert.equal(calls.users, 1);
         assert.equal(calls.defaults, 1);
-        assert.equal(calls.validation, 0);
+        assert.equal(calls.bridge, 1);
         assert.deepEqual(calls.guildIds, ["guild-a", "guild-a", "guild-a"]);
         assert.deepEqual(
             snapshot.roleAssignmentsByPermission.scenes.map(row => row.roleId),

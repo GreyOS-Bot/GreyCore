@@ -11,6 +11,7 @@ const MODULES = [
     "../src/v2/core/policies/GuildManagementPolicy",
     "../src/v2/core/policies/ValidationStaffPolicy",
     "../src/v2/core/policies/StaffPermissionPolicy",
+    "../src/v2/core/services/ValidationBridgeQualificationService",
     "../src/v2/core/services/StaffPermissionDecisionService"
 ];
 

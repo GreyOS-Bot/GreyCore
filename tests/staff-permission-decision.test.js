@@ -10,6 +10,7 @@ const MODULES = [
     "../src/v2/core/policies/GuildManagementPolicy",
     "../src/v2/core/policies/ValidationStaffPolicy",
     "../src/v2/core/policies/StaffPermissionPolicy",
+    "../src/v2/core/services/ValidationBridgeQualificationService",
     "../src/v2/core/services/StaffPermissionDecisionService"
 ];
 
@@ -174,7 +175,7 @@ test("2A reproduit les décisions staff historiques et explique leur source", co
             permission: "automations",
             write: true
         }).reason,
-        "IMPLICIT_DENY"
+        "VALIDATION_BRIDGE"
     );
     assert.equal(
         legacy.canAccess(validation, "automations", { write: true }),

@@ -2,6 +2,9 @@ const { PermissionFlagsBits } = require("discord.js");
 const manager = require("../../managers/StaffPermissionV2Manager");
 const catalog = require("../permissions/StaffPermissionCatalog");
 const validationStaffPolicy = require("../policies/ValidationStaffPolicy");
+const validationBridgeQualificationService = require(
+    "./ValidationBridgeQualificationService"
+);
 
 const REASONS = Object.freeze({
     GUILD_OWNER: "GUILD_OWNER",
@@ -24,6 +27,7 @@ const REASONS = Object.freeze({
     USER_ALLOW: "USER_ALLOW",
     ROLE_DENY: "ROLE_DENY",
     ROLE_ALLOW: "ROLE_ALLOW",
+    VALIDATION_BRIDGE: "VALIDATION_BRIDGE",
     GUILD_DEFAULT_DENY: "GUILD_DEFAULT_DENY",
     GUILD_DEFAULT_ALLOW: "GUILD_DEFAULT_ALLOW",
     READ_ONLY_DENY: "READ_ONLY_DENY",
@@ -157,10 +161,16 @@ class StaffPermissionDecisionService {
                 rootSources,
                 roleAssignments: [],
                 userAssignments: [],
-                defaults: []
+                defaults: [],
+                validationBridge: null
             });
         }
 
+        const validationBridge = validationBridgeQualificationService.qualify({
+            guild: resolvedGuild,
+            member: resolvedMember,
+            guildId
+        });
         return this.createStrictSnapshot({
             guildId,
             resolvedUserId,
@@ -176,7 +186,8 @@ class StaffPermissionDecisionService {
                     resolvedUserId
                 )
                 : [],
-            defaults: manager.getPermissionDefaults(guildId)
+            defaults: manager.getPermissionDefaults(guildId),
+            validationBridge
         });
     }
 
@@ -249,7 +260,8 @@ class StaffPermissionDecisionService {
         rootSources,
         roleAssignments,
         userAssignments,
-        defaults
+        defaults,
+        validationBridge
     }) {
         const normalizedRoles = roleAssignments
             .map(assignment => ({
@@ -294,7 +306,10 @@ class StaffPermissionDecisionService {
             ),
             defaultsByPermission: this.indexStrictAssignments(
                 normalizedDefaults
-            )
+            ),
+            validationBridge: validationBridge
+                ? Object.freeze({ ...validationBridge })
+                : null
         });
     }
 
@@ -332,16 +347,36 @@ class StaffPermissionDecisionService {
 
         const roles = snapshot.roleAssignmentsByPermission[permission] || [];
         const deniedRoles = roles.filter(role => role.effect === "deny");
-        const winningRoles = deniedRoles.length ? deniedRoles : roles;
-        if (winningRoles.length) {
+        if (deniedRoles.length) {
             return {
-                allowed: deniedRoles.length === 0,
-                reason: deniedRoles.length
-                    ? REASONS.ROLE_DENY
-                    : REASONS.ROLE_ALLOW,
-                sources: winningRoles.map(role =>
+                allowed: false,
+                reason: REASONS.ROLE_DENY,
+                sources: deniedRoles.map(role =>
                     this.createStrictSource("ROLE_PERMISSION", role)
                 )
+            };
+        }
+
+        const bridgeSource = snapshot.validationBridge?.qualified
+            ? this.createValidationBridgeSource(snapshot, permission)
+            : null;
+        if (roles.length) {
+            return {
+                allowed: true,
+                reason: REASONS.ROLE_ALLOW,
+                sources: [
+                    ...roles.map(role =>
+                        this.createStrictSource("ROLE_PERMISSION", role)
+                    ),
+                    ...(bridgeSource ? [bridgeSource] : [])
+                ]
+            };
+        }
+        if (bridgeSource) {
+            return {
+                allowed: true,
+                reason: REASONS.VALIDATION_BRIDGE,
+                sources: [bridgeSource]
             };
         }
 
@@ -360,6 +395,16 @@ class StaffPermissionDecisionService {
             };
         }
         return null;
+    }
+
+    createValidationBridgeSource(snapshot, permission) {
+        return {
+            type: "VALIDATION_BRIDGE",
+            permission,
+            effect: "allow",
+            guildId: snapshot.validationBridge.guildId,
+            channelId: snapshot.validationBridge.channelId
+        };
     }
 
     createStrictSource(type, assignment) {
