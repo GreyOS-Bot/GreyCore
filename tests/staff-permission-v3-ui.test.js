@@ -126,8 +126,12 @@ test("2C.3b sélectionne un sujet puis une clé catalogue avec lecture effect-aw
     assert.match(keyCustomId, /^v3_staff_permissions_key:[A-Za-z0-9_-]+$/);
     assert.ok(keyCustomId.length <= 100);
     const options = roleSelect.calls.updates[0].components[0].components[0].options;
-    assert.equal(options.length, 12);
-    assert.equal(options.some(option => option.data.value === "assets"), false);
+    assert.equal(options.length, 13);
+    assert.equal(options.some(option =>
+        option.data.value === "assets"
+        && option.data.label === "Biens"
+        && option.data.emoji?.name === "🎒"
+    ), true);
 
     const keySelect = interaction({ customId: keyCustomId, values: ["scenes"] });
     await api.selectRouter(keySelect);
@@ -183,6 +187,17 @@ test("2C.3b applique toute la matrice rôle via les mutations ciblées", async c
     assert.equal(api.manager.getRolePermissionAssignment(
         "guild-a", "role-a", "phone"
     ).effect, "deny");
+
+    prepared = prepareDraft(api, "role", "role-a", "assets");
+    await click(api, prepared.draft, "allow");
+    await click(api, prepared.draft, "deny");
+    assert.equal(api.manager.getRolePermissionAssignment(
+        "guild-a", "role-a", "assets"
+    ).effect, "deny");
+    await click(api, prepared.draft, "unset");
+    assert.equal(api.manager.getRolePermissionAssignment(
+        "guild-a", "role-a", "assets"
+    ), null);
 });
 
 test("2C.3b applique toute la matrice user via les mutations ciblées", async context => {
@@ -205,6 +220,17 @@ test("2C.3b applique toute la matrice user via les mutations ciblées", async co
     assert.equal(api.manager.getUserPermissionAssignment(
         "guild-a", "user-a", "logs"
     ).effect, "deny");
+
+    prepared = prepareDraft(api, "user", "user-a", "assets");
+    await click(api, prepared.draft, "allow");
+    await click(api, prepared.draft, "deny");
+    assert.equal(api.manager.getUserPermissionAssignment(
+        "guild-a", "user-a", "assets"
+    ).effect, "deny");
+    await click(api, prepared.draft, "unset");
+    assert.equal(api.manager.getUserPermissionAssignment(
+        "guild-a", "user-a", "assets"
+    ), null);
 });
 
 test("2C.3b rend et transforme explicitement les lignes NULL legacy", async context => {

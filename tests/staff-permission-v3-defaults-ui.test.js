@@ -125,7 +125,11 @@ test("2C.3c choisit une permission catalogue et affiche les trois états", async
     assert.deepEqual(disabled({ effect: "deny" }), [false, true, false]);
     const options = api.page.buildV3DefaultPermissionSelection(draft)
         .components[0].components[0].options;
-    assert.equal(options.some(option => option.data.value === "assets"), false);
+    assert.equal(options.some(option =>
+        option.data.value === "assets"
+        && option.data.label === "Biens"
+        && option.data.emoji?.name === "🎒"
+    ), true);
     assert.equal(options.some(option => ["*", "", "unknown"].includes(option.data.value)), false);
 });
 
@@ -151,6 +155,16 @@ test("2C.3c applique UNSET/ALLOW/DENY avec acteur et versions fraîches", async 
     assert.equal(api.manager.getPermissionDefault("guild-a", "phone").effect, "deny");
     await click(api, prepared.draft, "unset");
     assert.equal(api.manager.getPermissionDefault("guild-a", "phone"), null);
+
+    prepared = prepareDefault(api, "assets");
+    await click(api, prepared.draft, "allow");
+    await click(api, prepared.draft, "deny");
+    assert.equal(
+        api.manager.getPermissionDefault("guild-a", "assets").effect,
+        "deny"
+    );
+    await click(api, prepared.draft, "unset");
+    assert.equal(api.manager.getPermissionDefault("guild-a", "assets"), null);
 });
 
 test("2C.3c gère read_only allow, deny et unset sans modifier le resolver", async context => {

@@ -10,7 +10,11 @@ const decisionService = require(
     "../../core/services/StaffPermissionDecisionService"
 );
 
-const SECTIONS = catalog.all().filter(item => item.key !== "read_only");
+// La section Biens sera raccordée à sa page dédiée en 2C.4b. La permission
+// reste dès maintenant administrable sans exposer une destination vide.
+const SECTIONS = catalog.all().filter(
+    item => !["assets", "read_only"].includes(item.key)
+);
 const SECTION_READ_REQUESTS = SECTIONS.map(section => Object.freeze({
     permission: section.key,
     write: false
