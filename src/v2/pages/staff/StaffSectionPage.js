@@ -6,12 +6,13 @@ const {
 } = require("discord.js");
 const catalog = require("../../core/permissions/StaffPermissionCatalog");
 const policy = require("../../core/policies/StaffPermissionPolicy");
+const decisionService = require("../../core/services/StaffPermissionDecisionService");
 
 const CONTENT = {
     characters: ["Validations", "Fiches et corrections", "Installations", "Archives et suppressions"],
     scenes: ["Zones RP", "Cycles actifs", "Expressions de rattrapage", "Seuils et inactivité"],
     phone: ["SMS et MMS", "Appels", "Conversations de groupe", "Réglages"],
-    bank: ["Biens", "Transferts", "Historique", "Réglages bancaires"],
+    bank: ["Fonctions financières", "Historique bancaire", "Réglages bancaires"],
     relationships: ["Types de relations", "Demandes", "Arbres familiaux", "Modération"],
     universe: ["États", "Organisations", "Référentiels", "Documentation du serveur"],
     entities: ["Identité narrative", "Messages", "Déclencheurs", "Activation"],
@@ -28,6 +29,16 @@ class StaffSectionPage {
                 return deny(interaction);
             }
             return require("./StaffPermissionsPage").execute(interaction);
+        }
+
+        if (sectionKey === "assets") {
+            const decision = decisionService.decide({
+                interaction,
+                permission: "assets",
+                write: false
+            });
+            if (!decision.allowed) return deny(interaction);
+            return require("./StaffAssetsPage").execute(interaction);
         }
 
         const permissionKey = ["setup", "overview"].includes(sectionKey)

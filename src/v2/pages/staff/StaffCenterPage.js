@@ -10,12 +10,9 @@ const decisionService = require(
     "../../core/services/StaffPermissionDecisionService"
 );
 
-// La section Biens sera raccordée à sa page dédiée en 2C.4b. La permission
-// reste dès maintenant administrable sans exposer une destination vide.
-const SECTIONS = catalog.all().filter(
-    item => !["assets", "read_only"].includes(item.key)
-);
-const SECTION_READ_REQUESTS = SECTIONS.map(section => Object.freeze({
+const SECTIONS = catalog.all().filter(item => item.key !== "read_only");
+const LEGACY_SECTIONS = SECTIONS.filter(item => item.key !== "assets");
+const SECTION_READ_REQUESTS = LEGACY_SECTIONS.map(section => Object.freeze({
     permission: section.key,
     write: false
 }));
@@ -27,9 +24,17 @@ class StaffCenterPage {
             requests: SECTION_READ_REQUESTS,
             legacyCanAccessParity: true
         });
-        const visible = SECTIONS.filter((_section, index) =>
-            decisions[index].allowed
-        );
+        const legacyDecisions = new Map(LEGACY_SECTIONS.map(
+            (section, index) => [section.key, decisions[index]]
+        ));
+        const assetsDecision = decisionService.decide({
+            interaction,
+            permission: "assets",
+            write: false
+        });
+        const visible = SECTIONS.filter(section => section.key === "assets"
+            ? assetsDecision.allowed
+            : legacyDecisions.get(section.key)?.allowed);
 
         if (policy.canManagePermissions(interaction)) {
             visible.push({
@@ -39,7 +44,7 @@ class StaffCenterPage {
             });
         }
 
-        const settingsIndex = SECTIONS.findIndex(
+        const settingsIndex = LEGACY_SECTIONS.findIndex(
             section => section.key === "settings"
         );
         if (decisions[settingsIndex].allowed) {

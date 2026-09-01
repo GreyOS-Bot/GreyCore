@@ -148,11 +148,18 @@ module.exports = async interaction => {
 
     if (interaction.customId.startsWith("v2_staff_domain_toggle:")) {
         const policy = require("../../core/policies/StaffPermissionPolicy");
+        const decisionService = require("../../core/services/StaffPermissionDecisionService");
         const { replyError } = require("../../core/services/InteractionResponseService");
         const moduleManager = require("../../managers/GuildModuleV2Manager");
         const moduleKey = interaction.customId.split(":")[1];
-        const permissionKey = moduleKey === "assets" ? "bank" : moduleKey;
-        if (!policy.canAccess(interaction, permissionKey, { write: true })) {
+        const allowed = moduleKey === "assets"
+            ? decisionService.decide({
+                interaction,
+                permission: "modules",
+                write: true
+            }).allowed
+            : policy.canAccess(interaction, moduleKey, { write: true });
+        if (!allowed) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -163,7 +170,7 @@ module.exports = async interaction => {
         );
         const pages = {
             phone: "StaffPhonePage",
-            assets: "StaffBankPage",
+            assets: "StaffAssetsPage",
             relationships: "StaffRelationshipsPage"
         };
         await interaction.update(require(`../../pages/staff/${pages[moduleKey]}`).build(interaction));
@@ -257,14 +264,24 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId === "v2_staff_bank_install_defaults") {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
+        await require("../../core/services/InteractionResponseService")
+            .replyInactiveInterface(interaction);
+        return true;
+    }
+
+    if (interaction.customId === "v2_staff_assets_install_defaults") {
+        const decisionService = require("../../core/services/StaffPermissionDecisionService");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "bank", { write: true })) {
+        if (!decisionService.decide({
+            interaction,
+            permission: "assets",
+            write: true
+        }).allowed) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
         require("../../managers/AssetTypeV2Manager").ensureDefaults(interaction.guildId);
-        await interaction.update(require("../../pages/staff/StaffBankPage").build(interaction));
+        await interaction.update(require("../../pages/staff/StaffAssetsPage").build(interaction));
         return true;
     }
 

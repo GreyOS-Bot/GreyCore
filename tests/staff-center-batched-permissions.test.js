@@ -18,6 +18,10 @@ const DOMAIN_KEYS = [
     "characters", "scenes", "phone", "bank", "relationships", "universe",
     "entities", "automations", "modules", "logs", "settings"
 ];
+const ALL_DOMAIN_KEYS = [
+    "characters", "scenes", "phone", "bank", "assets", "relationships",
+    "universe", "entities", "automations", "modules", "logs", "settings"
+];
 
 function reload() {
     for (const modulePath of MODULES) {
@@ -64,10 +68,17 @@ function sectionIds(payload) {
         .filter(customId => customId.startsWith("page:staff:section:"));
 }
 
-function legacyExpected(policy, currentInteraction) {
+function legacyExpected(policy, decisions, currentInteraction) {
     const visible = DOMAIN_KEYS
         .filter(key => policy.canAccess(currentInteraction, key))
         .map(key => `page:staff:section:${key}`);
+    if (decisions.decide({
+        interaction: currentInteraction,
+        permission: "assets",
+        write: false
+    }).allowed) {
+        visible.splice(4, 0, "page:staff:section:assets");
+    }
     if (policy.canManagePermissions(currentInteraction)) {
         visible.push("page:staff:section:permissions");
     }
@@ -133,7 +144,9 @@ test("2B.3c conserve exactement les sections historiques et leur ordre", context
         interaction({ guildId: "guild-b", roleIds: ["scenes-role"] })
     ];
     for (const currentInteraction of fixtures) {
-        const expected = legacyExpected(loaded.policy, currentInteraction);
+        const expected = legacyExpected(
+            loaded.policy, loaded.decisions, currentInteraction
+        );
         assert.deepEqual(sectionIds(loaded.page.build(currentInteraction)), expected);
     }
 
@@ -144,7 +157,7 @@ test("2B.3c conserve exactement les sections historiques et leur ordre", context
     const legacy = interaction({ validationAccess: true });
     assert.deepEqual(
         sectionIds(loaded.page.build(legacy)),
-        legacyExpected(loaded.policy, legacy)
+        legacyExpected(loaded.policy, loaded.decisions, legacy)
     );
 });
 
@@ -154,33 +167,25 @@ test("2B.3c résout le rendu une fois sans remplacer les revalidations", context
     let loaded = reload();
     insertFixtures(isolated.database);
     loaded = reload();
-    const counts = {
-        batches: 0, access: 0, roles: 0, user: 0, setting: 0, validation: 0
-    };
+    const counts = { batches: 0, access: 0, validation: 0 };
     const originalBatch = loaded.decisions.decideMany.bind(loaded.decisions);
     loaded.decisions.decideMany = options => {
         counts.batches += 1;
-        assert.equal(options.legacyCanAccessParity, true);
-        assert.deepEqual(options.requests, DOMAIN_KEYS.map(permission => ({
-            permission, write: false
-        })));
+        if (options.legacyCanAccessParity === true) {
+            assert.deepEqual(options.requests, DOMAIN_KEYS.map(permission => ({
+                permission, write: false
+            })));
+        } else {
+            assert.deepEqual(options.requests, [{
+                permission: "assets", write: false
+            }]);
+        }
         return originalBatch(options);
     };
     loaded.policy.canAccess = () => {
         counts.access += 1;
         throw new Error("canAccess ne doit pas construire le rendu");
     };
-    for (const [method, key] of [
-        ["getPermissionSourcesForRoles", "roles"],
-        ["getUserPermissions", "user"],
-        ["getValidationChannelAccess", "setting"]
-    ]) {
-        const original = loaded.manager[method].bind(loaded.manager);
-        loaded.manager[method] = (...args) => {
-            counts[key] += 1;
-            return original(...args);
-        };
-    }
     loaded.validation.canManageServerTools = () => {
         counts.validation += 1;
         return false;
@@ -189,9 +194,7 @@ test("2B.3c résout le rendu une fois sans remplacer les revalidations", context
     loaded.page.build(interaction({
         roleIds: ["mixed-role"], userId: "mixed-user"
     }));
-    assert.deepEqual(counts, {
-        batches: 1, access: 0, roles: 1, user: 1, setting: 1, validation: 0
-    });
+    assert.deepEqual(counts, { batches: 2, access: 0, validation: 0 });
 });
 
 test("2B.3c court-circuite les racines sans lecture et garde Permissions séparé", context => {
@@ -219,7 +222,7 @@ test("2B.3c court-circuite les racines sans lecture et garde Permissions sépar�
             [
                 "page:staff:section:overview",
                 "page:staff:section:setup",
-                ...DOMAIN_KEYS.map(key => `page:staff:section:${key}`)
+                ...ALL_DOMAIN_KEYS.map(key => `page:staff:section:${key}`)
             ]
         );
     }

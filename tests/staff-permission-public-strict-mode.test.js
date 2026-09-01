@@ -404,7 +404,7 @@ test("un batch legacy conserve son snapshot historique optimisé", () => {
     });
 });
 
-test("les deux consommateurs runtime directs restent explicitement legacy", () => {
+test("les consommateurs historiques restent legacy et Assets utilise le strict", () => {
     const policyPath = path.join(
         __dirname,
         "../src/v2/core/policies/StaffPermissionPolicy.js"
@@ -423,6 +423,10 @@ test("les deux consommateurs runtime directs restent explicitement legacy", () =
         centerSource,
         /decisionService\.decideMany\([\s\S]*legacyCanAccessParity:\s*true/
     );
+    assert.match(
+        centerSource,
+        /decisionService\.decide\([\s\S]*permission:\s*"assets"[\s\S]*write:\s*false/
+    );
 
     const callers = listJavaScriptFiles(path.join(__dirname, "../src"))
         .filter(file => !file.endsWith("StaffPermissionDecisionService.js"))
@@ -434,7 +438,10 @@ test("les deux consommateurs runtime directs restent explicitement legacy", () =
         .sort();
     assert.deepEqual(callers, [
         path.join("src", "v2", "core", "policies", "StaffPermissionPolicy.js"),
-        path.join("src", "v2", "pages", "staff", "StaffCenterPage.js")
+        path.join("src", "v2", "pages", "staff", "StaffAssetsPage.js"),
+        path.join("src", "v2", "pages", "staff", "StaffCenterPage.js"),
+        path.join("src", "v2", "pages", "staff", "StaffSectionPage.js"),
+        path.join("src", "v2", "router", "buttons", "StaffRouter.js")
     ].sort());
 });
 
