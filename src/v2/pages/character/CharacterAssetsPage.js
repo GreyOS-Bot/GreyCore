@@ -11,9 +11,6 @@ const dashboardManager =
 const assetManager =
     require("../../managers/AssetV2Manager");
 
-const assetTypeManager =
-    require("../../managers/AssetTypeV2Manager");
-
 const assetAccessService =
     require("../../interactions/assets/AssetAccessService");
 
@@ -158,8 +155,6 @@ class CharacterAssetsPage {
                 components: []
             });
         }
-
-        assetTypeManager.ensureDefaults(interaction.guildId);
 
         const assets = assetManager.getForContinuity(
             interaction.guildId,

@@ -75,9 +75,16 @@ async function openTypePicker(interaction, characterId) {
         return;
     }
 
-    const types = assetTypeManager.ensureDefaults(
+    const types = assetTypeManager.getForGuild(
         interaction.guildId
     );
+
+    if (!types.length) {
+        return replyError(
+            interaction,
+            "Aucun type de bien n’est disponible. Le staff doit d’abord les installer depuis la section Biens."
+        );
+    }
 
     return replyPrivate(
         interaction,
@@ -263,7 +270,7 @@ async function showTransferHistory(interaction, assetId) {
         interaction,
         assetId,
         {
-            requireManage: true
+            requireRead: true
         }
     );
 
