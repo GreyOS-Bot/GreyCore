@@ -610,9 +610,13 @@ module.exports = async interaction => {
         || interaction.customId.startsWith("v2_staff_character_genders_page:")
         || interaction.customId.startsWith("v2_staff_character_gender_quick:");
     if (characterReadAction) {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "characters", { write: false })) {
+        const allowed = interaction.customId === "v2_staff_characters_pending"
+            ? require("../../core/services/ValidationPermissionAccessService")
+                .canRead(interaction)
+            : require("../../core/policies/StaffPermissionPolicy")
+                .canAccess(interaction, "characters", { write: false });
+        if (!allowed) {
             await replyError(interaction, "Tu n’as pas accès à la gestion des personnages.");
             return true;
         }
@@ -801,9 +805,9 @@ const owners = Array.from(new Set(
     }
 
     if (interaction.customId === "v2_staff_characters_cancel_installation") {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const validationAccess = require("../../core/services/ValidationPermissionAccessService");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canManageCharacters(interaction)) {
+        if (!validationAccess.canWrite(interaction)) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }

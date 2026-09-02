@@ -8,9 +8,9 @@ const logger =
 const v2 =
     require("../../index");
 
-const validationStaffPolicy =
+const validationPermissionAccess =
     require(
-        "../../core/policies/ValidationStaffPolicy"
+        "../../core/services/ValidationPermissionAccessService"
     );
 
 const {
@@ -62,8 +62,8 @@ module.exports = async interaction => {
         }
 
         if (
-            !validationStaffPolicy
-                .canReview(
+            !validationPermissionAccess
+                .canWrite(
                     interaction
                 )
         ) {

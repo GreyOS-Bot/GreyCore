@@ -192,7 +192,8 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId === "v2_staff_characters_cancel_installation_select") {
-        if (!policy.canManageCharacters(interaction)) {
+        const validationAccess = require("../../core/services/ValidationPermissionAccessService");
+        if (!validationAccess.canWrite(interaction)) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }

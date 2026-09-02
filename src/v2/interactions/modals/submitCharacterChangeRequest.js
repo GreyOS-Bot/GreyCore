@@ -1,6 +1,6 @@
 const v2 = require("../../index");
-const validationStaffPolicy = require(
-    "../../core/policies/ValidationStaffPolicy"
+const validationPermissionAccess = require(
+    "../../core/services/ValidationPermissionAccessService"
 );
 const notificationService = require(
     "../../services/validation/ValidationNotificationService"
@@ -35,7 +35,7 @@ module.exports = async interaction => {
         }
 
         if (
-            !validationStaffPolicy.canReview(interaction)
+            !validationPermissionAccess.canWrite(interaction)
             || String(installation.guild_id) !==
                 String(interaction.guildId || "")
         ) {

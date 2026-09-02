@@ -78,8 +78,8 @@ test(
             }
         });
         stubModule(
-            "src/v2/core/policies/ValidationStaffPolicy.js",
-            { canReview: () => true }
+            "src/v2/core/services/ValidationPermissionAccessService.js",
+            { canRead: () => true, canWrite: () => true }
         );
         stubModule(
             "src/v2/services/validation/ValidationNotificationService.js",

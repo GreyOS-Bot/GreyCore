@@ -206,6 +206,9 @@ async function auditGuild({
         qualified_bot_count: 0,
         qualified_root_count: 0,
         bridge_only_member_count: 0,
+        bridge_only_characters_read_count: 0,
+        bridge_only_characters_write_count: 0,
+        bridge_only_non_characters_count: 0,
         qualified_with_user_allow: 0,
         qualified_with_role_allow: 0,
         qualified_with_user_deny: 0,
@@ -304,7 +307,9 @@ async function auditGuild({
                 const blockedAboveBridge = [
                     "USER_DENY", "ROLE_DENY"
                 ].includes(withoutBridge.reason);
-                const bridgeOnly = !withoutBridge.allowed
+                const bridgeEligible = permission === "characters";
+                const bridgeOnly = bridgeEligible
+                    && !withoutBridge.allowed
                     && !blockedAboveBridge;
                 if (!bridgeOnly) continue;
                 memberBridgeOnly = true;
@@ -323,6 +328,15 @@ async function auditGuild({
         report.bridge_only_by_permission.assets.bridge_only_write_count;
     report.bridge_only_modules_write_count =
         report.bridge_only_by_permission.modules.bridge_only_write_count;
+    report.bridge_only_characters_read_count =
+        report.bridge_only_by_permission.characters.bridge_only_read_count;
+    report.bridge_only_characters_write_count =
+        report.bridge_only_by_permission.characters.bridge_only_write_count;
+    report.bridge_only_non_characters_count = KNOWN_PERMISSIONS
+        .filter(permission => permission !== "characters")
+        .reduce((total, permission) => total
+            + report.bridge_only_by_permission[permission].bridge_only_read_count
+            + report.bridge_only_by_permission[permission].bridge_only_write_count, 0);
     return report;
 }
 
@@ -333,11 +347,20 @@ function globalSummary(reports) {
         total_guilds_audited: reports.length,
         total_qualified_humans: sum("qualified_human_count"),
         total_bridge_only_humans: sum("bridge_only_member_count"),
+        total_bridge_only_characters_read: sum(
+            "bridge_only_characters_read_count"
+        ),
+        total_bridge_only_characters_write: sum(
+            "bridge_only_characters_write_count"
+        ),
         total_bridge_only_assets_write: sum(
             "bridge_only_assets_write_count"
         ),
         total_bridge_only_modules_write: sum(
             "bridge_only_modules_write_count"
+        ),
+        total_bridge_only_non_characters: sum(
+            "bridge_only_non_characters_count"
         ),
         incomplete_guild_audits: reports.filter(report =>
             report.exposure_status !== "COMPLETE"
@@ -396,6 +419,14 @@ async function main() {
         await client.login(token);
         const result = await runAudit({ db, client, PermissionFlagsBits });
         process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+        const modelExposure = result.summary.total_bridge_only_assets_write
+            + result.summary.total_bridge_only_modules_write
+            + result.summary.total_bridge_only_non_characters;
+        if (modelExposure > 0) {
+            const error = new Error("AUDIT_MODEL_ERROR");
+            error.code = "AUDIT_MODEL_ERROR";
+            throw error;
+        }
         if (result.summary.incomplete_guild_audits > 0) process.exitCode = 2;
     } finally {
         client.destroy();

@@ -6,8 +6,8 @@ const {
 } = require("discord.js");
 
 const v2 = require("../../index");
-const validationStaffPolicy = require(
-    "../../core/policies/ValidationStaffPolicy"
+const validationPermissionAccess = require(
+    "../../core/services/ValidationPermissionAccessService"
 );
 const { replyError } = require(
     "../../core/services/InteractionResponseService"
@@ -30,7 +30,7 @@ module.exports = async interaction => {
         }
 
         if (
-            !validationStaffPolicy.canReview(interaction)
+            !validationPermissionAccess.canWrite(interaction)
             || String(installation.guild_id) !==
                 String(interaction.guildId || "")
         ) {

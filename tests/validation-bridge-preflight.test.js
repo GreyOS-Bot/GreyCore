@@ -148,7 +148,7 @@ test("2C.5c lit effect NULL/allow/deny et defaults Phase 2", () => {
     db.close();
 });
 
-test("2C.5c mesure Assets/Modules bridge-only sans donner autorité à ManageGuild", async () => {
+test("2C.5c2 mesure characters bridge-only sans exposer Assets/Modules", async () => {
     const db = createDatabase({ phase2: true });
     const snapshot = preflight.loadDatabaseSnapshot(db);
     const manageGuildOnly = member("manager");
@@ -171,9 +171,12 @@ test("2C.5c mesure Assets/Modules bridge-only sans donner autorité à ManageGui
     assert.equal(report.qualified_bot_count, 1);
     assert.equal(report.bot_member_count, 1);
     assert.equal(report.bridge_only_member_count, 1);
-    assert.equal(report.bridge_only_assets_read_count, 1);
-    assert.equal(report.bridge_only_assets_write_count, 1);
-    assert.equal(report.bridge_only_modules_write_count, 1);
+    assert.equal(report.bridge_only_characters_read_count, 1);
+    assert.equal(report.bridge_only_characters_write_count, 1);
+    assert.equal(report.bridge_only_assets_read_count, 0);
+    assert.equal(report.bridge_only_assets_write_count, 0);
+    assert.equal(report.bridge_only_modules_write_count, 0);
+    assert.equal(report.bridge_only_non_characters_count, 0);
     assert.equal(calls.memberFetch, 1);
     assert.equal(calls.channelFetch, 0);
     db.close();
