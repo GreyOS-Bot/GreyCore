@@ -175,6 +175,15 @@ test("2A reproduit les décisions staff historiques et explique leur source", co
             permission: "automations",
             write: true
         }).reason,
+        "IMPLICIT_DENY"
+    );
+    assert.equal(
+        decisions.decide({
+            interaction: validation,
+            permission: "characters",
+            write: true,
+            allowValidationBridge: true
+        }).reason,
         "VALIDATION_BRIDGE"
     );
     assert.equal(

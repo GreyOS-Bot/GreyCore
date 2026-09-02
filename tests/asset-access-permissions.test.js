@@ -123,8 +123,17 @@ test("2C.4c applique réellement la précédence stricte Assets", context => {
     for (const modulePath of [
         "../src/v2/repositories/StaffPermissionRepository",
         "../src/v2/managers/StaffPermissionV2Manager",
+        "../src/v2/repositories/GuildSettingsRepository",
+        "../src/v2/managers/GuildSettingsV2Manager",
+        "../src/v2/core/services/ValidationBridgeQualificationService",
         "../src/v2/core/services/StaffPermissionDecisionService"
     ]) delete require.cache[require.resolve(modulePath)];
+    const staffPermissions = require(
+        "../src/v2/managers/StaffPermissionV2Manager"
+    );
+    const settings = require(
+        "../src/v2/managers/GuildSettingsV2Manager"
+    );
     const decisions = require(
         "../src/v2/core/services/StaffPermissionDecisionService"
     );
@@ -215,6 +224,19 @@ test("2C.4c applique réellement la précédence stricte Assets", context => {
     assert.equal(loaded.service.canManage(
         interaction({ userId: "manager", manageGuild: true }), foreign
     ), false);
+
+    settings.setValidationChannel("guild", "validation");
+    staffPermissions.setValidationChannelAccess({
+        guildId: "guild",
+        enabled: true,
+        updatedBy: "owner"
+    });
+    const bridgeOnly = interaction({ userId: "bridge-only" });
+    bridgeOnly.guild.channels.cache.set("validation", {
+        permissionsFor: () => ({ has: () => true })
+    });
+    assert.equal(loaded.service.canRead(bridgeOnly, foreign), false);
+    assert.equal(loaded.service.canManage(bridgeOnly, foreign), false);
 });
 
 test("2C.4c n’installe aucun type depuis le parcours joueur", async context => {

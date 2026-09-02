@@ -373,7 +373,7 @@ test("un batch strict partage un snapshot et un mode global", () => {
             defaults: 1,
             legacyRoles: 0,
             legacyUsers: 0,
-            validationAccess: 1,
+            validationAccess: 0,
             validationStaff: 0
         });
     });

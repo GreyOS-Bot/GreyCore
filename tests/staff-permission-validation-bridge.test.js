@@ -84,27 +84,33 @@ function withFixture({
     }
 }
 
-function decide(fixture, permission = "scenes", write = false) {
+function decide(
+    fixture,
+    permission = "characters",
+    write = false,
+    allowValidationBridge = true
+) {
     return withFixture(fixture, calls => ({
         decision: decisionService.decide({
             interaction: interaction(),
             permission,
-            write
+            write,
+            allowValidationBridge
         }),
         calls
     }));
 }
 
-test("2C.5b accorde le bridge strict seul avec une source minimale", () => {
+test("2C.5b2 accorde uniquement characters avec opt-in explicite", () => {
     const { decision, calls } = decide({ qualified: true });
     assert.deepEqual(decision, {
         allowed: true,
-        permission: "scenes",
+        permission: "characters",
         mode: "read",
         reason: "VALIDATION_BRIDGE",
         sources: [{
             type: "VALIDATION_BRIDGE",
-            permission: "scenes",
+            permission: "characters",
             effect: "allow",
             guildId: "guild-a",
             channelId: "validation"
@@ -116,14 +122,43 @@ test("2C.5b accorde le bridge strict seul avec une source minimale", () => {
     assert.deepEqual(calls, { roles: 1, users: 1, defaults: 1, bridge: 1 });
 });
 
-test("2C.5b conserve user deny et user allow au-dessus du bridge", () => {
+test("2C.5b2 désactive le bridge par défaut et hors characters", () => {
+    withFixture({}, calls => {
+        for (const value of [undefined, false]) {
+            const options = {
+                interaction: interaction(),
+                permission: "characters",
+                write: false
+            };
+            if (value !== undefined) options.allowValidationBridge = value;
+            assert.equal(
+                decisionService.decide(options).reason,
+                "IMPLICIT_DENY"
+            );
+        }
+        assert.equal(calls.bridge, 0);
+    });
+
+    for (const [permission, write] of [
+        ["assets", false], ["assets", true], ["modules", true],
+        ["scenes", true], ["settings", true], ["automations", true],
+        ["read_only", false]
+    ]) {
+        const result = decide({}, permission, write, true);
+        assert.equal(result.decision.allowed, false);
+        assert.equal(result.decision.reason, "IMPLICIT_DENY");
+        assert.equal(result.calls.bridge, 0);
+    }
+});
+
+test("2C.5b2 conserve user deny et user allow au-dessus du bridge", () => {
     const denied = decide({
-        users: [{ permissionKey: "scenes", effect: "deny" }]
+        users: [{ permissionKey: "characters", effect: "deny" }]
     }).decision;
     assert.equal(denied.allowed, false);
     assert.equal(denied.reason, "USER_DENY");
     const allowed = decide({
-        users: [{ permissionKey: "scenes", effect: "allow" }]
+        users: [{ permissionKey: "characters", effect: "allow" }]
     }).decision;
     assert.equal(allowed.allowed, true);
     assert.equal(allowed.reason, "USER_ALLOW");
@@ -131,17 +166,17 @@ test("2C.5b conserve user deny et user allow au-dessus du bridge", () => {
         source.type === "VALIDATION_BRIDGE"), false);
 });
 
-test("2C.5b conserve role deny et role allow au niveau du bridge", () => {
+test("2C.5b2 conserve role deny et role allow au niveau du bridge", () => {
     const denied = decide({ roles: [{
-        roleId: "role-a", permissionKey: "scenes", effect: "deny"
+        roleId: "role-a", permissionKey: "characters", effect: "deny"
     }] }).decision;
     assert.equal(denied.allowed, false);
     assert.equal(denied.reason, "ROLE_DENY");
     assert.equal(denied.sources.length, 1);
 
     const allowed = decide({ roles: [
-        { roleId: "role-z", permissionKey: "scenes", effect: "allow" },
-        { roleId: "role-a", permissionKey: "scenes", effect: null }
+        { roleId: "role-z", permissionKey: "characters", effect: "allow" },
+        { roleId: "role-a", permissionKey: "characters", effect: null }
     ] }).decision;
     assert.equal(allowed.allowed, true);
     assert.equal(allowed.reason, "ROLE_ALLOW");
@@ -156,63 +191,44 @@ test("2C.5b conserve role deny et role allow au niveau du bridge", () => {
     ]);
 });
 
-test("2C.5b place le bridge au-dessus des defaults et de read_only", () => {
+test("2C.5b2 place le bridge characters au-dessus des defaults et read_only", () => {
     for (const effect of ["deny", "allow"]) {
         const result = decide({ defaults: [{
-            permissionKey: "scenes", effect
+            permissionKey: "characters", effect
         }] }).decision;
         assert.equal(result.allowed, true);
         assert.equal(result.reason, "VALIDATION_BRIDGE");
     }
-    const readOnly = decide({}, "read_only", true).decision;
-    assert.equal(readOnly.allowed, true);
+    const readOnly = decide({ roles: [{
+        roleId: "role-a", permissionKey: "read_only", effect: "allow"
+    }] }).decision;
     assert.equal(readOnly.reason, "VALIDATION_BRIDGE");
 });
 
-test("2C.5b refuse unknown, wildcard et valeurs atypiques avant le bridge", () => {
+test("2C.5b2 refuse unknown et wildcard sans qualifier le bridge", () => {
     for (const permission of ["unknown", "*", "", "   "]) {
-        const result = decide({}, permission).decision;
-        assert.equal(result.allowed, false);
-        assert.equal(result.reason, "UNKNOWN_PERMISSION");
-        assert.deepEqual(result.sources, []);
+        const result = decide({}, permission, false, true);
+        assert.equal(result.decision.allowed, false);
+        assert.equal(result.decision.reason, "UNKNOWN_PERMISSION");
+        assert.deepEqual(result.decision.sources, []);
+        assert.equal(result.calls.bridge, 0);
     }
 });
 
-test("2C.5b accorde les consommateurs stricts Assets et Modules", () => {
-    for (const [permission, write] of [
-        ["assets", false],
-        ["assets", true],
-        ["modules", true]
-    ]) {
-        const result = decide({}, permission, write).decision;
-        assert.equal(result.allowed, true);
-        assert.equal(result.reason, "VALIDATION_BRIDGE");
-        assert.equal(result.mode, write ? "write" : "read");
-    }
-    assert.equal(decide({
-        users: [{ permissionKey: "assets", effect: "deny" }]
-    }, "assets", true).decision.reason, "USER_DENY");
-    assert.equal(decide({ roles: [{
-        roleId: "role-a", permissionKey: "assets", effect: "deny"
-    }] }, "assets", true).decision.reason, "ROLE_DENY");
-});
-
-test("2C.5b partage une qualification unique dans decideMany", () => {
+test("2C.5b2 isole un batch mixte et qualifie une seule fois", () => {
     withFixture({}, calls => {
         const result = decisionService.decideMany({
             interaction: interaction(),
             requests: [
-                { permission: "assets", write: false },
+                { permission: "characters", write: true, allowValidationBridge: true },
                 { permission: "assets", write: true },
-                { permission: "modules", write: true },
-                { permission: "scenes", write: false }
+                { permission: "modules", write: true }
             ]
         });
         assert.deepEqual(result.decisions.map(item => item.reason), [
             "VALIDATION_BRIDGE",
-            "VALIDATION_BRIDGE",
-            "VALIDATION_BRIDGE",
-            "VALIDATION_BRIDGE"
+            "IMPLICIT_DENY",
+            "IMPLICIT_DENY"
         ]);
         assert.deepEqual(calls, {
             roles: 1,
@@ -223,15 +239,44 @@ test("2C.5b partage une qualification unique dans decideMany", () => {
     });
 });
 
-test("2C.5b court-circuite owner et Administrator avant le bridge", () => {
+test("2C.5b2 ne qualifie jamais un batch sans opt-in éligible", () => {
+    withFixture({}, calls => {
+        const requests = Array.from({ length: 10 }, (_, index) => ({
+            permission: index === 0 ? "characters" : "scenes",
+            write: index % 2 === 0
+        }));
+        decisionService.decideMany({ interaction: interaction(), requests });
+        assert.equal(calls.bridge, 0);
+    });
+});
+
+test("2C.5b2 partage une qualification entre plusieurs requests characters", () => {
+    withFixture({}, calls => {
+        const result = decisionService.decideMany({
+            interaction: interaction(),
+            requests: [
+                { permission: "characters", write: false, allowValidationBridge: true },
+                { permission: "characters", write: true, allowValidationBridge: true }
+            ]
+        });
+        assert.deepEqual(result.decisions.map(item => item.reason), [
+            "VALIDATION_BRIDGE", "VALIDATION_BRIDGE"
+        ]);
+        assert.equal(calls.bridge, 1);
+    });
+});
+
+test("2C.5b2 court-circuite owner et Administrator avant le bridge", () => {
     withFixture({}, calls => {
         const owner = decisionService.decide({
             interaction: interaction({ owner: true }),
-            permission: "unknown"
+            permission: "characters",
+            allowValidationBridge: true
         });
         const admin = decisionService.decide({
             interaction: interaction({ administrator: true }),
-            permission: "unknown"
+            permission: "characters",
+            allowValidationBridge: true
         });
         assert.equal(owner.reason, "GUILD_OWNER");
         assert.equal(admin.reason, "DISCORD_ADMINISTRATOR");
@@ -244,26 +289,28 @@ test("2C.5b court-circuite owner et Administrator avant le bridge", () => {
     });
 });
 
-test("2C.5b laisse flag OFF et non-qualification suivre le strict normal", () => {
+test("2C.5b2 laisse flag OFF et non-qualification suivre le strict normal", () => {
     assert.equal(decide({ enabled: false }).decision.reason, "IMPLICIT_DENY");
     assert.equal(decide({ qualified: false }).decision.reason, "IMPLICIT_DENY");
     assert.equal(decide({
         qualified: false,
-        defaults: [{ permissionKey: "scenes", effect: "allow" }]
+        defaults: [{ permissionKey: "characters", effect: "allow" }]
     }).decision.reason, "GUILD_DEFAULT_ALLOW");
 });
 
-test("2C.5b maintient une séparation complète entre strict et legacy", () => {
+test("2C.5b2 maintient une séparation complète entre strict et legacy", () => {
     withFixture({}, calls => {
         const strict = decisionService.decide({
             interaction: interaction(),
-            permission: "scenes"
+            permission: "characters",
+            allowValidationBridge: true
         });
         assert.equal(strict.reason, "VALIDATION_BRIDGE");
         const bridgeCalls = calls.bridge;
         const legacy = decisionService.decide({
             interaction: interaction(),
-            permission: "scenes",
+            permission: "characters",
+            allowValidationBridge: true,
             legacyCanAccessParity: true
         });
         assert.equal(calls.bridge, bridgeCalls);

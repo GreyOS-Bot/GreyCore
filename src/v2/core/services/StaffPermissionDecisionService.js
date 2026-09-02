@@ -42,7 +42,9 @@ class StaffPermissionDecisionService {
             ...options,
             requests: [{
                 permission: options.permission,
-                write: options.write === true
+                write: options.write === true,
+                allowValidationBridge:
+                    options.allowValidationBridge === true
             }]
         }).decisions[0];
     }
@@ -57,14 +59,21 @@ class StaffPermissionDecisionService {
     }) {
         const normalizedRequests = requests.map(request => ({
             permission: request?.permission,
-            write: request?.write === true
+            write: request?.write === true,
+            allowValidationBridge:
+                request?.allowValidationBridge === true
         }));
         if (legacyCanAccessParity !== true) {
+            const allowValidationBridge = normalizedRequests.some(request =>
+                request.permission === "characters"
+                && request.allowValidationBridge === true
+            );
             const strictSnapshot = this.resolveStrictSnapshot({
                 interaction: providedInteraction,
                 guild,
                 member,
-                userId
+                userId,
+                allowValidationBridge
             });
             return Object.freeze({
                 decisions: Object.freeze(normalizedRequests.map(request =>
@@ -124,7 +133,8 @@ class StaffPermissionDecisionService {
         interaction: providedInteraction,
         guild,
         member,
-        userId
+        userId,
+        allowValidationBridge = false
     }) {
         const interaction = providedInteraction || {
             guild,
@@ -166,11 +176,13 @@ class StaffPermissionDecisionService {
             });
         }
 
-        const validationBridge = validationBridgeQualificationService.qualify({
-            guild: resolvedGuild,
-            member: resolvedMember,
-            guildId
-        });
+        const validationBridge = allowValidationBridge === true
+            ? validationBridgeQualificationService.qualify({
+                guild: resolvedGuild,
+                member: resolvedMember,
+                guildId
+            })
+            : null;
         return this.createStrictSnapshot({
             guildId,
             resolvedUserId,
@@ -191,7 +203,11 @@ class StaffPermissionDecisionService {
         });
     }
 
-    evaluateStrictPermission(snapshot, { permission, write = false }) {
+    evaluateStrictPermission(snapshot, {
+        permission,
+        write = false,
+        allowValidationBridge = false
+    }) {
         const mode = write === true ? "write" : "read";
         if (snapshot.rootReason) {
             return this.createDecision({
@@ -212,7 +228,12 @@ class StaffPermissionDecisionService {
             });
         }
 
-        const specific = this.evaluateStrictAssignment(snapshot, permission);
+        const specific = this.evaluateStrictAssignment(
+            snapshot,
+            permission,
+            permission === "characters"
+                && allowValidationBridge === true
+        );
         if (specific) {
             return this.createDecision({
                 allowed: specific.allowed,
@@ -334,7 +355,11 @@ class StaffPermissionDecisionService {
         return Object.freeze(index);
     }
 
-    evaluateStrictAssignment(snapshot, permission) {
+    evaluateStrictAssignment(
+        snapshot,
+        permission,
+        allowValidationBridge = false
+    ) {
         const user = snapshot.userAssignmentsByPermission[permission];
         if (user) {
             const allowed = user.effect !== "deny";
@@ -357,7 +382,9 @@ class StaffPermissionDecisionService {
             };
         }
 
-        const bridgeSource = snapshot.validationBridge?.qualified
+        const bridgeSource = allowValidationBridge
+            && permission === "characters"
+            && snapshot.validationBridge?.qualified
             ? this.createValidationBridgeSource(snapshot, permission)
             : null;
         if (roles.length) {

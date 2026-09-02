@@ -178,7 +178,9 @@ test("2B.3c résout le rendu une fois sans remplacer les revalidations", context
             })));
         } else {
             assert.deepEqual(options.requests, [{
-                permission: "assets", write: false
+                permission: "assets",
+                write: false,
+                allowValidationBridge: false
             }]);
         }
         return originalBatch(options);

@@ -132,9 +132,10 @@ test("le snapshot non-root effectue trois lectures groupées et un bridge", () =
         users: [{ permissionKey: "phone", effect: null }],
         defaults: [{ permissionKey: "bank", effect: "allow" }]
     }, calls => {
-        const snapshot = decisionService.resolveStrictSnapshot(interaction({
-            roleIds: ["role-b", "role-a"]
-        }));
+        const snapshot = decisionService.resolveStrictSnapshot({
+            ...interaction({ roleIds: ["role-b", "role-a"] }),
+            allowValidationBridge: true
+        });
         assert.equal(calls.roles, 1);
         assert.equal(calls.users, 1);
         assert.equal(calls.defaults, 1);
