@@ -3,6 +3,9 @@ const assert = require("node:assert/strict");
 const { createIsolatedDatabase } = require("./helpers/isolatedDatabase");
 
 const policyPath = require.resolve("../src/v2/core/policies/StaffPermissionPolicy");
+const validationAccessPath = require.resolve(
+    "../src/v2/core/services/ValidationPermissionAccessService"
+);
 const buttonRouterPath = require.resolve("../src/v2/router/buttons/StaffRouter");
 const selectRouterPath = require.resolve("../src/v2/router/selects/StaffSelectRouter");
 
@@ -40,6 +43,7 @@ function deniedInteraction(customId) {
 
 test("2B.2b revalide chaque consultation Personnages avec characters write:false", async context => {
     const previousPolicy = require.cache[policyPath];
+    const previousValidationAccess = require.cache[validationAccessPath];
     const calls = [];
     require.cache[policyPath] = {
         id: policyPath,
@@ -52,11 +56,29 @@ test("2B.2b revalide chaque consultation Personnages avec characters write:false
             }
         }
     };
+    require.cache[validationAccessPath] = {
+        id: validationAccessPath,
+        filename: validationAccessPath,
+        loaded: true,
+        exports: {
+            canRead: interaction => {
+                calls.push({
+                    customId: interaction.customId,
+                    permission: "characters",
+                    options: { write: false, allowValidationBridge: true }
+                });
+                return false;
+            }
+        }
+    };
     delete require.cache[buttonRouterPath];
     delete require.cache[selectRouterPath];
     context.after(() => {
         if (previousPolicy) require.cache[policyPath] = previousPolicy;
         else delete require.cache[policyPath];
+        if (previousValidationAccess) {
+            require.cache[validationAccessPath] = previousValidationAccess;
+        } else delete require.cache[validationAccessPath];
         delete require.cache[buttonRouterPath];
         delete require.cache[selectRouterPath];
     });
@@ -80,7 +102,12 @@ test("2B.2b revalide chaque consultation Personnages avec characters write:false
     );
     for (const call of calls) {
         assert.equal(call.permission, "characters");
-        assert.deepEqual(call.options, { write: false });
+        assert.deepEqual(
+            call.options,
+            call.customId === "v2_staff_characters_pending"
+                ? { write: false, allowValidationBridge: true }
+                : { write: false }
+        );
     }
 });
 
@@ -135,6 +162,7 @@ test("2B.2b conserve toutes les sources historiques sur un customId forgé", asy
     for (const modulePath of permissionModules) {
         delete require.cache[require.resolve(modulePath)];
     }
+    delete require.cache[validationAccessPath];
     delete require.cache[buttonRouterPath];
 
     const manager = require("../src/v2/managers/StaffPermissionV2Manager");

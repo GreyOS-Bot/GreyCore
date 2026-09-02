@@ -76,3 +76,28 @@ test("2C.5c2 conserve les actions joueur hors du cutover staff", () => {
         assert.doesNotMatch(source, /ValidationPermissionAccessService|allowValidationBridge/);
     }
 });
+
+test("2C.5d réserve l'opt-in Validation Bridge au service Validation", () => {
+    const sourceRoot = path.join(__dirname, "../src");
+    const occurrences = [];
+
+    function visit(directory) {
+        for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+            const absolutePath = path.join(directory, entry.name);
+            if (entry.isDirectory()) {
+                visit(absolutePath);
+                continue;
+            }
+            if (!entry.isFile() || !entry.name.endsWith(".js")) continue;
+            const source = fs.readFileSync(absolutePath, "utf8");
+            if (/allowValidationBridge\s*:\s*true/.test(source)) {
+                occurrences.push(path.relative(sourceRoot, absolutePath).replaceAll("\\", "/"));
+            }
+        }
+    }
+
+    visit(sourceRoot);
+    assert.deepEqual(occurrences, [
+        "v2/core/services/ValidationPermissionAccessService.js"
+    ]);
+});
