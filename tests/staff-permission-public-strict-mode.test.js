@@ -438,6 +438,7 @@ test("les consommateurs historiques restent legacy et Assets utilise le strict",
         .sort();
     assert.deepEqual(callers, [
         path.join("src", "v2", "core", "policies", "StaffPermissionPolicy.js"),
+        path.join("src", "v2", "core", "services", "AdministrativePermissionAccessService.js"),
         path.join("src", "v2", "core", "services", "ValidationPermissionAccessService.js"),
         path.join("src", "v2", "pages", "staff", "StaffAssetsPage.js"),
         path.join("src", "v2", "pages", "staff", "StaffCenterPage.js"),
