@@ -50,9 +50,10 @@ test(
             }
         );
         stubModule(
-            "src/v2/core/policies/GuildManagementPolicy.js",
+            "src/v2/core/services/AdministrativePermissionAccessService.js",
             {
-                canManage: () => true
+                canRead: () => true,
+                canWrite: () => true
             }
         );
         stubModule(

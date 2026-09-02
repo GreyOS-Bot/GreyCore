@@ -5,9 +5,6 @@ const {
     EmbedBuilder
 } = require("discord.js");
 
-const serverConfig =
-    require("../../managers/ServerConfigManager");
-
 const guildRepository =
     require("../../v2/repositories/GuildRepository");
 
@@ -19,14 +16,9 @@ const moduleSettingsHandler =
         "../../v2/interactions/settings/GuildModuleSettingsHandler"
     );
 
-const guildManagementPolicy =
+const administrativeAccess =
     require(
-        "../../v2/core/policies/GuildManagementPolicy"
-    );
-
-const validationStaffPolicy =
-    require(
-        "../../v2/core/policies/ValidationStaffPolicy"
+        "../../v2/core/services/AdministrativePermissionAccessService"
     );
 
 const {
@@ -331,14 +323,29 @@ module.exports = {
         const subcommand =
             interaction.options.getSubcommand();
 
-        if (
-            !guildManagementPolicy.canManage(interaction)
-            && !validationStaffPolicy
-                .canManageServerTools(interaction)
-        ) {
+        if (subcommand === "set" || subcommand === "get") {
+            return interaction.reply({
+                content: "ℹ️ Les paramètres avancés sont désormais gérés depuis `/staff`.",
+                ephemeral: true
+            });
+        }
+
+        const access = CONFIG_ACCESS[subcommand];
+        const allowed = access
+            && (access.write
+                ? administrativeAccess.canWrite(
+                    interaction,
+                    access.permission
+                )
+                : administrativeAccess.canRead(
+                    interaction,
+                    access.permission
+                ));
+
+        if (!allowed) {
             return replyError(
                 interaction,
-                "Seules les personnes autorisées à gérer le serveur peuvent modifier sa configuration."
+                "Tu n’as pas la permission GreyCore requise pour cette configuration."
             );
         }
 
@@ -784,46 +791,19 @@ module.exports = {
             });
         }
 
-        const key =
-            interaction.options.getString(
-                "cle"
-            );
-
-        if (subcommand === "set") {
-            const value =
-                interaction.options.getString(
-                    "valeur"
-                );
-
-            serverConfig.set(
-                interaction.guild.id,
-                key,
-                value
-            );
-
-            return interaction.reply({
-                content:
-                    `✅ **${key}** = \`${value}\``,
-                ephemeral: true
-            });
-        }
-
-        if (subcommand === "get") {
-            const value =
-                serverConfig.get(
-                    interaction.guild.id,
-                    key,
-                    "Non défini"
-                );
-
-            return interaction.reply({
-                content:
-                    `⚙️ **${key}** = \`${value}\``,
-                ephemeral: true
-            });
-        }
     }
 };
+
+const CONFIG_ACCESS = Object.freeze({
+    validation: Object.freeze({ permission: "settings", write: true }),
+    journaux: Object.freeze({ permission: "logs", write: true }),
+    "automatisation-voir": Object.freeze({ permission: "automations", write: false }),
+    automatisation: Object.freeze({ permission: "automations", write: true }),
+    "automatisation-desactiver": Object.freeze({ permission: "automations", write: true }),
+    scenes: Object.freeze({ permission: "scenes", write: true }),
+    "limite-pj": Object.freeze({ permission: "settings", write: true }),
+    modules: Object.freeze({ permission: "modules", write: false })
+});
 
 function formatAutomationSummary(configuration) {
     const status = configuration.is_enabled
