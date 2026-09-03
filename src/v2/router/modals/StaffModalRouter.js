@@ -167,7 +167,7 @@ module.exports = async interaction => {
         return true;
     }
     if (!interaction.customId?.startsWith("v2_staff_scenes_")) return false;
-    if (!policy.canAccess(interaction, "scenes", { write: true })) {
+    if (!administrativeAccess.canWrite(interaction, "scenes")) {
         await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
         return true;
     }

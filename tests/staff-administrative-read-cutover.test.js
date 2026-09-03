@@ -73,7 +73,7 @@ test("2C.6d1 protège strictement les cinq pages administratives avant lecture",
     assert.deepEqual(reads, Object.keys(pageFiles).map(domain => ["allowed", domain]));
 });
 
-test("2C.6d1 migre seulement les actions READ et conserve les WRITE legacy", () => {
+test("2C.6d1 conserve les READ stricts pendant les cutovers WRITE ciblés", () => {
     const buttonSource = fs.readFileSync(path.join(
         __dirname, "../src/v2/router/buttons/StaffRouter.js"
     ), "utf8");
@@ -90,8 +90,8 @@ test("2C.6d1 migre seulement les actions READ et conserve les WRITE legacy", () 
     assert.match(buttonSource, /readOnlyActions[\s\S]*administrativeAccess\.canRead/);
     assert.match(buttonSource, /public_places_page:[\s\S]*AdministrativePermissionAccessService/);
     assert.match(selectSource, /public_place_pick:[\s\S]*AdministrativePermissionAccessService/);
-    assert.match(buttonSource, /public_places_refresh:[\s\S]*StaffPermissionPolicy/);
-    assert.match(selectSource, /public_place_category:[\s\S]*policy\.canAccess/);
+    assert.match(buttonSource, /public_places_refresh:[\s\S]*AdministrativePermissionAccessService/);
+    assert.match(selectSource, /public_place_category:[\s\S]*administrativeAccess\.canWrite/);
     assert.match(selectSource, /v2_staff_modules_toggle[\s\S]*policy\.canAccess/);
 });
 

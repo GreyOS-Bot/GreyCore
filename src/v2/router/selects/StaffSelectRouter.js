@@ -100,7 +100,7 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId === "v2_staff_scenes_public_forum_select") {
-        if (!policy.canAccess(interaction, "scenes", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "scenes")) {
             await replyError(interaction, "Tu n’as pas accès aux cycles de scènes.");
             return true;
         }
@@ -119,7 +119,7 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId?.startsWith("v2_staff_public_place_category:")) {
-        if (!policy.canAccess(interaction, "scenes", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "scenes")) {
             await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }
@@ -214,7 +214,7 @@ module.exports = async interaction => {
         return true;
     }
     if (["v2_staff_scenes_remove_zone", "v2_staff_scenes_remove_expression"].includes(interaction.customId)) {
-        if (!policy.canAccess(interaction, "scenes", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "scenes")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -395,8 +395,7 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_scenes_zone_select") {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
-        if (!policy.canAccess(interaction, "scenes", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "scenes")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }

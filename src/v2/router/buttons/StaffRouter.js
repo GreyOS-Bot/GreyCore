@@ -963,7 +963,7 @@ const owners = Array.from(new Set(
         const readOnlyActions = ["manage", "diagnostic", "public_places", "duo_report"].includes(action);
         const allowed = readOnlyActions
             ? administrativeAccess.canRead(interaction, "scenes")
-            : policy.canAccess(interaction, "scenes", { write: true });
+            : administrativeAccess.canWrite(interaction, "scenes");
         if (!allowed) {
             await replyError(
                 interaction,
@@ -1130,7 +1130,7 @@ const owners = Array.from(new Set(
     }
 
     if (interaction.customId.startsWith("v2_staff_public_places_refresh:")) {
-        if (!require("../../core/policies/StaffPermissionPolicy").canAccess(interaction, "scenes", { write: true })) {
+        if (!require("../../core/services/AdministrativePermissionAccessService").canWrite(interaction, "scenes")) {
             await require("../../core/services/InteractionResponseService").replyError(interaction, "Tu n’as pas accès aux cycles de scènes.");
             return true;
         }

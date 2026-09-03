@@ -105,7 +105,7 @@ test("2B.2a revalide les synchronisations de lieux publics en écriture", async 
         ["scenes par utilisateur", { userId: "direct-scenes" }, true],
         ["owner", { owner: true }, true],
         ["Administrator", { administrator: true }, true],
-        ["validation legacy", { validationAccess: true }, true],
+        ["validation legacy", { validationAccess: true }, false],
         ["read_only", { roleIds: ["role-reader"] }, false],
         ["aucun droit", {}, false]
     ];
