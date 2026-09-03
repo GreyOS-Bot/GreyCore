@@ -136,7 +136,8 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId?.startsWith("v2_staff_public_place_pick:")) {
-        if (!policy.canAccess(interaction, "scenes", { write: false })) {
+        if (!require("../../core/services/AdministrativePermissionAccessService")
+            .canRead(interaction, "scenes")) {
             await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }

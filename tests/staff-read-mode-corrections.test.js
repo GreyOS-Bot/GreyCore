@@ -16,6 +16,15 @@ test("2B.2c ouvre les consultations avec read_only sans mutation", async context
         },
         canManageCharacters: () => false
     });
+    const administrativeAccessPath = stubModule(
+        "src/v2/core/services/AdministrativePermissionAccessService.js",
+        {
+            canRead: (interaction, permission) => {
+                calls.push({ permission, options: { write: false }, customId: interaction.customId });
+                return true;
+            }
+        }
+    );
     const correctionPath = stubModule("src/v2/services/character/CharacterTypeCorrectionService.js", {
         getForStaff: () => ({ id: "character", character_type: "personnage_joue" })
     });
@@ -38,7 +47,7 @@ test("2B.2c ouvre les consultations avec read_only sans mutation", async context
     delete require.cache[commandPath];
     context.after(() => {
         for (const path of [
-            policyPath, correctionPath, correctionViewPath, publicPlacesPath,
+            policyPath, administrativeAccessPath, correctionPath, correctionViewPath, publicPlacesPath,
             publicPlacesViewPath, blocksPath, selectRouterPath, commandPath
         ]) delete require.cache[path];
     });
@@ -86,6 +95,10 @@ test("2B.2c refuse sans droit avant toute lecture", async context => {
         canAccess: () => false,
         canManageCharacters: () => false
     });
+    const administrativeAccessPath = stubModule(
+        "src/v2/core/services/AdministrativePermissionAccessService.js",
+        { canRead: () => false }
+    );
     const correctionPath = stubModule("src/v2/services/character/CharacterTypeCorrectionService.js", {
         getForStaff: () => { reads += 1; }
     });
@@ -97,7 +110,7 @@ test("2B.2c refuse sans droit avant toute lecture", async context => {
     delete require.cache[selectRouterPath];
     delete require.cache[commandPath];
     context.after(() => {
-        for (const path of [policyPath, correctionPath, blocksPath, selectRouterPath, commandPath]) {
+        for (const path of [policyPath, administrativeAccessPath, correctionPath, blocksPath, selectRouterPath, commandPath]) {
             delete require.cache[path];
         }
     });

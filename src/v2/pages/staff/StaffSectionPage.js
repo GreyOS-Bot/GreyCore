@@ -7,6 +7,17 @@ const {
 const catalog = require("../../core/permissions/StaffPermissionCatalog");
 const policy = require("../../core/policies/StaffPermissionPolicy");
 const decisionService = require("../../core/services/StaffPermissionDecisionService");
+const administrativeAccess = require(
+    "../../core/services/AdministrativePermissionAccessService"
+);
+
+const STRICT_ADMINISTRATIVE_SECTIONS = new Set([
+    "settings",
+    "logs",
+    "automations",
+    "scenes",
+    "modules"
+]);
 
 const CONTENT = {
     characters: ["Validations", "Fiches et corrections", "Installations", "Archives et suppressions"],
@@ -45,7 +56,10 @@ class StaffSectionPage {
             ? "settings"
             : sectionKey;
         const section = catalog.get(permissionKey);
-        if (!section || !policy.canAccess(interaction, permissionKey)) {
+        const allowed = STRICT_ADMINISTRATIVE_SECTIONS.has(sectionKey)
+            ? administrativeAccess.canRead(interaction, permissionKey)
+            : policy.canAccess(interaction, permissionKey);
+        if (!section || !allowed) {
             return deny(interaction);
         }
 

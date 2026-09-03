@@ -467,13 +467,17 @@ module.exports = async interaction => {
 
     if (interaction.customId.startsWith("v2_staff_settings_")) {
         const policy = require("../../core/policies/StaffPermissionPolicy");
+        const administrativeAccess = require("../../core/services/AdministrativePermissionAccessService");
         const { replyError } = require("../../core/services/InteractionResponseService");
         const action = interaction.customId.slice("v2_staff_settings_".length);
         const readOnlyActions = action === "advanced"
             || action.startsWith("advanced_page:")
             || action === "privacy_policy"
             || action === "charter";
-        if (!policy.canAccess(interaction, "settings", { write: !readOnlyActions })) {
+        const allowed = readOnlyActions
+            ? administrativeAccess.canRead(interaction, "settings")
+            : policy.canAccess(interaction, "settings", { write: true });
+        if (!allowed) {
             await replyError(
                 interaction,
                 readOnlyActions
@@ -953,10 +957,14 @@ const owners = Array.from(new Set(
 
     if (interaction.customId.startsWith("v2_staff_scenes_")) {
         const policy = require("../../core/policies/StaffPermissionPolicy");
+        const administrativeAccess = require("../../core/services/AdministrativePermissionAccessService");
         const { replyError } = require("../../core/services/InteractionResponseService");
         const action = interaction.customId.slice("v2_staff_scenes_".length);
         const readOnlyActions = ["manage", "diagnostic", "public_places", "duo_report"].includes(action);
-        if (!policy.canAccess(interaction, "scenes", { write: !readOnlyActions })) {
+        const allowed = readOnlyActions
+            ? administrativeAccess.canRead(interaction, "scenes")
+            : policy.canAccess(interaction, "scenes", { write: true });
+        if (!allowed) {
             await replyError(
                 interaction,
                 readOnlyActions
@@ -1138,7 +1146,7 @@ const owners = Array.from(new Set(
     }
 
     if (interaction.customId.startsWith("v2_staff_public_places_page:")) {
-        if (!require("../../core/policies/StaffPermissionPolicy").canAccess(interaction, "scenes", { write: false })) {
+        if (!require("../../core/services/AdministrativePermissionAccessService").canRead(interaction, "scenes")) {
             await require("../../core/services/InteractionResponseService").replyError(interaction, "Tu n’as pas accès aux cycles de scènes.");
             return true;
         }
