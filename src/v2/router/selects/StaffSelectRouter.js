@@ -378,9 +378,8 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_modules_toggle") {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "modules", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "modules")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }

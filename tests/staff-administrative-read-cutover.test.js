@@ -92,7 +92,7 @@ test("2C.6d1 conserve les READ stricts pendant les cutovers WRITE ciblés", () =
     assert.match(selectSource, /public_place_pick:[\s\S]*AdministrativePermissionAccessService/);
     assert.match(buttonSource, /public_places_refresh:[\s\S]*AdministrativePermissionAccessService/);
     assert.match(selectSource, /public_place_category:[\s\S]*administrativeAccess\.canWrite/);
-    assert.match(selectSource, /v2_staff_modules_toggle[\s\S]*policy\.canAccess/);
+    assert.match(selectSource, /v2_staff_modules_toggle[\s\S]*administrativeAccess\.canWrite/);
 });
 
 test("2C.6d1 émet uniquement les IDs de retour staff canoniques", () => {

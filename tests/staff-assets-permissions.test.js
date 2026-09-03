@@ -136,6 +136,12 @@ test("2C.4b revalide les mutations strictes et périme l'ancien bouton bank", as
                 return { allowed: grants[options.permission] === true };
             }
         }),
+        stubModule("src/v2/core/services/AdministrativePermissionAccessService.js", {
+            canWrite: (interaction, permission) => {
+                calls.decisions.push({ interaction, permission, write: true });
+                return grants[permission] === true;
+            }
+        }),
         stubModule("src/v2/core/policies/StaffPermissionPolicy.js", {
             canAccess: () => true
         }),
@@ -144,6 +150,7 @@ test("2C.4b revalide les mutations strictes et périme l'ancien bouton bank", as
             replyInactiveInterface: async () => { calls.inactive += 1; }
         }),
         stubModule("src/v2/managers/GuildModuleV2Manager.js", {
+            getModule: key => key === "assets" ? { key } : null,
             isEnabled: () => false,
             setEnabled: () => { calls.toggles += 1; }
         }),

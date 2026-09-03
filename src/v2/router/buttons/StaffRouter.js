@@ -147,20 +147,25 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId.startsWith("v2_staff_domain_toggle:")) {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
-        const decisionService = require("../../core/services/StaffPermissionDecisionService");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        const moduleManager = require("../../managers/GuildModuleV2Manager");
         const moduleKey = interaction.customId.split(":")[1];
-        const allowed = moduleKey === "assets"
-            ? decisionService.decide({
-                interaction,
-                permission: "modules",
-                write: true
-            }).allowed
-            : policy.canAccess(interaction, moduleKey, { write: true });
-        if (!allowed) {
+        const pages = {
+            phone: "StaffPhonePage",
+            assets: "StaffAssetsPage",
+            relationships: "StaffRelationshipsPage"
+        };
+        if (!Object.hasOwn(pages, moduleKey)) {
+            await replyError(interaction, "Module inconnu.");
+            return true;
+        }
+        if (!require("../../core/services/AdministrativePermissionAccessService")
+            .canWrite(interaction, "modules")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+            return true;
+        }
+        const moduleManager = require("../../managers/GuildModuleV2Manager");
+        if (!moduleManager.getModule(moduleKey)) {
+            await replyError(interaction, "Module inconnu.");
             return true;
         }
         moduleManager.setEnabled(
@@ -168,11 +173,6 @@ module.exports = async interaction => {
             moduleKey,
             !moduleManager.isEnabled(interaction.guildId, moduleKey)
         );
-        const pages = {
-            phone: "StaffPhonePage",
-            assets: "StaffAssetsPage",
-            relationships: "StaffRelationshipsPage"
-        };
         await interaction.update(require(`../../pages/staff/${pages[moduleKey]}`).build(interaction));
         return true;
     }
