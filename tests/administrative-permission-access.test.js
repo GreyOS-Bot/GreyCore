@@ -167,18 +167,13 @@ test("2C.6a ignore wildcard stocké et isole les domaines", () => {
     });
 });
 
-test("2C.6b migre Config et Modules sans anticiper Maintenance", () => {
+test("2C.6c migre Config, Modules et Maintenance", () => {
     for (const file of [
         "../src/commands/config/index.js",
-        "../src/v2/interactions/settings/GuildModuleSettingsHandler.js"
+        "../src/v2/interactions/settings/GuildModuleSettingsHandler.js",
+        "../src/commands/maintenance.js"
     ]) {
         const source = fs.readFileSync(path.join(__dirname, file), "utf8");
         assert.match(source, /AdministrativePermissionAccessService/);
     }
-
-    const maintenance = fs.readFileSync(
-        path.join(__dirname, "../src/commands/maintenance.js"),
-        "utf8"
-    );
-    assert.doesNotMatch(maintenance, /AdministrativePermissionAccessService/);
 });
