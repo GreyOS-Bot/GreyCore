@@ -337,9 +337,9 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId.startsWith("v2_staff_automations_")) {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const administrativeAccess = require("../../core/services/AdministrativePermissionAccessService");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "automations", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "automations")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }

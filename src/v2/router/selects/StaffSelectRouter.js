@@ -275,7 +275,7 @@ module.exports = async interaction => {
         "v2_staff_automations_add_role",
         "v2_staff_automations_welcome_channel"
     ].includes(interaction.customId)) {
-        if (!policy.canAccess(interaction, "automations", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "automations")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }

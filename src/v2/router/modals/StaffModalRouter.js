@@ -104,7 +104,7 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_automations_approval_submit") {
-        if (!policy.canAccess(interaction, "automations", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "automations")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -147,9 +147,8 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_automations_creation_limit_submit") {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "automations", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "automations")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
