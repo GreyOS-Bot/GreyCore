@@ -1,5 +1,6 @@
 const page = require("../../pages/staff/StaffPermissionsPage");
 const policy = require("../../core/policies/StaffPermissionPolicy");
+const administrativeAccess = require("../../core/services/AdministrativePermissionAccessService");
 const manager = require("../../managers/StaffPermissionV2Manager");
 const { replyError } = require(
     "../../core/services/InteractionResponseService"
@@ -294,8 +295,8 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_logs_channel") {
-        if (!policy.canAccess(interaction, "logs", { write: true })) {
-            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+        if (!administrativeAccess.canWrite(interaction, "logs")) {
+            await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }
         require("../../managers/GuildSettingsV2Manager")
@@ -304,8 +305,8 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_settings_validation_channel") {
-        if (!policy.canAccess(interaction, "settings", { write: true })) {
-            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+        if (!administrativeAccess.canWrite(interaction, "settings")) {
+            await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }
         require("../../managers/GuildSettingsV2Manager")
@@ -314,8 +315,8 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId?.startsWith("v2_staff_settings_advanced_remove:")) {
-        if (!policy.canAccess(interaction, "settings", { write: true })) {
-            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+        if (!administrativeAccess.canWrite(interaction, "settings")) {
+            await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }
         require("../../managers/GuildAdvancedSettingV2Manager")
@@ -329,8 +330,8 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_settings_create_validation_role") {
-        if (!policy.canAccess(interaction, "settings", { write: true })) {
-            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+        if (!administrativeAccess.canWrite(interaction, "settings")) {
+            await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }
         const { ChannelType, PermissionFlagsBits } = require("discord.js");

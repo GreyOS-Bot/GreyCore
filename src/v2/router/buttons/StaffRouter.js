@@ -419,9 +419,9 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId === "v2_staff_logs_remove_channel") {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const administrativeAccess = require("../../core/services/AdministrativePermissionAccessService");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "logs", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "logs")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -431,9 +431,9 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId === "v2_staff_logs_test") {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const administrativeAccess = require("../../core/services/AdministrativePermissionAccessService");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "logs", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "logs")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -476,7 +476,7 @@ module.exports = async interaction => {
             || action === "charter";
         const allowed = readOnlyActions
             ? administrativeAccess.canRead(interaction, "settings")
-            : policy.canAccess(interaction, "settings", { write: true });
+            : administrativeAccess.canWrite(interaction, "settings");
         if (!allowed) {
             await replyError(
                 interaction,

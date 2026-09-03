@@ -1,11 +1,12 @@
 const manager = require("../../managers/SceneAssistantV2Manager");
 const policy = require("../../core/policies/StaffPermissionPolicy");
+const administrativeAccess = require("../../core/services/AdministrativePermissionAccessService");
 const page = require("../../pages/staff/StaffScenesPage");
 const { replyError } = require("../../core/services/InteractionResponseService");
 
 module.exports = async interaction => {
     if (interaction.customId === "v2_staff_settings_advanced_set_submit") {
-        if (!policy.canAccess(interaction, "settings", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "settings")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -132,7 +133,7 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_settings_maintenance_submit") {
-        if (!policy.canAccess(interaction, "settings", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "settings")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }

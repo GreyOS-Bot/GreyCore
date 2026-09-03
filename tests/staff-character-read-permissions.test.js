@@ -142,7 +142,6 @@ test("2B.2b ne classe aucune mutation Personnages dans la garde consultative", a
 
 test("2B.2b conserve toutes les sources historiques sur un customId forgé", async context => {
     const isolated = createIsolatedDatabase({ initializeSchema: true });
-    context.after(() => isolated.cleanup());
     for (const guildId of ["guild-a", "guild-b"]) {
         isolated.database.prepare(`
             INSERT INTO Guilds (id, name, created_at) VALUES (?, ?, '2026-08-29')
@@ -157,13 +156,20 @@ test("2B.2b conserve toutes les sources historiques sur un customId forgé", asy
         "../src/v2/core/policies/GuildManagementPolicy",
         "../src/v2/core/policies/ValidationStaffPolicy",
         "../src/v2/core/policies/StaffPermissionPolicy",
+        "../src/v2/core/services/ValidationBridgeQualificationService",
         "../src/v2/core/services/StaffPermissionDecisionService"
     ];
-    for (const modulePath of permissionModules) {
-        delete require.cache[require.resolve(modulePath)];
+    const isolatedModulePaths = [
+        ...permissionModules.map(modulePath => require.resolve(modulePath)),
+        validationAccessPath,
+        buttonRouterPath
+    ];
+    const previousIsolatedModules = new Map(
+        isolatedModulePaths.map(modulePath => [modulePath, require.cache[modulePath]])
+    );
+    for (const modulePath of isolatedModulePaths) {
+        delete require.cache[modulePath];
     }
-    delete require.cache[validationAccessPath];
-    delete require.cache[buttonRouterPath];
 
     const manager = require("../src/v2/managers/StaffPermissionV2Manager");
     const settings = require("../src/v2/managers/GuildSettingsV2Manager");
@@ -198,7 +204,12 @@ test("2B.2b conserve toutes les sources historiques sur un customId forgé", asy
         if (previousValidationManager) {
             require.cache[validationManagerPath] = previousValidationManager;
         } else delete require.cache[validationManagerPath];
-        delete require.cache[buttonRouterPath];
+        for (const modulePath of isolatedModulePaths) {
+            const previousModule = previousIsolatedModules.get(modulePath);
+            if (previousModule) require.cache[modulePath] = previousModule;
+            else delete require.cache[modulePath];
+        }
+        isolated.cleanup();
     });
 
     const router = require(buttonRouterPath);
