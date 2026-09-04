@@ -286,9 +286,13 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId === "v2_staff_universe_install_states") {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
+        const decisionService = require("../../core/services/StaffPermissionDecisionService");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "universe", { write: true })) {
+        if (!decisionService.decide({
+            interaction,
+            permission: "characters",
+            write: true
+        }).allowed) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }

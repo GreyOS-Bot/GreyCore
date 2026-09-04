@@ -228,8 +228,8 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId?.startsWith("v2_staff_universe_delete_state:")) {
-        if (!policy.canAccess(interaction, "universe", { write: true })) {
-            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+        if (!policy.canManagePermissions(interaction)) {
+            await replyError(interaction, "Seul le propriétaire du serveur ou un administrateur peut supprimer un type d’état.");
             return true;
         }
         const pageNumber = Number(interaction.customId.split(":")[1]);

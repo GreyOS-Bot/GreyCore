@@ -10,9 +10,9 @@ const stateManager =
         "../../managers/StateTypeV2Manager"
     );
 
-const guildManagementPolicy =
+const staffPermissionDecisionService =
     require(
-        "../../core/policies/GuildManagementPolicy"
+        "../../core/services/StaffPermissionDecisionService"
     );
 
 const {
@@ -27,14 +27,15 @@ module.exports =
         interaction
     ) {
         if (
-            !guildManagementPolicy
-                .canManage(
-                    interaction
-                )
+            !staffPermissionDecisionService.decide({
+                interaction,
+                permission: "characters",
+                write: true
+            }).allowed
         ) {
             return replyError(
                 interaction,
-                "Vous devez pouvoir gérer le serveur pour installer les états par défaut."
+                "Cette action nécessite la permission `characters/write`."
             );
         }
 

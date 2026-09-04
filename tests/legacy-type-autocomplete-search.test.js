@@ -262,7 +262,7 @@ function autocompleteInteraction(focused, responses) {
 function commandInteraction(values) {
     return {
         guildId: "guild",
-        guild: { id: "guild" },
+        guild: { id: "guild", ownerId: "user" },
         user: { id: "user" },
         member: {},
         options: { getString: name => values[name] },

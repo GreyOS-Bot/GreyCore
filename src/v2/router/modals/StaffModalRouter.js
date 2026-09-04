@@ -55,7 +55,11 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_universe_create_state_submit") {
-        if (!policy.canAccess(interaction, "universe", { write: true })) {
+        if (!require("../../core/services/StaffPermissionDecisionService").decide({
+            interaction,
+            permission: "characters",
+            write: true
+        }).allowed) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
