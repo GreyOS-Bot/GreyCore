@@ -214,7 +214,7 @@ test("2C.7i protège les deux liaisons masquées staff en write avant manager", 
     assert.equal(effects.includes("set"), false);
 });
 
-test("2C.7i retire les autorités Characters legacy sans toucher CharacterManagementPolicy", () => {
+test("2C.8A retire les autorités Characters legacy des parcours staff migrés", () => {
     const files = [
         "src/commands/blocage/index.js", "src/commands/personnage/index.js",
         "src/v2/pages/staff/StaffSectionPage.js",
@@ -229,6 +229,21 @@ test("2C.7i retire les autorités Characters legacy sans toucher CharacterManage
         fs.readFileSync(path.resolve("src/v2/services/moderation/UserPlayBlockService.js"), "utf8"),
         /canManagePermissions\(interaction\)/
     );
+});
+
+test("2C.8A réduit CharacterManagementPolicy à l’ownership et préserve Assets strict", () => {
+    const policySource = fs.readFileSync(
+        path.resolve("src/v2/core/policies/CharacterManagementPolicy.js"), "utf8"
+    );
+    assert.doesNotMatch(policySource, /GuildManagementPolicy|isStaff\(|canManage\(|allowStaff|ManageGuild/);
+    assert.match(policySource, /isOwner\(/);
+
+    const assetsSource = fs.readFileSync(
+        path.resolve("src/v2/interactions/assets/AssetAccessService.js"), "utf8"
+    );
+    assert.match(assetsSource, /permission:\s*"assets"/);
+    assert.match(assetsSource, /isOwner\(/);
+    assert.doesNotMatch(assetsSource, /permission:\s*"characters"/);
 });
 
 function blockCommandInteraction(action, effects) {
