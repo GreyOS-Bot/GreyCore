@@ -33,14 +33,14 @@ const discordUserDisplayService =
         "../../v2/core/services/DiscordUserDisplayService"
     );
 
-const {
-    requireStaffCommandAccess
-} = require(
-    "../../v2/core/services/StaffCommandAccessService"
-);
+const staffPermissionDecisionService =
+    require(
+        "../../v2/core/services/StaffPermissionDecisionService"
+    );
 
 const {
-    replyPrivate
+    replyPrivate,
+    replyError
 } = require(
     "../../v2/core/services/InteractionResponseService"
 );
@@ -290,11 +290,11 @@ module.exports = {
             );
         }
 
-        if (
-            !await requireStaffCommandAccess(
-                interaction
-            )
-        ) {
+        if (!canWriteCharacters(interaction)) {
+            await replyError(
+                interaction,
+                "Cette action nécessite la permission `characters/write`."
+            );
             return;
         }
 
@@ -450,6 +450,14 @@ module.exports = {
         );
     }
 };
+
+function canWriteCharacters(interaction) {
+    return staffPermissionDecisionService.decide({
+        interaction,
+        permission: "characters",
+        write: true
+    }).allowed;
+}
 
 function buildRosterView(
     guildId,
