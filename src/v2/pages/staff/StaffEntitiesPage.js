@@ -5,13 +5,13 @@ const {
 const manager = require("../../managers/NarrativeEntityV2Manager");
 const triggerCatalog = require("../../core/catalogs/NarrativeEntityTriggerCatalog");
 const eventManager = require("../../managers/NarrativeEntityEventManager");
-const policy = require("../../core/policies/StaffPermissionPolicy");
+const decisionService = require("../../core/services/StaffPermissionDecisionService");
 const { navigationRow } = require("./StaffCharactersPage");
 
 class StaffEntitiesPage {
     build(interaction) {
         const entities = manager.getByGuild(interaction.guildId);
-        const writable = policy.canAccess(interaction, "entities", { write: true });
+        const writable = canWrite(interaction);
         const lines = entities.map(entity => [
             entity.is_enabled ? "✅" : "⏸️",
             `**${entity.name}**`,
@@ -142,7 +142,7 @@ class StaffEntitiesPage {
     buildDetail(interaction, entityId, { confirmDelete = false } = {}) {
         const entity = manager.getById(interaction.guildId, entityId);
         if (!entity) return this.build(interaction);
-        const writable = policy.canAccess(interaction, "entities", { write: true });
+        const writable = canWrite(interaction);
         const triggerLabels = entity.triggers.map(key => {
             const trigger = triggerCatalog.get(key);
             return trigger ? `${trigger.emoji} ${trigger.label}` : key;
@@ -232,7 +232,7 @@ class StaffEntitiesPage {
         const entity = manager.getById(interaction.guildId, entityId);
         if (!entity) return this.build(interaction);
         const events = eventManager.getByEntity(interaction.guildId, entityId);
-        const writable = policy.canAccess(interaction, "entities", { write: true });
+        const writable = canWrite(interaction);
         const components = [];
         if (events.length) components.push(new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder().setCustomId(`v2_staff_entities_event_select:${entity.id}`)
@@ -269,7 +269,7 @@ class StaffEntitiesPage {
     buildEventDetail(interaction, eventId) {
         const event = eventManager.getById(interaction.guildId, eventId);
         if (!event) return this.build(interaction);
-        const writable = policy.canAccess(interaction, "entities", { write: true });
+        const writable = canWrite(interaction);
         const scopeSelect = new ChannelSelectMenuBuilder()
             .setCustomId(`v2_staff_entities_event_scopes:${event.id}`)
             .setPlaceholder("Salons, catégories et forums d’apparition")
@@ -311,4 +311,12 @@ module.exports = new StaffEntitiesPage();
 function formatSchedule(event) {
     const days = event.weekday_rule === "*" ? "tous les jours" : `jours ${event.weekday_rule}`;
     return `${event.calendar_rule} · ${days} · ${event.time_rule}`;
+}
+
+function canWrite(interaction) {
+    return decisionService.decide({
+        interaction,
+        permission: "entities",
+        write: true
+    }).allowed;
 }

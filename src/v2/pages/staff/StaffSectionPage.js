@@ -52,6 +52,16 @@ class StaffSectionPage {
             return require("./StaffAssetsPage").execute(interaction);
         }
 
+        if (sectionKey === "entities") {
+            const decision = decisionService.decide({
+                interaction,
+                permission: "entities",
+                write: false
+            });
+            if (!decision.allowed) return deny(interaction);
+            return require("./StaffEntitiesPage").execute(interaction);
+        }
+
         const permissionKey = ["setup", "overview"].includes(sectionKey)
             ? "settings"
             : sectionKey;
@@ -87,9 +97,6 @@ class StaffSectionPage {
         }
         if (sectionKey === "universe") {
             return require("./StaffUniversePage").execute(interaction);
-        }
-        if (sectionKey === "entities") {
-            return require("./StaffEntitiesPage").execute(interaction);
         }
         if (sectionKey === "automations") {
             return require("./StaffAutomationsPage").execute(interaction);

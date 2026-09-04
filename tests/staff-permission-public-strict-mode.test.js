@@ -404,7 +404,7 @@ test("un batch legacy conserve son snapshot historique optimisé", () => {
     });
 });
 
-test("les consommateurs historiques restent legacy et Assets utilise le strict", () => {
+test("les consommateurs historiques restent legacy et les domaines migrés utilisent le strict", () => {
     const policyPath = path.join(
         __dirname,
         "../src/v2/core/policies/StaffPermissionPolicy.js"
@@ -442,8 +442,12 @@ test("les consommateurs historiques restent legacy et Assets utilise le strict",
         path.join("src", "v2", "core", "services", "ValidationPermissionAccessService.js"),
         path.join("src", "v2", "pages", "staff", "StaffAssetsPage.js"),
         path.join("src", "v2", "pages", "staff", "StaffCenterPage.js"),
+        path.join("src", "v2", "pages", "staff", "StaffEntitiesPage.js"),
         path.join("src", "v2", "pages", "staff", "StaffSectionPage.js"),
-        path.join("src", "v2", "router", "buttons", "StaffRouter.js")
+        path.join("src", "v2", "router", "buttons", "StaffEntityRouter.js"),
+        path.join("src", "v2", "router", "buttons", "StaffRouter.js"),
+        path.join("src", "v2", "router", "modals", "StaffEntityModalRouter.js"),
+        path.join("src", "v2", "router", "selects", "StaffEntitySelectRouter.js")
     ].sort());
 });
 
