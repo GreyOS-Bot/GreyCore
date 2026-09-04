@@ -62,6 +62,16 @@ class StaffSectionPage {
             return require("./StaffEntitiesPage").execute(interaction);
         }
 
+        if (sectionKey === "characters") {
+            const decision = decisionService.decide({
+                interaction,
+                permission: "characters",
+                write: false
+            });
+            if (!decision.allowed) return deny(interaction);
+            return require("./StaffCharactersPage").execute(interaction);
+        }
+
         const permissionKey = ["setup", "overview"].includes(sectionKey)
             ? "settings"
             : sectionKey;
@@ -80,9 +90,6 @@ class StaffSectionPage {
             return require("./StaffConfigurationOverviewPage").execute(interaction);
         }
 
-        if (sectionKey === "characters") {
-            return require("./StaffCharactersPage").execute(interaction);
-        }
         if (sectionKey === "scenes") {
             return require("./StaffScenesPage").execute(interaction);
         }

@@ -81,8 +81,10 @@ module.exports =
 
         if (interaction.isButton() && interaction.customId.startsWith("v2_staff_character_masked_link:")) {
             const characterId = interaction.customId.split(":")[1];
-            const staffPolicy = require("../../core/policies/StaffPermissionPolicy");
-            if (!staffPolicy.canManageCharacters(interaction)) {
+            const allowed = require("../../core/services/StaffPermissionDecisionService")
+                .decide({ interaction, permission: "characters", write: true })
+                .allowed;
+            if (!allowed) {
                 await replyError(interaction, "Cette action est réservée au staff.");
                 return true;
             }

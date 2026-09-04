@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const { createIsolatedDatabase } = require("./helpers/isolatedDatabase");
 
 const policyPath = require.resolve("../src/v2/core/policies/StaffPermissionPolicy");
+const decisionPath = require.resolve("../src/v2/core/services/StaffPermissionDecisionService");
 const validationAccessPath = require.resolve(
     "../src/v2/core/services/ValidationPermissionAccessService"
 );
@@ -43,6 +44,7 @@ function deniedInteraction(customId) {
 
 test("2B.2b revalide chaque consultation Personnages avec characters write:false", async context => {
     const previousPolicy = require.cache[policyPath];
+    const previousDecision = require.cache[decisionPath];
     const previousValidationAccess = require.cache[validationAccessPath];
     const calls = [];
     require.cache[policyPath] = {
@@ -53,6 +55,21 @@ test("2B.2b revalide chaque consultation Personnages avec characters write:false
             canAccess: (interaction, permission, options) => {
                 calls.push({ customId: interaction.customId, permission, options });
                 return false;
+            }
+        }
+    };
+    require.cache[decisionPath] = {
+        id: decisionPath,
+        filename: decisionPath,
+        loaded: true,
+        exports: {
+            decide: options => {
+                calls.push({
+                    customId: options.interaction.customId,
+                    permission: options.permission,
+                    options: { write: options.write }
+                });
+                return { allowed: false };
             }
         }
     };
@@ -76,6 +93,8 @@ test("2B.2b revalide chaque consultation Personnages avec characters write:false
     context.after(() => {
         if (previousPolicy) require.cache[policyPath] = previousPolicy;
         else delete require.cache[policyPath];
+        if (previousDecision) require.cache[decisionPath] = previousDecision;
+        else delete require.cache[decisionPath];
         if (previousValidationAccess) {
             require.cache[validationAccessPath] = previousValidationAccess;
         } else delete require.cache[validationAccessPath];
@@ -111,8 +130,9 @@ test("2B.2b revalide chaque consultation Personnages avec characters write:false
     }
 });
 
-test("2B.2b ne classe aucune mutation Personnages dans la garde consultative", async context => {
+test("2C.7i classe les mutations Personnages sous characters write:true", async context => {
     const previousPolicy = require.cache[policyPath];
+    const previousDecision = require.cache[decisionPath];
     const calls = [];
     require.cache[policyPath] = {
         id: policyPath,
@@ -126,18 +146,33 @@ test("2B.2b ne classe aucune mutation Personnages dans la garde consultative", a
             canManageCharacters: () => false
         }
     };
+    require.cache[decisionPath] = {
+        id: decisionPath,
+        filename: decisionPath,
+        loaded: true,
+        exports: {
+            decide: options => {
+                calls.push(options);
+                return { allowed: false };
+            }
+        }
+    };
     delete require.cache[buttonRouterPath];
     const router = require(buttonRouterPath);
     context.after(() => {
         if (previousPolicy) require.cache[policyPath] = previousPolicy;
         else delete require.cache[policyPath];
+        if (previousDecision) require.cache[decisionPath] = previousDecision;
+        else delete require.cache[decisionPath];
         delete require.cache[buttonRouterPath];
     });
 
     const interaction = deniedInteraction("v2_staff_character_gender_set:id:female:0:quick");
     interaction.isButton = () => true;
     assert.equal(await router(interaction), true);
-    assert.equal(calls.length, 0);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].permission, "characters");
+    assert.equal(calls[0].write, true);
 });
 
 test("2B.2b conserve toutes les sources historiques sur un customId forgé", async context => {

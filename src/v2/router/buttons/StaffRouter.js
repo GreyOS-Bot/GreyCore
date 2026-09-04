@@ -178,9 +178,8 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId.startsWith("v2_staff_character_balance_alert:")) {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canManageCharacters(interaction)) {
+        if (!hasStrictCharacterAccess(interaction, true)) {
             await replyError(interaction, "Cette alerte est réservée au staff chargé des personnages.");
             return true;
         }
@@ -622,8 +621,7 @@ module.exports = async interaction => {
         const allowed = interaction.customId === "v2_staff_characters_pending"
             ? require("../../core/services/ValidationPermissionAccessService")
                 .canRead(interaction)
-            : require("../../core/policies/StaffPermissionPolicy")
-                .canAccess(interaction, "characters", { write: false });
+            : hasStrictCharacterAccess(interaction, false);
         if (!allowed) {
             await replyError(interaction, "Tu n’as pas accès à la gestion des personnages.");
             return true;
@@ -733,9 +731,8 @@ const owners = Array.from(new Set(
     }
 
     if (interaction.customId.startsWith("v2_staff_character_gender_set:")) {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canManageCharacters(interaction)) {
+        if (!hasStrictCharacterAccess(interaction, true)) {
             await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }
@@ -791,9 +788,8 @@ const owners = Array.from(new Set(
     }
 
     if (interaction.customId === "v2_staff_characters_deploy_all") {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canManageCharacters(interaction)) {
+        if (!hasStrictCharacterAccess(interaction, true)) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -854,9 +850,8 @@ const owners = Array.from(new Set(
     }
 
     if (interaction.customId.startsWith("v2_staff_character_delete:")) {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canManageCharacters(interaction)) {
+        if (!hasStrictCharacterAccess(interaction, true)) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -879,9 +874,8 @@ const owners = Array.from(new Set(
     }
 
     if (interaction.customId.startsWith("v2_staff_character_delete_confirm:")) {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canManageCharacters(interaction)) {
+        if (!hasStrictCharacterAccess(interaction, true)) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -897,9 +891,8 @@ const owners = Array.from(new Set(
     }
 
     if (interaction.customId.startsWith("v2_staff_characters_delete_owner:")) {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canManageCharacters(interaction)) {
+        if (!hasStrictCharacterAccess(interaction, true)) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -919,9 +912,8 @@ const owners = Array.from(new Set(
     }
 
     if (interaction.customId.startsWith("v2_staff_characters_delete_owner_confirm:")) {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canManageCharacters(interaction)) {
+        if (!hasStrictCharacterAccess(interaction, true)) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -939,9 +931,8 @@ const owners = Array.from(new Set(
         interaction.customId.startsWith("v2_staff_characters_archive:")
         || interaction.customId.startsWith("v2_staff_characters_restore:")
     ) {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "characters", { write: true })) {
+        if (!hasStrictCharacterAccess(interaction, true)) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -1173,6 +1164,14 @@ const owners = Array.from(new Set(
     });
     return true;
 };
+
+function hasStrictCharacterAccess(interaction, write) {
+    return require("../../core/services/StaffPermissionDecisionService").decide({
+        interaction,
+        permission: "characters",
+        write
+    }).allowed;
+}
 
 function inputRow(customId, label, value, required = false) {
     const { ActionRowBuilder, TextInputBuilder, TextInputStyle } = require("discord.js");

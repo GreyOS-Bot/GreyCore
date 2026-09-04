@@ -437,6 +437,7 @@ test("les consommateurs historiques restent legacy et les domaines migrés utili
         .map(file => path.relative(path.join(__dirname, ".."), file))
         .sort();
     assert.deepEqual(callers, [
+        path.join("src", "commands", "blocage", "index.js"),
         path.join("src", "v2", "core", "policies", "StaffPermissionPolicy.js"),
         path.join("src", "v2", "core", "services", "AdministrativePermissionAccessService.js"),
         path.join("src", "v2", "core", "services", "ValidationPermissionAccessService.js"),
@@ -447,7 +448,8 @@ test("les consommateurs historiques restent legacy et les domaines migrés utili
         path.join("src", "v2", "router", "buttons", "StaffEntityRouter.js"),
         path.join("src", "v2", "router", "buttons", "StaffRouter.js"),
         path.join("src", "v2", "router", "modals", "StaffEntityModalRouter.js"),
-        path.join("src", "v2", "router", "selects", "StaffEntitySelectRouter.js")
+        path.join("src", "v2", "router", "selects", "StaffEntitySelectRouter.js"),
+        path.join("src", "v2", "router", "selects", "StaffSelectRouter.js")
     ].sort());
 });
 

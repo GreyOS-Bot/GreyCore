@@ -1,6 +1,7 @@
 const page = require("../../pages/staff/StaffPermissionsPage");
 const policy = require("../../core/policies/StaffPermissionPolicy");
 const administrativeAccess = require("../../core/services/AdministrativePermissionAccessService");
+const decisionService = require("../../core/services/StaffPermissionDecisionService");
 const manager = require("../../managers/StaffPermissionV2Manager");
 const { replyError } = require(
     "../../core/services/InteractionResponseService"
@@ -10,7 +11,7 @@ module.exports = async interaction => {
     const characterReadAction = interaction.customId?.startsWith("v2_staff_character_gender_select:")
         || interaction.customId === "v2_staff_characters_statistics_user_select"
         || interaction.customId === "v2_staff_characters_user_select";
-    if (characterReadAction && !policy.canAccess(interaction, "characters", { write: false })) {
+    if (characterReadAction && !hasStrictCharacterAccess(interaction, false)) {
         await replyError(interaction, "Tu n’as pas accès à la gestion des personnages.");
         return true;
     }
@@ -462,7 +463,7 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId === "v2_staff_characters_manage_character") {
-        if (!policy.canAccess(interaction, "characters", { write: false })) {
+        if (!hasStrictCharacterAccess(interaction, false)) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -493,6 +494,14 @@ module.exports = async interaction => {
 
     return false;
 };
+
+function hasStrictCharacterAccess(interaction, write) {
+    return decisionService.decide({
+        interaction,
+        permission: "characters",
+        write
+    }).allowed;
+}
 
 function toExpected(assignment) {
     return assignment ? {

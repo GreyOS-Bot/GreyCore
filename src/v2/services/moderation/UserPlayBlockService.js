@@ -44,7 +44,7 @@ class UserPlayBlockService {
         const block = this.get(interaction.guildId, interaction.user.id);
         if (!block) return false;
         const staffPolicy = require("../../core/policies/StaffPermissionPolicy");
-        if (staffPolicy.canOpenCenter(interaction)) return false;
+        if (staffPolicy.canManagePermissions(interaction)) return false;
         await require("../../core/services/InteractionResponseService").replyError(
             interaction,
             `Ton accès au jeu GreyCore est temporairement suspendu sur ce serveur.\n**Motif :** ${block.reason}\nContacte le staff si tu souhaites faire le point.`

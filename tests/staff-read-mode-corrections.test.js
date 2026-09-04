@@ -16,6 +16,12 @@ test("2B.2c ouvre les consultations avec read_only sans mutation", async context
         },
         canManageCharacters: () => false
     });
+    const decisionPath = stubModule("src/v2/core/services/StaffPermissionDecisionService.js", {
+        decide: ({ interaction, permission, write }) => {
+            calls.push({ permission, options: { write }, customId: interaction.customId });
+            return { allowed: write === false };
+        }
+    });
     const administrativeAccessPath = stubModule(
         "src/v2/core/services/AdministrativePermissionAccessService.js",
         {
@@ -47,7 +53,7 @@ test("2B.2c ouvre les consultations avec read_only sans mutation", async context
     delete require.cache[commandPath];
     context.after(() => {
         for (const path of [
-            policyPath, administrativeAccessPath, correctionPath, correctionViewPath, publicPlacesPath,
+            policyPath, decisionPath, administrativeAccessPath, correctionPath, correctionViewPath, publicPlacesPath,
             publicPlacesViewPath, blocksPath, selectRouterPath, commandPath
         ]) delete require.cache[path];
     });
@@ -95,6 +101,9 @@ test("2B.2c refuse sans droit avant toute lecture", async context => {
         canAccess: () => false,
         canManageCharacters: () => false
     });
+    const decisionPath = stubModule("src/v2/core/services/StaffPermissionDecisionService.js", {
+        decide: () => ({ allowed: false })
+    });
     const administrativeAccessPath = stubModule(
         "src/v2/core/services/AdministrativePermissionAccessService.js",
         { canRead: () => false }
@@ -110,7 +119,7 @@ test("2B.2c refuse sans droit avant toute lecture", async context => {
     delete require.cache[selectRouterPath];
     delete require.cache[commandPath];
     context.after(() => {
-        for (const path of [policyPath, administrativeAccessPath, correctionPath, blocksPath, selectRouterPath, commandPath]) {
+        for (const path of [policyPath, decisionPath, administrativeAccessPath, correctionPath, blocksPath, selectRouterPath, commandPath]) {
             delete require.cache[path];
         }
     });
@@ -141,13 +150,21 @@ test("2B.2c conserve bloquer et débloquer sous characters write:true", async co
             return false;
         }
     });
+    const decisionPath = stubModule("src/v2/core/services/StaffPermissionDecisionService.js", {
+        decide: ({ interaction, permission, write }) => {
+            assert.equal(permission, "characters");
+            assert.equal(write, true);
+            actions.push(interaction.options.getSubcommand());
+            return { allowed: false };
+        }
+    });
     const blocksPath = stubModule("src/v2/services/moderation/UserPlayBlockService.js", {
         list: () => { throw new Error("liste inattendue"); }
     });
     const commandPath = require.resolve("../src/commands/blocage");
     delete require.cache[commandPath];
     context.after(() => {
-        for (const path of [policyPath, blocksPath, commandPath]) delete require.cache[path];
+        for (const path of [policyPath, decisionPath, blocksPath, commandPath]) delete require.cache[path];
     });
     const command = require(commandPath);
     for (const action of ["bloquer", "debloquer"]) {
