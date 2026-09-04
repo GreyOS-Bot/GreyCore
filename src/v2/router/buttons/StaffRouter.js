@@ -206,9 +206,8 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId === "v2_staff_relationships_install_defaults") {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "relationships", { write: true })) {
+        if (!hasStrictAccess(interaction, "relationships", true)) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -221,9 +220,8 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId === "v2_staff_relationships_create_type") {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "relationships", { write: true })) {
+        if (!hasStrictAccess(interaction, "relationships", true)) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -249,9 +247,8 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId.startsWith("v2_staff_relationships_manage_types:")) {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "relationships")) {
+        if (!hasStrictAccess(interaction, "relationships", false)) {
             await replyError(interaction, "Tu n'as pas accès à la gestion des relations.");
             return true;
         }
@@ -302,9 +299,8 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId === "v2_staff_universe_create_state") {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "universe", { write: true })) {
+        if (!hasStrictAccess(interaction, "characters", true)) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -328,9 +324,8 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId.startsWith("v2_staff_universe_manage_states:")) {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "universe")) {
+        if (!hasStrictAccess(interaction, "universe", false)) {
             await replyError(interaction, "Tu n'as pas accès à la gestion de l’univers.");
             return true;
         }
@@ -1166,9 +1161,13 @@ const owners = Array.from(new Set(
 };
 
 function hasStrictCharacterAccess(interaction, write) {
+    return hasStrictAccess(interaction, "characters", write);
+}
+
+function hasStrictAccess(interaction, permission, write) {
     return require("../../core/services/StaffPermissionDecisionService").decide({
         interaction,
-        permission: "characters",
+        permission,
         write
     }).allowed;
 }

@@ -10,13 +10,20 @@ const decisionService = require("../../core/services/StaffPermissionDecisionServ
 const administrativeAccess = require(
     "../../core/services/AdministrativePermissionAccessService"
 );
-
 const STRICT_ADMINISTRATIVE_SECTIONS = new Set([
+    "setup",
+    "overview",
     "settings",
     "logs",
     "automations",
     "scenes",
     "modules"
+]);
+
+const STRICT_DOMAIN_SECTIONS = new Set([
+    "relationships",
+    "phone",
+    "universe"
 ]);
 
 const CONTENT = {
@@ -78,7 +85,13 @@ class StaffSectionPage {
         const section = catalog.get(permissionKey);
         const allowed = STRICT_ADMINISTRATIVE_SECTIONS.has(sectionKey)
             ? administrativeAccess.canRead(interaction, permissionKey)
-            : policy.canAccess(interaction, permissionKey);
+            : STRICT_DOMAIN_SECTIONS.has(sectionKey)
+                ? decisionService.decide({
+                interaction,
+                permission: permissionKey,
+                write: false
+                }).allowed
+                : policy.canAccess(interaction, permissionKey);
         if (!section || !allowed) {
             return deny(interaction);
         }

@@ -33,9 +33,10 @@ function loadHandler({
             return scene;
         }
     });
-    stubModule("src/v2/core/policies/StaffPermissionPolicy.js", {
-        canAccess: (interaction, key, options) =>
-            staffWrite && key === "scenes" && options?.write === true
+    stubModule("src/v2/core/services/StaffPermissionDecisionService.js", {
+        decide: ({ permission, write }) => ({
+            allowed: staffWrite && permission === "scenes" && write === true
+        })
     });
     stubModule("src/v2/services/scenes/SceneAssistantService.js", {});
     stubModule("src/v2/services/entities/NarrativeEntityService.js", {

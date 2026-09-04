@@ -252,7 +252,11 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId?.startsWith("v2_staff_relationships_delete_type:")) {
-        if (!policy.canAccess(interaction, "relationships", { write: true })) {
+        if (!decisionService.decide({
+            interaction,
+            permission: "relationships",
+            write: true
+        }).allowed) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }

@@ -11,7 +11,7 @@ const {
 const manager = require("../../managers/SceneAssistantV2Manager");
 const sceneAssistantService = require("../../services/scenes/SceneAssistantService");
 const narrativeEntityService = require("../../services/entities/NarrativeEntityService");
-const staffPermissionPolicy = require("../../core/policies/StaffPermissionPolicy");
+const decisionService = require("../../core/services/StaffPermissionDecisionService");
 const logger = require("../../core/services/TechnicalLogger")
     .create("SceneInteractionHandler");
 const {
@@ -46,11 +46,7 @@ function canMoveScene(interaction, scene, staffWrite = undefined) {
         || String(scene.created_by || "") === userId
         || (
             staffWrite
-            ?? staffPermissionPolicy.canAccess(
-                interaction,
-                "scenes",
-                { write: true }
-            )
+            ?? canWriteScenes(interaction)
         )
     );
 }
@@ -98,8 +94,6 @@ async function submitStart(interaction) {
 }
 
 async function submitMove(interaction, sceneId, destinationId) {
-    await deferPrivate(interaction);
-
     const scene = manager.getScene(sceneId);
     if (!scene || scene.guild_id !== interaction.guildId) {
         return editOrReplyError(interaction, "Cette scène est introuvable.");
@@ -108,6 +102,8 @@ async function submitMove(interaction, sceneId, destinationId) {
     if (!canMoveScene(interaction, scene)) {
         return editOrReplyError(interaction, MOVE_PERMISSION_ERROR);
     }
+
+    await deferPrivate(interaction);
 
     const source = interaction.channel;
     const destination = await interaction.client.channels
@@ -234,11 +230,7 @@ async function submitMove(interaction, sceneId, destinationId) {
 }
 
 function resume(interaction) {
-    const canManageScenes = staffPermissionPolicy.canAccess(
-        interaction,
-        "scenes",
-        { write: true }
-    );
+    const canManageScenes = canWriteScenes(interaction);
     const scenes = manager.getActiveScenes(interaction.guildId)
         .filter(scene => !String(scene.channel_ids || "").split(",").includes(interaction.channelId))
         .filter(scene => canManageScenes || canMoveScene(interaction, scene, false))
@@ -264,6 +256,14 @@ function resume(interaction) {
                 })))
         )]
     });
+}
+
+function canWriteScenes(interaction) {
+    return decisionService.decide({
+        interaction,
+        permission: "scenes",
+        write: true
+    }).allowed;
 }
 
 async function selectResume(interaction) {

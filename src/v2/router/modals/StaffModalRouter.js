@@ -84,7 +84,11 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_relationships_create_type_submit") {
-        if (!policy.canAccess(interaction, "relationships", { write: true })) {
+        if (!require("../../core/services/StaffPermissionDecisionService").decide({
+            interaction,
+            permission: "relationships",
+            write: true
+        }).allowed) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
