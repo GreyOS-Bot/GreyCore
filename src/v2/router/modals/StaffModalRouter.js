@@ -80,6 +80,14 @@ module.exports = async interaction => {
             await replyError(interaction, error);
             return true;
         }
+        if (!require("../../core/services/StaffPermissionDecisionService").decide({
+            interaction,
+            permission: "universe",
+            write: false
+        }).allowed) {
+            await interaction.update({ content: "✅ Type d’état créé.", embeds: [], components: [] });
+            return true;
+        }
         await interaction.update(require("../../pages/staff/StaffUniversePage").build(interaction));
         return true;
     }

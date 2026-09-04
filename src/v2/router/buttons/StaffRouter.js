@@ -168,11 +168,20 @@ module.exports = async interaction => {
             await replyError(interaction, "Module inconnu.");
             return true;
         }
+        const enabled = !moduleManager.isEnabled(interaction.guildId, moduleKey);
         moduleManager.setEnabled(
             interaction.guildId,
             moduleKey,
-            !moduleManager.isEnabled(interaction.guildId, moduleKey)
+            enabled
         );
+        if (!hasStrictAccess(interaction, moduleKey, false)) {
+            await interaction.update({
+                content: enabled ? "✅ Module activé." : "✅ Module désactivé.",
+                embeds: [],
+                components: []
+            });
+            return true;
+        }
         await interaction.update(require(`../../pages/staff/${pages[moduleKey]}`).build(interaction));
         return true;
     }
@@ -294,6 +303,10 @@ module.exports = async interaction => {
         }
         require("../../managers/StateTypeV2Manager")
             .installDefaultStateTypes(interaction.guildId, interaction.user.id);
+        if (!hasStrictAccess(interaction, "universe", false)) {
+            await interaction.update({ content: "✅ Types d’état installés.", embeds: [], components: [] });
+            return true;
+        }
         await interaction.update(require("../../pages/staff/StaffUniversePage").build(interaction));
         return true;
     }

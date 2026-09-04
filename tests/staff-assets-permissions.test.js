@@ -192,6 +192,6 @@ test("2C.4b revalide les mutations strictes et périme l'ancien bouton bank", as
     assert.equal(calls.decisions.some(call => call.legacyCanAccessParity === true), false);
     assert.deepEqual(calls.decisions.map(call => [call.permission, call.write]), [
         ["assets", true], ["modules", true],
-        ["assets", true], ["modules", true]
+        ["assets", true], ["modules", true], ["assets", false]
     ]);
 });
