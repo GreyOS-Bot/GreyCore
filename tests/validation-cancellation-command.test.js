@@ -29,10 +29,10 @@ test(
             }
         );
         stubModule(
-            "src/v2/core/services/StaffCommandAccessService.js",
+            "src/v2/core/services/ValidationPermissionAccessService.js",
             {
-                requireStaffCommandAccess:
-                    async () => true
+                canRead: () => true,
+                canWrite: () => true
             }
         );
         stubModule(
@@ -96,6 +96,11 @@ test(
     "la recherche d’annulation transmet aussi l’alias saisi",
     async () => {
         const searches = [];
+
+        stubModule(
+            "src/v2/core/services/ValidationPermissionAccessService.js",
+            { canRead: () => true, canWrite: () => true }
+        );
 
         stubModule(
             "src/v2/services/validation/ValidationManagerV2.js",

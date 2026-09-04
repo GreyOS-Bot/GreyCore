@@ -3,10 +3,11 @@ const { SlashCommandBuilder } = require("discord.js");
 const relationshipTypeManager =
     require("../../managers/RelationshipTypeManager");
 
-const {
-    requireStaffCommandAccess
-} = require(
-    "../../v2/core/services/StaffCommandAccessService"
+const staffPermissionDecisionService = require(
+    "../../v2/core/services/StaffPermissionDecisionService"
+);
+const { replyError } = require(
+    "../../v2/core/services/InteractionResponseService"
 );
 
 module.exports = {
@@ -46,12 +47,15 @@ module.exports = {
         ),
 
     async execute(interaction) {
-        if (
-            !await requireStaffCommandAccess(
-                interaction
-            )
-        ) {
-            return;
+        if (!staffPermissionDecisionService.decide({
+            interaction,
+            permission: "relationships",
+            write: true
+        }).allowed) {
+            return replyError(
+                interaction,
+                "Cette action nécessite la permission `relationships/write`."
+            );
         }
 
         const subcommand = interaction.options.getSubcommand();

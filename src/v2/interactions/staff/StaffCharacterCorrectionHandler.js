@@ -11,15 +11,23 @@ const service = require(
 const view = require(
     "../../views/character/StaffCharacterCorrectionView"
 );
-const staffPolicy = require("../../core/policies/StaffPermissionPolicy");
+const staffPermissionDecisionService = require(
+    "../../core/services/StaffPermissionDecisionService"
+);
 const { replyError } = require(
     "../../core/services/InteractionResponseService"
 );
 
 function assertStaff(interaction) {
-    if (!staffPolicy.canManageCharacters(interaction)) {
+    const decision = staffPermissionDecisionService.decide({
+        interaction,
+        permission: "characters",
+        write: true
+    });
+
+    if (!decision.allowed) {
         throw new Error(
-            "Cette correction est réservée au staff du serveur."
+            "Cette correction nécessite la permission `characters/write`."
         );
     }
 }

@@ -98,8 +98,8 @@ test(
             },
             getByWebhookMessageId: () => null
         });
-        stubModule("src/v2/core/policies/ValidationStaffPolicy.js", {
-            canManageServerTools: () => false
+        stubModule("src/v2/core/services/StaffPermissionDecisionService.js", {
+            decide: () => ({ allowed: false })
         });
         stubModule("src/v2/services/moderation/UserPlayBlockService.js", {
             get: () => null

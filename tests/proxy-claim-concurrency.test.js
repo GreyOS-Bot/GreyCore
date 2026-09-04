@@ -937,10 +937,10 @@ async function createFixture({
         }
     );
     stubModule(
-        "src/v2/core/policies/ValidationStaffPolicy.js",
+        "src/v2/core/services/StaffPermissionDecisionService.js",
         {
-            canManageServerTools:
-                () => false
+            decide:
+                () => ({ allowed: false })
         }
     );
     stubModule(

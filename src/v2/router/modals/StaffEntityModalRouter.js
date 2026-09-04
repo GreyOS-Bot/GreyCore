@@ -1,4 +1,4 @@
-const policy = require("../../core/policies/StaffPermissionPolicy");
+const decisionService = require("../../core/services/StaffPermissionDecisionService");
 const manager = require("../../managers/NarrativeEntityV2Manager");
 const eventManager = require("../../managers/NarrativeEntityEventManager");
 const page = require("../../pages/staff/StaffEntitiesPage");
@@ -6,7 +6,11 @@ const { replyError } = require("../../core/services/InteractionResponseService")
 
 module.exports = async interaction => {
     if (!interaction.isModalSubmit?.() || !interaction.customId?.startsWith("v2_staff_entities_")) return false;
-    if (!policy.canAccess(interaction, "entities", { write: true })) {
+    if (!decisionService.decide({
+        interaction,
+        permission: "entities",
+        write: true
+    }).allowed) {
         await replyError(interaction, "Tu ne peux pas modifier les Entités.");
         return true;
     }

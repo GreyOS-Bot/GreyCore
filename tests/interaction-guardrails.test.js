@@ -229,7 +229,7 @@ test(
 );
 
 test(
-    "la permission personnage reconnaît les propriétaires V1, V2 et le staff",
+    "la permission personnage reste une primitive d’ownership V1 et V2",
     () => {
         const ownerInteraction =
             createPolicyInteraction(
@@ -259,7 +259,7 @@ test(
         ) {
             assert.equal(
                 characterManagementPolicy
-                    .canManage(
+                    .isOwner(
                         ownerInteraction,
                         character
                     ),
@@ -269,7 +269,7 @@ test(
 
         assert.equal(
             characterManagementPolicy
-                .canManage(
+                .isOwner(
                     createPolicyInteraction(
                         "other"
                     ),
@@ -293,14 +293,14 @@ test(
 
         assert.equal(
             characterManagementPolicy
-                .canManage(
+                .isOwner(
                     staffInteraction,
                     {
                         owner_id:
                             "user"
                     }
                 ),
-            true
+            false
         );
 
         const legacyStaffInteraction = {
@@ -324,14 +324,14 @@ test(
 
         assert.equal(
             characterManagementPolicy
-                .canManage(
+                .isOwner(
                     legacyStaffInteraction,
                     {
                         owner_id:
                             "user"
                     }
                 ),
-            true
+            false
         );
 
         assert.equal(

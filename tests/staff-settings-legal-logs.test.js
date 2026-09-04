@@ -15,7 +15,7 @@ test("les paramètres staff ouvrent la politique et la charte sans ancienne comm
     assert.ok(ids.includes("v2_staff_settings_privacy_policy"));
     assert.ok(ids.includes("v2_staff_settings_charter"));
     assert.doesNotMatch(payload.embeds[0].toJSON().fields[2].value, /\/confidentialite/);
-    assert.ok(customIds(page.buildLegal({}, "charter")).includes("page:staff:settings:root"));
+    assert.ok(customIds(page.buildLegal({}, "charter")).includes("page:staff:section:settings"));
 });
 
 test("le centre des journaux propose un test seulement après configuration", () => {

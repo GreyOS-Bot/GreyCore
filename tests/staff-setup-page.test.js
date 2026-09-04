@@ -3,6 +3,9 @@ const assert = require("node:assert/strict");
 const { stubModule } = require("./helpers/moduleStub");
 
 test("le guide staff vérifie les réglages essentiels et signale les options", () => {
+    stubModule("src/v2/core/services/StaffPermissionDecisionService.js", {
+        decideMany: ({ requests }) => ({ decisions: requests.map(() => ({ allowed: true })) })
+    });
     stubModule("src/v2/managers/GuildSettingsV2Manager.js", {
         getValidationChannelId: () => "validation",
         getErrorLogChannelId: () => null
@@ -31,6 +34,9 @@ test("le guide staff vérifie les réglages essentiels et signale les options", 
 });
 
 test("une page staff refuse un domaine non accordé avant de le charger", async () => {
+    stubModule("src/v2/core/services/StaffPermissionDecisionService.js", {
+        decide: () => ({ allowed: false })
+    });
     stubModule("src/v2/core/policies/StaffPermissionPolicy.js", {
         canManagePermissions: () => false,
         canAccess: (_interaction, key) => key === "logs"

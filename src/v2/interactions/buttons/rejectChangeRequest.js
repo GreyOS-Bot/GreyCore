@@ -10,9 +10,9 @@ const changeRequestManager =
         "../../managers/CharacterChangeRequestV2Manager"
     );
 
-const validationStaffPolicy =
+const validationPermissionAccess =
     require(
-        "../../core/policies/ValidationStaffPolicy"
+        "../../core/services/ValidationPermissionAccessService"
     );
 
 const {
@@ -39,7 +39,7 @@ module.exports = async interaction => {
     }
 
     if (
-        !validationStaffPolicy.canReview(
+        !validationPermissionAccess.canWrite(
             interaction
         )
         || String(request.guild_id) !==

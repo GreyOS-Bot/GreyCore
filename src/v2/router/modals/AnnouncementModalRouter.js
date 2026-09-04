@@ -2,10 +2,8 @@ const {
     EmbedBuilder
 } = require("discord.js");
 
-const {
-    requireStaffCommandAccess
-} = require(
-    "../../core/services/StaffCommandAccessService"
+const administrativeAccess = require(
+    "../../core/services/AdministrativePermissionAccessService"
 );
 
 const {
@@ -27,9 +25,13 @@ module.exports =
             return false;
         }
 
-        const internalAccess = require("../../core/policies/StaffPermissionPolicy")
-            .canAccess(interaction, "automations", { write: true });
-        if (!internalAccess && !await requireStaffCommandAccess(interaction)) return true;
+        if (!administrativeAccess.canWrite(interaction, "automations")) {
+            await editOrReplyError(
+                interaction,
+                "Tu disposes uniquement d'un accès en lecture."
+            );
+            return true;
+        }
 
         await deferPrivate(interaction);
 

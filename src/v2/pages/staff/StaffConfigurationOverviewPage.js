@@ -8,24 +8,34 @@ const states = require("../../managers/StateTypeV2Manager");
 const scenes = require("../../managers/SceneAssistantV2Manager");
 const entities = require("../../managers/NarrativeEntityV2Manager");
 const permissionPolicy = require("../../core/policies/StaffPermissionPolicy");
+const decisionService = require("../../core/services/StaffPermissionDecisionService");
 const { navigationRow } = require("./StaffCharactersPage");
+const READ_DOMAINS = ["settings", "modules", "relationships", "universe", "entities", "scenes", "automations", "logs"];
+const NO_ACCESS = "Accès non autorisé.";
 
 class StaffConfigurationOverviewPage {
     build(interaction) {
         const guildId = interaction.guildId;
+        const { decisions } = decisionService.decideMany({
+            interaction,
+            requests: READ_DOMAINS.map(permission => ({ permission, write: false }))
+        });
+        const readable = Object.fromEntries(READ_DOMAINS.map((domain, index) => [domain, decisions[index].allowed]));
+        if (!readable.settings) return { content: "❌ Accès non autorisé.", embeds: [], components: [] };
+        const root = permissionPolicy.canManagePermissions(interaction);
         const validationChannel = settings.getValidationChannelId(guildId);
-        const logChannel = settings.getErrorLogChannelId(guildId);
+        const logChannel = readable.logs ? settings.getErrorLogChannelId(guildId) : null;
         const maintenance = settings.getMaintenance(guildId);
         const creationLimit = settings.getPlayedCharacterCreationLimit(guildId);
-        const moduleConfig = modules.getConfiguration(guildId);
-        const staff = permissions.getAssignments(guildId);
-        const approvalConfig = approval.getConfiguration(guildId);
-        const sceneConfig = scenes.getConfiguration(guildId);
-        const scopes = scenes.getScopes(guildId);
-        const expressions = scenes.getTriggerExpressions(guildId);
-        const relationshipTypes = relationships.getByGuild(guildId);
-        const stateTypeList = states.getStateTypesByGuild(guildId);
-        const entityList = entities.getByGuild(guildId);
+        const moduleConfig = readable.modules ? modules.getConfiguration(guildId) : [];
+        const staff = root ? permissions.getAssignments(guildId) : null;
+        const approvalConfig = readable.automations ? approval.getConfiguration(guildId) : null;
+        const sceneConfig = readable.scenes ? scenes.getConfiguration(guildId) : null;
+        const scopes = readable.scenes ? scenes.getScopes(guildId) : [];
+        const expressions = readable.scenes ? scenes.getTriggerExpressions(guildId) : [];
+        const relationshipTypes = readable.relationships ? relationships.getByGuild(guildId) : [];
+        const stateTypeList = readable.universe ? states.getStateTypesByGuild(guildId) : [];
+        const entityList = readable.entities ? entities.getByGuild(guildId) : [];
 
         const enabledModules = moduleConfig.filter(item => item.isEnabled);
         const disabledModules = moduleConfig.filter(item => !item.isEnabled);
@@ -41,38 +51,38 @@ class StaffConfigurationOverviewPage {
                     name: "📍 Salons GreyCore",
                     value: [
                         `Validation : ${channel(validationChannel)}`,
-                        `Journaux : ${channel(logChannel)}`
+                        `Journaux : ${readable.logs ? channel(logChannel) : NO_ACCESS}`
                     ].join("\n")
                 },
                 {
                     name: "🧩 Modules",
-                    value: [
+                    value: readable.modules ? [
                         `✅ Activés : ${enabledModules.map(item => `${item.emoji} ${item.label}`).join(" · ") || "aucun"}`,
                         `❌ Désactivés : ${disabledModules.map(item => item.label).join(" · ") || "aucun"}`
-                    ].join("\n")
+                    ].join("\n") : NO_ACCESS
                 },
                 {
                     name: "🎭 Référentiels RP",
                     value: [
-                        `Relations : **${relationshipTypes.length} type(s)**`,
-                        `États : **${stateTypeList.length} type(s)**`,
-                        `Entités : **${entityList.length}** dont **${entityList.filter(entity => entity.is_enabled).length} active(s)**`
+                        readable.relationships ? `Relations : **${relationshipTypes.length} type(s)**` : `Relations : ${NO_ACCESS}`,
+                        readable.universe ? `États : **${stateTypeList.length} type(s)**` : `États : ${NO_ACCESS}`,
+                        readable.entities ? `Entités : **${entityList.length}** dont **${entityList.filter(entity => entity.is_enabled).length} active(s)**` : `Entités : ${NO_ACCESS}`
                     ].join("\n"),
                     inline: true
                 },
                 {
                     name: "🎬 Assistant de scènes",
-                    value: [
+                    value: readable.scenes ? [
                         `Statut : ${enabled(sceneEnabled)}`,
                         `Zones : ${summarize(scopes, item => `<#${item.channel_id}>`)}`,
                         `Expressions : ${summarize(expressions, item => item.expression)}`,
                         `Seuils : ${sceneConfig?.duration_days || "—"} jour(s) · ${sceneConfig?.recommended_message_count || "—"} message(s) · ${sceneConfig?.inactivity_hours || 48} h d’inactivité`
-                    ].join("\n")
+                    ].join("\n") : NO_ACCESS
                 },
                 {
                     name: "🤖 Automatisations",
                     value: [
-                        `Accueil après validation : ${enabled(approvalEnabled)}`,
+                        readable.automations ? `Accueil après validation : ${enabled(approvalEnabled)}` : `Accueil après validation : ${NO_ACCESS}`,
                         approvalEnabled ? `Seuil : **${approvalConfig.approved_character_count}** personnage(s)` : null,
                         approvalEnabled ? `Rôle vérifié : ${role(approvalConfig.required_role_id)}` : null,
                         approvalEnabled ? `Rôle retiré : ${role(approvalConfig.remove_role_id)}` : null,
@@ -84,12 +94,12 @@ class StaffConfigurationOverviewPage {
                 },
                 {
                     name: "🔐 Accès du staff",
-                    value: [
+                    value: root ? [
                         `Accès via le salon de validation : ${enabled(permissions.getValidationChannelAccess(guildId))}`,
                         `Rôles configurés : ${summarize(staff.roles, item => `<@&${item.role_id}>`)}`,
                         `Utilisateurs configurés : ${summarize(staff.users, item => `<@${item.discord_user_id}>`)}`,
                         "Le propriétaire du serveur et les administrateurs Discord conservent toujours l’accès complet."
-                    ].join("\n")
+                    ].join("\n") : NO_ACCESS
                 }
             )
             .setFooter({ text: "GreyCore · Configuration propre à ce serveur" })
@@ -100,15 +110,15 @@ class StaffConfigurationOverviewPage {
             ["logs", "Journaux", "📜"],
             ["modules", "Modules", "🧩"]
         ];
-        if (permissionPolicy.canManagePermissions(interaction)) {
+        if (root) {
             generalButtons.push(["permissions", "Permissions", "🔐"]);
         }
 
         return {
             embeds: [embed],
             components: [
-                row(...generalButtons),
-                row(["relationships", "Relations", "🎭"], ["universe", "Univers", "🌍"], ["entities", "Entités", "✨"], ["scenes", "Scènes", "🎬"], ["automations", "Automatisations", "🤖"]),
+                row(readable, ...generalButtons),
+                row(readable, ["relationships", "Relations", "🎭"], ["universe", "Univers", "🌍"], ["entities", "Entités", "✨"], ["scenes", "Scènes", "🎬"], ["automations", "Automatisations", "🤖"]),
                 navigationRow()
             ]
         };
@@ -127,13 +137,14 @@ function summarize(items, formatter) {
     const shown = items.slice(0, 10).map(formatter).join(", ");
     return items.length > 10 ? `${shown} · +${items.length - 10}` : shown;
 }
-function row(...items) {
+function row(readable, ...items) {
     return new ActionRowBuilder().addComponents(...items.map(([key, label, emoji]) =>
         new ButtonBuilder()
             .setCustomId(`page:staff:section:${key}`)
             .setLabel(label)
             .setEmoji(emoji)
             .setStyle(ButtonStyle.Secondary)
+            .setDisabled(key !== "permissions" && !readable[key])
     ));
 }
 

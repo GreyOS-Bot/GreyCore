@@ -58,7 +58,7 @@ function build(interaction, forum, places, focusChannelId = null, requestedPage 
     components.push(new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId(`v2_staff_public_places_refresh:${forum.id}`).setLabel("Actualiser le forum").setEmoji("🔄").setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId("v2_staff_scenes_public_places").setLabel("Changer de forum").setEmoji("🗺️").setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId("page:staff:scenes:root").setLabel("Retour").setEmoji("⬅️").setStyle(ButtonStyle.Secondary)
+        new ButtonBuilder().setCustomId("page:staff:section:scenes").setLabel("Retour").setEmoji("⬅️").setStyle(ButtonStyle.Secondary)
     ));
     return {
         content: "",

@@ -6,12 +6,31 @@ const {
 } = require("discord.js");
 const catalog = require("../../core/permissions/StaffPermissionCatalog");
 const policy = require("../../core/policies/StaffPermissionPolicy");
+const decisionService = require("../../core/services/StaffPermissionDecisionService");
+const administrativeAccess = require(
+    "../../core/services/AdministrativePermissionAccessService"
+);
+const STRICT_ADMINISTRATIVE_SECTIONS = new Set([
+    "setup",
+    "overview",
+    "settings",
+    "logs",
+    "automations",
+    "scenes",
+    "modules"
+]);
+
+const STRICT_DOMAIN_SECTIONS = new Set([
+    "relationships",
+    "phone",
+    "universe"
+]);
 
 const CONTENT = {
     characters: ["Validations", "Fiches et corrections", "Installations", "Archives et suppressions"],
     scenes: ["Zones RP", "Cycles actifs", "Expressions de rattrapage", "Seuils et inactivité"],
     phone: ["SMS et MMS", "Appels", "Conversations de groupe", "Réglages"],
-    bank: ["Biens", "Transferts", "Historique", "Réglages bancaires"],
+    bank: ["Fonctions financières", "Historique bancaire", "Réglages bancaires"],
     relationships: ["Types de relations", "Demandes", "Arbres familiaux", "Modération"],
     universe: ["États", "Organisations", "Référentiels", "Documentation du serveur"],
     entities: ["Identité narrative", "Messages", "Déclencheurs", "Activation"],
@@ -30,11 +49,50 @@ class StaffSectionPage {
             return require("./StaffPermissionsPage").execute(interaction);
         }
 
+        if (sectionKey === "assets") {
+            const decision = decisionService.decide({
+                interaction,
+                permission: "assets",
+                write: false
+            });
+            if (!decision.allowed) return deny(interaction);
+            return require("./StaffAssetsPage").execute(interaction);
+        }
+
+        if (sectionKey === "entities") {
+            const decision = decisionService.decide({
+                interaction,
+                permission: "entities",
+                write: false
+            });
+            if (!decision.allowed) return deny(interaction);
+            return require("./StaffEntitiesPage").execute(interaction);
+        }
+
+        if (sectionKey === "characters") {
+            const decision = decisionService.decide({
+                interaction,
+                permission: "characters",
+                write: false
+            });
+            if (!decision.allowed) return deny(interaction);
+            return require("./StaffCharactersPage").execute(interaction);
+        }
+
         const permissionKey = ["setup", "overview"].includes(sectionKey)
             ? "settings"
             : sectionKey;
         const section = catalog.get(permissionKey);
-        if (!section || !policy.canAccess(interaction, permissionKey)) {
+        const allowed = STRICT_ADMINISTRATIVE_SECTIONS.has(sectionKey)
+            ? administrativeAccess.canRead(interaction, permissionKey)
+            : STRICT_DOMAIN_SECTIONS.has(sectionKey)
+                ? decisionService.decide({
+                interaction,
+                permission: permissionKey,
+                write: false
+                }).allowed
+                : policy.canAccess(interaction, permissionKey);
+        if (!section || !allowed) {
             return deny(interaction);
         }
 
@@ -45,9 +103,6 @@ class StaffSectionPage {
             return require("./StaffConfigurationOverviewPage").execute(interaction);
         }
 
-        if (sectionKey === "characters") {
-            return require("./StaffCharactersPage").execute(interaction);
-        }
         if (sectionKey === "scenes") {
             return require("./StaffScenesPage").execute(interaction);
         }
@@ -62,9 +117,6 @@ class StaffSectionPage {
         }
         if (sectionKey === "universe") {
             return require("./StaffUniversePage").execute(interaction);
-        }
-        if (sectionKey === "entities") {
-            return require("./StaffEntitiesPage").execute(interaction);
         }
         if (sectionKey === "automations") {
             return require("./StaffAutomationsPage").execute(interaction);

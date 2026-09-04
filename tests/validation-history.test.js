@@ -272,9 +272,9 @@ test(
             }
         );
         stubModule(
-            "src/v2/core/policies/ValidationStaffPolicy.js",
+            "src/v2/core/services/ValidationPermissionAccessService.js",
             {
-                canReview:
+                canRead:
                     () => true
             }
         );

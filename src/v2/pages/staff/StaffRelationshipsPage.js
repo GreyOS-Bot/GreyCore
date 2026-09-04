@@ -5,10 +5,12 @@ const {
 const statsRepository = require("../../repositories/StaffDomainStatsRepository");
 const typeRepository = require("../../repositories/RelationshipTypeRepository");
 const moduleManager = require("../../managers/GuildModuleV2Manager");
+const decisionService = require("../../core/services/StaffPermissionDecisionService");
 const { navigationRow } = require("./StaffCharactersPage");
 
 class StaffRelationshipsPage {
     build(interaction) {
+        const writable = canWrite(interaction);
         const stats = statsRepository.getRelationshipStats(interaction.guildId);
         const enabled = moduleManager.isEnabled(interaction.guildId, "relationships");
         const types = typeRepository.getByGuild(interaction.guildId);
@@ -28,12 +30,14 @@ class StaffRelationshipsPage {
                     .setCustomId("v2_staff_relationships_install_defaults")
                     .setLabel("Installer les types par défaut")
                     .setEmoji("📦")
-                    .setStyle(ButtonStyle.Success),
+                    .setStyle(ButtonStyle.Success)
+                    .setDisabled(!writable),
                 new ButtonBuilder()
                     .setCustomId("v2_staff_relationships_create_type")
                     .setLabel("Nouveau type")
                     .setEmoji("➕")
-                    .setStyle(ButtonStyle.Primary),
+                    .setStyle(ButtonStyle.Primary)
+                    .setDisabled(!writable),
                 new ButtonBuilder()
                     .setCustomId("v2_staff_relationships_manage_types:0")
                     .setLabel("Gérer les types")
@@ -51,6 +55,7 @@ class StaffRelationshipsPage {
     execute(interaction) { return interaction.update(this.build(interaction)); }
 
     buildTypeManagement(interaction, requestedPage = 0) {
+        const writable = canWrite(interaction);
         const types = typeRepository.getByGuild(interaction.guildId);
         const pageSize = 20;
         const pageCount = Math.max(1, Math.ceil(types.length / pageSize));
@@ -62,6 +67,7 @@ class StaffRelationshipsPage {
                 new StringSelectMenuBuilder()
                     .setCustomId(`v2_staff_relationships_delete_type:${page}`)
                     .setPlaceholder("Supprimer un type inutilisé")
+                    .setDisabled(!writable)
                     .addOptions(displayed.map(type => ({
                         label: type.label_a_to_b.slice(0, 100),
                         description: type.is_symmetric
@@ -90,6 +96,14 @@ class StaffRelationshipsPage {
             components
         };
     }
+}
+
+function canWrite(interaction) {
+    return decisionService.decide({
+        interaction,
+        permission: "relationships",
+        write: true
+    }).allowed;
 }
 
 module.exports = new StaffRelationshipsPage();

@@ -3,6 +3,9 @@ const assert = require("node:assert/strict");
 const { stubModule } = require("./helpers/moduleStub");
 
 test("la vue configuration indique ce qui est actif et où", () => {
+    stubModule("src/v2/core/services/StaffPermissionDecisionService.js", {
+        decideMany: ({ requests }) => ({ decisions: requests.map(() => ({ allowed: true })) })
+    });
     stubModule("src/v2/managers/GuildSettingsV2Manager.js", {
         getValidationChannelId: () => "validation",
         getErrorLogChannelId: () => "logs",

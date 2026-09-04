@@ -59,8 +59,8 @@ test("l’avatar envoyé est enregistré sur l’Entité", async () => {
 });
 
 function stubCommon(manager = {}) {
-    stubModule("src/v2/core/policies/StaffPermissionPolicy.js", {
-        canAccess: () => true
+    stubModule("src/v2/core/services/StaffPermissionDecisionService.js", {
+        decide: () => ({ allowed: true })
     });
     stubModule("src/v2/managers/NarrativeEntityV2Manager.js", {
         getById: () => null,
