@@ -31,9 +31,9 @@ const webhookManager =
         "../../../webhooks/webhookManager"
     );
 
-const validationStaffPolicy =
+const staffPermissionDecisionService =
     require(
-        "../../../v2/core/policies/ValidationStaffPolicy"
+        "../../../v2/core/services/StaffPermissionDecisionService"
     );
 
 const originalMessageDeletionService =
@@ -84,20 +84,18 @@ module.exports =
             proxyName:
                 proxy.character,
             isStaff:
-                validationStaffPolicy
-                    .canManageServerTools({
-                        guildId:
-                            message.guild.id,
-                        guild:
-                            message.guild,
-                        member:
-                            message.member,
-                        client:
-                            message.client,
-                        memberPermissions:
-                            message.member
-                                ?.permissions
-                    })
+                staffPermissionDecisionService.decide({
+                    guild:
+                        message.guild,
+                    member:
+                        message.member,
+                    userId:
+                        message.author.id,
+                    permission:
+                        "characters",
+                    write:
+                        true
+                }).allowed
         });
 
         if (
