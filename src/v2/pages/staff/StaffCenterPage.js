@@ -67,6 +67,10 @@ class StaffCenterPage {
                 .setEmoji(section.emoji)
                 .setStyle(ButtonStyle.Secondary)
         );
+        if (policy.canManagePermissions(interaction)) {
+            buttons.push(new ButtonBuilder().setCustomId('v3_context:list:0')
+                .setLabel('Contexts').setStyle(ButtonStyle.Secondary));
+        }
         const rows = [];
         for (let index = 0; index < buttons.length; index += 5) {
             rows.push(

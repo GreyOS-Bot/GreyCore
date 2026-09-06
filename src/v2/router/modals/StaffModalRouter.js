@@ -5,6 +5,9 @@ const page = require("../../pages/staff/StaffScenesPage");
 const { replyError } = require("../../core/services/InteractionResponseService");
 
 module.exports = async interaction => {
+    if (interaction.customId?.startsWith('v3_context_submit:')) {
+        return require('../../pages/staff/StaffContextsPage').handle(interaction);
+    }
     if (interaction.customId === "v2_staff_settings_advanced_set_submit") {
         if (!administrativeAccess.canWrite(interaction, "settings")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");

@@ -13,6 +13,8 @@ function initializeDatabase() {
         )
     `).run();
 
+    require('./schemaContexts')(db);
+
     db.prepare(`
         CREATE TABLE IF NOT EXISTS Characters (
             id TEXT PRIMARY KEY,

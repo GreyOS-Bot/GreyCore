@@ -2,6 +2,10 @@ module.exports = async interaction => {
     if (!interaction.isButton?.()) return false;
     if (!interaction.customId) return false;
 
+    if (interaction.customId.startsWith('v3_context:')) {
+        return require('../../pages/staff/StaffContextsPage').handle(interaction);
+    }
+
     if (interaction.customId === "v3_staff_permission_defaults") {
         const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
