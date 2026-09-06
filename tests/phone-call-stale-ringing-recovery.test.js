@@ -95,3 +95,34 @@ test("un appel réellement en cours continue de bloquer un nouvel appel", () => 
         /déjà en communication/
     );
 });
+
+test("un appel ringing récent n'est pas expiré et continue de bloquer", () => {
+    const recentCall = {
+        id: 10,
+        status: "ringing",
+        created_at: new Date().toISOString()
+    };
+
+    stubModule("src/v2/managers/phoneCall/PhoneCallRepository.js", {
+        getPhoneById: id => ({ id, is_active: 1 }),
+        expireStaleRingingCalls: () => 0,
+        getActiveForPhone: phoneId => phoneId === 1
+            ? recentCall
+            : null
+    });
+
+    const managerPath = require.resolve(
+        "../src/v2/managers/phoneCall/PhoneCallCreationManager"
+    );
+    delete require.cache[managerPath];
+    const manager = require(managerPath);
+
+    assert.throws(
+        () => manager.createCall({
+            callerPhoneId: 1,
+            receiverPhoneId: 3
+        }),
+        /déjà en communication/
+    );
+    assert.equal(recentCall.status, "ringing");
+});
