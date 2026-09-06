@@ -20,9 +20,10 @@ const guildRepository =
     );
 
 const {
-    requireStaffCommandAccess
+    canRead,
+    canWrite
 } = require(
-    "../../v2/core/services/StaffCommandAccessService"
+    "../../v2/core/services/AdministrativePermissionAccessService"
 );
 
 const {
@@ -176,6 +177,32 @@ module.exports = {
             );
         }
 
+        const canReadScenes =
+            subcommand === "zones" ||
+            subcommand === "expressions";
+
+        const canWriteScenes =
+            subcommand === "ajouter-zone" ||
+            subcommand === "retirer-zone" ||
+            subcommand === "ajouter-categorie-actuelle" ||
+            subcommand === "ajouter-expression" ||
+            subcommand === "retirer-expression" ||
+            subcommand === "nouveau-cycle";
+
+        if (canReadScenes && !canRead(interaction, "scenes")) {
+            return replyError(
+                interaction,
+                "Tu n’as pas la permission GreyCore requise pour lire les scènes."
+            );
+        }
+
+        if (canWriteScenes && !canWrite(interaction, "scenes")) {
+            return replyError(
+                interaction,
+                "Tu n’as pas la permission GreyCore requise pour modifier les scènes."
+            );
+        }
+
         if (subcommand === "diagnostic") {
             const configuration =
                 sceneAssistantManager.getConfiguration(
@@ -218,21 +245,13 @@ module.exports = {
             );
         }
 
-        if (
-            !await requireStaffCommandAccess(
-                interaction
-            )
-        ) {
-            return;
-        }
-
-        guildRepository.ensure(
-            interaction.guildId,
-            interaction.guild?.name || "Serveur Discord",
-            new Date().toISOString()
-        );
-
         if (subcommand === "ajouter-zone") {
+            guildRepository.ensure(
+                interaction.guildId,
+                interaction.guild?.name || "Serveur Discord",
+                new Date().toISOString()
+            );
+
             const zone = interaction.options.getChannel("zone");
 
             const scopes = sceneAssistantManager.addScope({
@@ -255,6 +274,12 @@ module.exports = {
             subcommand ===
                 "ajouter-categorie-actuelle"
         ) {
+            guildRepository.ensure(
+                interaction.guildId,
+                interaction.guild?.name || "Serveur Discord",
+                new Date().toISOString()
+            );
+
             const categoryId =
                 interaction.channel?.parentId;
 
@@ -301,6 +326,12 @@ module.exports = {
         }
 
         if (subcommand === "retirer-zone") {
+            guildRepository.ensure(
+                interaction.guildId,
+                interaction.guild?.name || "Serveur Discord",
+                new Date().toISOString()
+            );
+
             const zone = interaction.options.getChannel("zone");
             const removed = sceneAssistantManager.removeScope(
                 interaction.guildId,
@@ -351,6 +382,12 @@ module.exports = {
         }
 
         if (subcommand === "ajouter-expression") {
+            guildRepository.ensure(
+                interaction.guildId,
+                interaction.guild?.name || "Serveur Discord",
+                new Date().toISOString()
+            );
+
             try {
                 const expression = interaction.options
                     .getString("expression", true);
@@ -371,6 +408,12 @@ module.exports = {
         }
 
         if (subcommand === "retirer-expression") {
+            guildRepository.ensure(
+                interaction.guildId,
+                interaction.guild?.name || "Serveur Discord",
+                new Date().toISOString()
+            );
+
             const expression = interaction.options
                 .getString("expression", true);
             const removed = sceneAssistantManager
@@ -388,6 +431,12 @@ module.exports = {
         }
 
         if (subcommand === "nouveau-cycle") {
+            guildRepository.ensure(
+                interaction.guildId,
+                interaction.guild?.name || "Serveur Discord",
+                new Date().toISOString()
+            );
+
             try {
                 sceneAssistantService.startNewCycle({
                     guildId: interaction.guildId,

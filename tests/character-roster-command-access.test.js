@@ -63,12 +63,12 @@ test(
         );
 
         stubModule(
-            "src/v2/core/services/StaffCommandAccessService.js",
+            "src/v2/core/services/StaffPermissionDecisionService.js",
             {
-                requireStaffCommandAccess:
-                    async () => {
+                decide:
+                    () => {
                         staffAccessChecks += 1;
-                        return false;
+                        return { allowed: false };
                     }
             }
         );
@@ -247,10 +247,10 @@ test(
         );
 
         stubModule(
-            "src/v2/core/services/StaffCommandAccessService.js",
+            "src/v2/core/services/StaffPermissionDecisionService.js",
             {
-                requireStaffCommandAccess:
-                    async () => true
+                decide:
+                    () => ({ allowed: true })
             }
         );
 

@@ -1,8 +1,3 @@
-const guildManagementPolicy =
-    require(
-        "./GuildManagementPolicy"
-    );
-
 class CharacterManagementPolicy {
 
     getOwnerId(
@@ -33,37 +28,6 @@ class CharacterManagementPolicy {
                     interaction.user?.id
                 )
         );
-    }
-
-    isStaff(
-        interaction
-    ) {
-        return guildManagementPolicy
-            .canManage(
-                interaction
-            );
-    }
-
-    canManage(
-        interaction,
-        character,
-        {
-            allowStaff = true
-        } = {}
-    ) {
-        return Boolean(
-            this.isOwner(
-                interaction,
-                character
-            )
-            || (
-                allowStaff
-                && this.isStaff(
-                    interaction
-                )
-            )
-        );
-
     }
 
 }

@@ -58,8 +58,8 @@ test("la saisie rapide reste visible si le genre manquant est sur une autre page
 test("le staff enregistre manuellement le genre sur le profil du serveur", async () => {
     const updates = [];
     const roster = [{ ...character(1), id: "character", continuity_id: "continuity" }];
-    stubModule("src/v2/core/policies/StaffPermissionPolicy.js", {
-        canManageCharacters: () => true
+    stubModule("src/v2/core/services/StaffPermissionDecisionService.js", {
+        decide: () => ({ allowed: true })
     });
     stubModule("src/v2/managers/CharacterRosterV2Manager.js", {
         getRoster: () => roster

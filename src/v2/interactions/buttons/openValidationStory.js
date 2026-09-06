@@ -8,9 +8,9 @@ const {
 const v2 =
     require("../../index");
 
-const validationStaffPolicy =
+const validationPermissionAccess =
     require(
-        "../../core/policies/ValidationStaffPolicy"
+        "../../core/services/ValidationPermissionAccessService"
     );
 
 const {
@@ -54,7 +54,7 @@ class OpenValidationStory {
         }
 
         if (
-            !validationStaffPolicy.canReview(
+            !validationPermissionAccess.canRead(
                 interaction
             )
         ) {

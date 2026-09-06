@@ -1,13 +1,107 @@
 const page = require("../../pages/staff/StaffPermissionsPage");
 const policy = require("../../core/policies/StaffPermissionPolicy");
+const administrativeAccess = require("../../core/services/AdministrativePermissionAccessService");
+const decisionService = require("../../core/services/StaffPermissionDecisionService");
 const manager = require("../../managers/StaffPermissionV2Manager");
 const { replyError } = require(
     "../../core/services/InteractionResponseService"
 );
 
 module.exports = async interaction => {
+    const characterReadAction = interaction.customId?.startsWith("v2_staff_character_gender_select:")
+        || interaction.customId === "v2_staff_characters_statistics_user_select"
+        || interaction.customId === "v2_staff_characters_user_select";
+    if (characterReadAction && !hasStrictCharacterAccess(interaction, false)) {
+        await replyError(interaction, "Tu n’as pas accès à la gestion des personnages.");
+        return true;
+    }
+
+    if (
+        interaction.customId === "v3_staff_permissions_role"
+        || interaction.customId === "v3_staff_permissions_user"
+    ) {
+        if (!policy.canManagePermissions(interaction)) {
+            await replyError(interaction, "Tu ne peux pas modifier les permissions GreyCore.");
+            return true;
+        }
+        if (!Array.isArray(interaction.values) || interaction.values.length !== 1) {
+            await replyError(interaction, "Choisis exactement un rôle ou un utilisateur.");
+            return true;
+        }
+        const subjectType = interaction.customId.endsWith("_user")
+            ? "user"
+            : "role";
+        const draft = require("../../services/permissions/StaffPermissionV3DraftService")
+            .start({
+                guildId: interaction.guildId,
+                adminUserId: interaction.user.id,
+                subjectType,
+                subjectId: interaction.values[0]
+            });
+        await interaction.update(page.buildV3PermissionSelection(draft));
+        return true;
+    }
+
+    if (interaction.customId?.startsWith("v3_staff_permissions_key:")) {
+        if (!policy.canManagePermissions(interaction)) {
+            await replyError(interaction, "Tu ne peux pas modifier les permissions GreyCore.");
+            return true;
+        }
+        const token = interaction.customId.split(":")[1];
+        const drafts = require("../../services/permissions/StaffPermissionV3DraftService");
+        const draft = drafts.get(token, interaction.guildId, interaction.user.id);
+        if (!draft) {
+            await replyError(interaction, expiredPermissionsMessage());
+            return true;
+        }
+        const permissionKey = interaction.values?.[0];
+        const catalog = require("../../core/permissions/StaffPermissionCatalog");
+        if (interaction.values?.length !== 1 || !catalog.has(permissionKey)) {
+            await replyError(interaction, "Cette permission GreyCore n’est pas disponible.");
+            return true;
+        }
+        const assignment = draft.subjectType === "user"
+            ? manager.getUserPermissionAssignment(
+                draft.guildId, draft.subjectId, permissionKey
+            )
+            : manager.getRolePermissionAssignment(
+                draft.guildId, draft.subjectId, permissionKey
+            );
+        drafts.selectPermission(draft, permissionKey, toExpected(assignment));
+        await interaction.update(page.buildV3PermissionState(draft, assignment));
+        return true;
+    }
+
+    if (interaction.customId?.startsWith("v3_staff_permission_default_key:")) {
+        if (!policy.canManagePermissions(interaction)) {
+            await replyError(interaction, "Tu ne peux pas modifier les permissions GreyCore.");
+            return true;
+        }
+        const token = interaction.customId.split(":")[1];
+        const drafts = require("../../services/permissions/StaffPermissionV3DraftService");
+        const draft = drafts.get(token, interaction.guildId, interaction.user.id);
+        if (!draft || draft.subjectType !== "guild-default") {
+            await replyError(interaction, expiredPermissionsMessage());
+            return true;
+        }
+        const permissionKey = interaction.values?.[0];
+        const catalog = require("../../core/permissions/StaffPermissionCatalog");
+        if (interaction.values?.length !== 1 || !catalog.has(permissionKey)) {
+            await replyError(interaction, "Cette permission GreyCore n’est pas disponible.");
+            return true;
+        }
+        const current = manager.getPermissionDefault(
+            draft.guildId, permissionKey
+        );
+        drafts.selectPermission(draft, permissionKey, toExpected(current));
+        await interaction.update(
+            page.buildV3DefaultPermissionState(draft, current)
+        );
+        return true;
+    }
+
     if (interaction.customId === "v2_staff_scenes_public_forum_select") {
-        if (!policy.canAccess(interaction, "scenes", { write: false })) {
+        if (!administrativeAccess.canWrite(interaction, "scenes")) {
             await replyError(interaction, "Tu n’as pas accès aux cycles de scènes.");
             return true;
         }
@@ -26,7 +120,7 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId?.startsWith("v2_staff_public_place_category:")) {
-        if (!policy.canAccess(interaction, "scenes", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "scenes")) {
             await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }
@@ -44,7 +138,8 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId?.startsWith("v2_staff_public_place_pick:")) {
-        if (!policy.canAccess(interaction, "scenes", { write: true })) {
+        if (!require("../../core/services/AdministrativePermissionAccessService")
+            .canRead(interaction, "scenes")) {
             await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }
@@ -100,7 +195,8 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId === "v2_staff_characters_cancel_installation_select") {
-        if (!policy.canManageCharacters(interaction)) {
+        const validationAccess = require("../../core/services/ValidationPermissionAccessService");
+        if (!validationAccess.canWrite(interaction)) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -119,7 +215,7 @@ module.exports = async interaction => {
         return true;
     }
     if (["v2_staff_scenes_remove_zone", "v2_staff_scenes_remove_expression"].includes(interaction.customId)) {
-        if (!policy.canAccess(interaction, "scenes", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "scenes")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -133,8 +229,8 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId?.startsWith("v2_staff_universe_delete_state:")) {
-        if (!policy.canAccess(interaction, "universe", { write: true })) {
-            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+        if (!policy.canManagePermissions(interaction)) {
+            await replyError(interaction, "Seul le propriétaire du serveur ou un administrateur peut supprimer un type d’état.");
             return true;
         }
         const pageNumber = Number(interaction.customId.split(":")[1]);
@@ -156,7 +252,11 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId?.startsWith("v2_staff_relationships_delete_type:")) {
-        if (!policy.canAccess(interaction, "relationships", { write: true })) {
+        if (!decisionService.decide({
+            interaction,
+            permission: "relationships",
+            write: true
+        }).allowed) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -180,7 +280,7 @@ module.exports = async interaction => {
         "v2_staff_automations_add_role",
         "v2_staff_automations_welcome_channel"
     ].includes(interaction.customId)) {
-        if (!policy.canAccess(interaction, "automations", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "automations")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -200,8 +300,8 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_logs_channel") {
-        if (!policy.canAccess(interaction, "logs", { write: true })) {
-            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+        if (!administrativeAccess.canWrite(interaction, "logs")) {
+            await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }
         require("../../managers/GuildSettingsV2Manager")
@@ -210,8 +310,8 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_settings_validation_channel") {
-        if (!policy.canAccess(interaction, "settings", { write: true })) {
-            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+        if (!administrativeAccess.canWrite(interaction, "settings")) {
+            await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }
         require("../../managers/GuildSettingsV2Manager")
@@ -220,8 +320,8 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId?.startsWith("v2_staff_settings_advanced_remove:")) {
-        if (!policy.canAccess(interaction, "settings", { write: true })) {
-            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+        if (!administrativeAccess.canWrite(interaction, "settings")) {
+            await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }
         require("../../managers/GuildAdvancedSettingV2Manager")
@@ -235,8 +335,8 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_settings_create_validation_role") {
-        if (!policy.canAccess(interaction, "settings", { write: true })) {
-            await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
+        if (!administrativeAccess.canWrite(interaction, "settings")) {
+            await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }
         const { ChannelType, PermissionFlagsBits } = require("discord.js");
@@ -283,9 +383,8 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_modules_toggle") {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "modules", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "modules")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -300,8 +399,7 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_scenes_zone_select") {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
-        if (!policy.canAccess(interaction, "scenes", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "scenes")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -369,7 +467,7 @@ module.exports = async interaction => {
     }
 
     if (interaction.customId === "v2_staff_characters_manage_character") {
-        if (!policy.canManageCharacters(interaction)) {
+        if (!hasStrictCharacterAccess(interaction, false)) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -386,114 +484,37 @@ module.exports = async interaction => {
         return true;
     }
 
-    if (interaction.customId === "v2_staff_permissions_role") {
-        if (!policy.canManagePermissions(interaction)) {
-            await replyError(
-                interaction,
-                "Tu ne peux pas modifier les permissions GreyCore."
-            );
-            return true;
-        }
-        require("../../services/permissions/StaffPermissionDraftService").start(
-            interaction.guildId, interaction.user.id, "role", interaction.values
+    if (
+        interaction.customId === "v2_staff_permissions_role"
+        || interaction.customId === "v2_staff_permissions_user"
+        || interaction.customId?.startsWith("v2_staff_permissions_save:")
+    ) {
+        await replyError(
+            interaction,
+            "Cette interface de permissions a expiré. Rouvre le centre staff pour utiliser la nouvelle gestion des permissions."
         );
-        await interaction.update(
-            page.buildPermissionSelection(
-                interaction.guildId,
-                interaction.values,
-                "role"
-            )
-        );
-        return true;
-    }
-
-    if (interaction.customId === "v2_staff_permissions_user") {
-        if (!policy.canManagePermissions(interaction)) {
-            await replyError(
-                interaction,
-                "Tu ne peux pas modifier les permissions GreyCore."
-            );
-            return true;
-        }
-        require("../../services/permissions/StaffPermissionDraftService").start(
-            interaction.guildId, interaction.user.id, "user", interaction.values
-        );
-        await interaction.update(
-            page.buildPermissionSelection(
-                interaction.guildId,
-                interaction.values,
-                "user"
-            )
-        );
-        return true;
-    }
-
-    if (interaction.customId?.startsWith("v2_staff_permissions_save:")) {
-        if (!policy.canManagePermissions(interaction)) {
-            await replyError(
-                interaction,
-                "Tu ne peux pas modifier les permissions GreyCore."
-            );
-            return true;
-        }
-
-        const [, subjectType, legacySubjectId] =
-            interaction.customId.split(":");
-        const drafts = require("../../services/permissions/StaffPermissionDraftService");
-        const draft = drafts.get(interaction.guildId, interaction.user.id, subjectType);
-        const subjectIds = draft?.subjectIds
-            || (legacySubjectId ? [legacySubjectId] : []);
-        if (!subjectIds.length) {
-            await replyError(interaction, "Cette sélection a expiré. Choisis de nouveau les rôles ou utilisateurs.");
-            return true;
-        }
-        const selected = interaction.values.includes("__none__")
-            ? []
-            : interaction.values;
-        const saved = subjectType === "user"
-            ? manager.replaceUserPermissionsForMany({
-                guildId: interaction.guildId,
-                discordUserIds: subjectIds,
-                permissionKeys: selected,
-                grantedBy: interaction.user.id
-            })
-            : manager.replaceRolePermissionsForMany({
-                guildId: interaction.guildId,
-                roleIds: subjectIds,
-                permissionKeys: selected,
-                grantedBy: interaction.user.id
-            });
-        drafts.clear(interaction.guildId, interaction.user.id, subjectType);
-        const subjectMention = subjectType === "user"
-            ? subjectIds.map(id => `<@${id}>`).join(" ")
-            : subjectIds.map(id => `<@&${id}>`).join(" ");
-
-        await interaction.update({
-            content: selected.length
-                ? `✅ Permissions de ${subjectMention} enregistrées : **${selected.length}** domaine(s) pour **${saved.length}** sélection(s).`
-                : `✅ Toutes les permissions GreyCore de ${subjectMention} ont été retirées.`,
-            embeds: [],
-            components: [
-                require("discord.js").ActionRowBuilder.from({
-                    type: 1,
-                    components: [{
-                        type: 2,
-                        custom_id: "page:staff:section:permissions",
-                        label: "Configurer un autre rôle",
-                        emoji: { name: "🔐" },
-                        style: 2
-                    }, {
-                        type: 2,
-                        custom_id: "page:staff:home:root",
-                        label: "Accueil",
-                        emoji: { name: "🏠" },
-                        style: 2
-                    }]
-                })
-            ]
-        });
         return true;
     }
 
     return false;
 };
+
+function hasStrictCharacterAccess(interaction, write) {
+    return decisionService.decide({
+        interaction,
+        permission: "characters",
+        write
+    }).allowed;
+}
+
+function toExpected(assignment) {
+    return assignment ? {
+        present: true,
+        effect: assignment.effect,
+        updatedAt: assignment.updatedAt
+    } : { present: false };
+}
+
+function expiredPermissionsMessage() {
+    return "Cette interface de permissions a expiré. Rouvre le centre staff.";
+}

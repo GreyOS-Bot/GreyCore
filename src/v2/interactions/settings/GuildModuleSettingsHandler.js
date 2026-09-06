@@ -1,8 +1,8 @@
 const guildModuleManager =
     require("../../managers/GuildModuleV2Manager");
 
-const guildManagementPolicy =
-    require("../../core/policies/GuildManagementPolicy");
+const administrativeAccess =
+    require("../../core/services/AdministrativePermissionAccessService");
 
 const view =
     require("../../views/settings/GuildModulesView");
@@ -16,7 +16,7 @@ const {
 
 async function open(interaction) {
     if (
-        !guildManagementPolicy.canManage(interaction)
+        !administrativeAccess.canRead(interaction, "modules")
     ) {
         await replyError(
             interaction,
@@ -38,7 +38,7 @@ async function open(interaction) {
 
 async function toggle(interaction) {
     if (
-        !guildManagementPolicy.canManage(interaction)
+        !administrativeAccess.canWrite(interaction, "modules")
     ) {
         await replyError(
             interaction,

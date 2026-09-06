@@ -47,10 +47,9 @@ test(
     "l'annonce publie le texte et autorise seulement la mention demandée",
     async () => {
         stubModule(
-            "src/v2/core/services/StaffCommandAccessService.js",
+            "src/v2/core/services/AdministrativePermissionAccessService.js",
             {
-                requireStaffCommandAccess:
-                    async () => true
+                canWrite: () => true
             }
         );
         stubModule(

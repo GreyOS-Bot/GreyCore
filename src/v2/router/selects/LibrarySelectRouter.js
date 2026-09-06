@@ -65,7 +65,10 @@ module.exports =
                 await require("../../core/services/InteractionResponseService").replyError(interaction, "Tu ne peux pas modifier cette liaison.");
                 return true;
             }
-            if (staff && !require("../../core/policies/StaffPermissionPolicy").canManageCharacters(interaction)) {
+            const staffAllowed = !staff || require("../../core/services/StaffPermissionDecisionService")
+                .decide({ interaction, permission: "characters", write: true })
+                .allowed;
+            if (!staffAllowed) {
                 await require("../../core/services/InteractionResponseService").replyError(interaction, "Cette action est réservée au staff.");
                 return true;
             }

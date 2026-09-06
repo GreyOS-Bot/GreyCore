@@ -1,11 +1,12 @@
 const manager = require("../../managers/SceneAssistantV2Manager");
 const policy = require("../../core/policies/StaffPermissionPolicy");
+const administrativeAccess = require("../../core/services/AdministrativePermissionAccessService");
 const page = require("../../pages/staff/StaffScenesPage");
 const { replyError } = require("../../core/services/InteractionResponseService");
 
 module.exports = async interaction => {
     if (interaction.customId === "v2_staff_settings_advanced_set_submit") {
-        if (!policy.canAccess(interaction, "settings", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "settings")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -24,7 +25,8 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId?.startsWith("v2_staff_characters_cancel_installation_submit:")) {
-        if (!policy.canManageCharacters(interaction)) {
+        const validationAccess = require("../../core/services/ValidationPermissionAccessService");
+        if (!validationAccess.canWrite(interaction)) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -53,7 +55,11 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_universe_create_state_submit") {
-        if (!policy.canAccess(interaction, "universe", { write: true })) {
+        if (!require("../../core/services/StaffPermissionDecisionService").decide({
+            interaction,
+            permission: "characters",
+            write: true
+        }).allowed) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -74,11 +80,23 @@ module.exports = async interaction => {
             await replyError(interaction, error);
             return true;
         }
+        if (!require("../../core/services/StaffPermissionDecisionService").decide({
+            interaction,
+            permission: "universe",
+            write: false
+        }).allowed) {
+            await interaction.update({ content: "✅ Type d’état créé.", embeds: [], components: [] });
+            return true;
+        }
         await interaction.update(require("../../pages/staff/StaffUniversePage").build(interaction));
         return true;
     }
     if (interaction.customId === "v2_staff_relationships_create_type_submit") {
-        if (!policy.canAccess(interaction, "relationships", { write: true })) {
+        if (!require("../../core/services/StaffPermissionDecisionService").decide({
+            interaction,
+            permission: "relationships",
+            write: true
+        }).allowed) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -102,7 +120,7 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_automations_approval_submit") {
-        if (!policy.canAccess(interaction, "automations", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "automations")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -131,7 +149,7 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_settings_maintenance_submit") {
-        if (!policy.canAccess(interaction, "settings", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "settings")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -145,9 +163,8 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId === "v2_staff_automations_creation_limit_submit") {
-        const policy = require("../../core/policies/StaffPermissionPolicy");
         const { replyError } = require("../../core/services/InteractionResponseService");
-        if (!policy.canAccess(interaction, "automations", { write: true })) {
+        if (!administrativeAccess.canWrite(interaction, "automations")) {
             await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
             return true;
         }
@@ -166,7 +183,7 @@ module.exports = async interaction => {
         return true;
     }
     if (!interaction.customId?.startsWith("v2_staff_scenes_")) return false;
-    if (!policy.canAccess(interaction, "scenes", { write: true })) {
+    if (!administrativeAccess.canWrite(interaction, "scenes")) {
         await replyError(interaction, "Tu disposes uniquement d'un accès en lecture.");
         return true;
     }

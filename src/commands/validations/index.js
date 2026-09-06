@@ -11,10 +11,8 @@ const validationManager =
         "../../v2/services/validation/ValidationManagerV2"
     );
 
-const {
-    requireStaffCommandAccess
-} = require(
-    "../../v2/core/services/StaffCommandAccessService"
+const validationPermissionAccess = require(
+    "../../v2/core/services/ValidationPermissionAccessService"
 );
 
 const {
@@ -75,6 +73,10 @@ module.exports = {
             return interaction.respond([]);
         }
 
+        if (!validationPermissionAccess.canWrite(interaction)) {
+            return interaction.respond([]);
+        }
+
         const installations =
             validationManager
                 .searchIncompleteForGuild(
@@ -94,17 +96,19 @@ module.exports = {
     },
 
     async execute(interaction) {
-        if (
-            !await requireStaffCommandAccess(
-                interaction
-            )
-        ) {
-            return;
-        }
-
         const subcommand =
             interaction.options?.getSubcommand?.()
             || "attente";
+
+        const allowed = subcommand === "annuler"
+            ? validationPermissionAccess.canWrite(interaction)
+            : validationPermissionAccess.canRead(interaction);
+        if (!allowed) {
+            return replyPrivate(
+                interaction,
+                "Cette commande est réservée au staff chargé des personnages."
+            );
+        }
 
         if (subcommand === "annuler") {
             await deferPrivate(interaction);

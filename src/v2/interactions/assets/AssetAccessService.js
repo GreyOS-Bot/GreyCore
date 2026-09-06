@@ -10,8 +10,8 @@ const dashboardManager =
 const characterManagementPolicy =
     require("../../core/policies/CharacterManagementPolicy");
 
-const validationStaffPolicy =
-    require("../../core/policies/ValidationStaffPolicy");
+const staffPermissionDecisionService =
+    require("../../core/services/StaffPermissionDecisionService");
 
 const {
     replyError
@@ -23,15 +23,26 @@ function canManage(interaction, character) {
     return characterManagementPolicy.isOwner(
         interaction,
         character
-    ) || validationStaffPolicy.canManageServerTools(
-        interaction
-    );
+    ) || canAccessAssets(interaction, true);
 }
 
 function canManageTypes(interaction) {
-    return validationStaffPolicy.canManageServerTools(
-        interaction
-    );
+    return canAccessAssets(interaction, true);
+}
+
+function canRead(interaction, character) {
+    return characterManagementPolicy.isOwner(
+        interaction,
+        character
+    ) || canAccessAssets(interaction, false);
+}
+
+function canAccessAssets(interaction, write) {
+    return staffPermissionDecisionService.decide({
+        interaction,
+        permission: "assets",
+        write
+    }).allowed;
 }
 
 async function getCharacterContext(
@@ -93,7 +104,8 @@ async function getAssetContext(
     interaction,
     assetId,
     {
-        requireManage = false
+        requireManage = false,
+        requireRead = false
     } = {}
 ) {
     const asset = assetManager.getById(assetId);
@@ -147,10 +159,24 @@ async function getAssetContext(
         character
     );
 
+    const reads = manages || (
+        requireRead
+        && canRead(interaction, character)
+    );
+
     if (requireManage && !manages) {
         await replyError(
             interaction,
             "Tu ne peux pas gérer ce bien."
+        );
+
+        return null;
+    }
+
+    if (requireRead && !reads) {
+        await replyError(
+            interaction,
+            "Tu ne peux pas consulter l’historique de ce bien."
         );
 
         return null;
@@ -168,6 +194,7 @@ async function getAssetContext(
 module.exports = {
     canManage,
     canManageTypes,
+    canRead,
     getCharacterContext,
     getAssetContext
 };

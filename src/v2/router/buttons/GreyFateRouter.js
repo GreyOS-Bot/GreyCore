@@ -1,5 +1,5 @@
-const { PermissionFlagsBits } = require("discord.js");
 const service = require("../../services/greyfate/GreyFateIntegrationService");
+const staffPermissionDecisionService = require("../../core/services/StaffPermissionDecisionService");
 const { replyPrivate } = require("../../core/services/InteractionResponseService");
 const {
     toPublicErrorMessage,
@@ -11,7 +11,13 @@ module.exports = async interaction => {
     const [action, duoId, encodedOccurrence, ...extraParts] = interaction.customId.split(":");
     const duo = service.duo(duoId);
     if (!duo || duo.guild_id !== interaction.guildId || duo.thread_id !== interaction.channelId) throw new Error("Cette action ne correspond pas à cette scène.");
-    if (![duo.male_user_id, duo.female_user_id].includes(interaction.user.id) && !interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) throw new Error("Action réservée au duo ou au staff.");
+    const isDuoMember = [duo.male_user_id, duo.female_user_id]
+        .includes(interaction.user.id);
+    if (!isDuoMember && !staffPermissionDecisionService.decide({
+        interaction,
+        permission: "scenes",
+        write: true
+    }).allowed) throw new Error("Action réservée au duo ou au staff.");
     await interaction.deferUpdate();
     try {
         if (action === "greyfate_scene_start") { const result = await service.sceneStart(duo, interaction.user.id); if (!result.duplicate) { await interaction.editReply({ components: [] }); await service.sendAsWeaver(interaction.channel, "Le fil est noué. Votre scène commence maintenant."); } await replyPrivate(interaction, result.duplicate ? "Cette scène est déjà commencée." : "🧵 Scène ouverte."); return true; }

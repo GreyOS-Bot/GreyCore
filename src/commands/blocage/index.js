@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const policy = require("../../v2/core/policies/StaffPermissionPolicy");
+const decisionService = require("../../v2/core/services/StaffPermissionDecisionService");
 const service = require("../../v2/services/moderation/UserPlayBlockService");
 const { replyPrivate, replyError, deferPrivate } = require("../../v2/core/services/InteractionResponseService");
 
@@ -17,10 +17,15 @@ module.exports = {
         .addSubcommand(sub => sub.setName("liste").setDescription("Affiche les utilisateurs actuellement bloqués.")),
 
     async execute(interaction) {
-        if (!interaction.guildId || !policy.canManageCharacters(interaction)) {
+        const action = interaction.options.getSubcommand();
+        const allowed = decisionService.decide({
+            interaction,
+            permission: "characters",
+            write: action !== "liste"
+        }).allowed;
+        if (!interaction.guildId || !allowed) {
             return replyError(interaction, "Cette commande est réservée au staff chargé des personnages.");
         }
-        const action = interaction.options.getSubcommand();
         if (action === "liste") {
             const blocks = service.list(interaction.guildId);
             return replyPrivate(interaction, {

@@ -44,9 +44,9 @@ const {
     "../../core/services/InteractionResponseService"
 );
 
-const guildManagementPolicy =
+const staffPermissionPolicy =
     require(
-        "../../core/policies/GuildManagementPolicy"
+        "../../core/policies/StaffPermissionPolicy"
     );
 
 module.exports =
@@ -184,6 +184,15 @@ module.exports =
                 "state_type_delete_confirm:"
             )
         ) {
+            if (!staffPermissionPolicy.canManagePermissions(interaction)) {
+                await replyError(
+                    interaction,
+                    "Seul le propriétaire du serveur ou un administrateur peut supprimer un type d’état."
+                );
+
+                return true;
+            }
+
             const stateTypeId =
                 Number(
                     customId.split(":")[1]
@@ -205,20 +214,6 @@ module.exports =
                         "❌ Ce type d’état est introuvable.",
                     components: []
                 });
-
-                return true;
-            }
-
-            if (
-                !guildManagementPolicy
-                    .isAdministrator(
-                        interaction
-                    )
-            ) {
-                await replyError(
-                    interaction,
-                    "Seul un administrateur peut supprimer un type d’état."
-                );
 
                 return true;
             }

@@ -3,6 +3,7 @@ const PERMISSIONS = [
     ["scenes", "Cycles de scènes", "🎬"],
     ["phone", "Téléphone", "📱"],
     ["bank", "Banque", "🏦"],
+    ["assets", "Biens", "🎒"],
     ["relationships", "Relations", "🎭"],
     ["universe", "Univers", "🌍"],
     ["entities", "Entités", "✨"],

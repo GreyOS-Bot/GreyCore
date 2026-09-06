@@ -77,6 +77,11 @@ test(
         let approvalCount = 0;
 
         stubModule(
+            "src/v2/core/services/ValidationPermissionAccessService.js",
+            { canRead: () => true, canWrite: () => true }
+        );
+
+        stubModule(
             "src/v2/index.js",
             {
                 managers: {

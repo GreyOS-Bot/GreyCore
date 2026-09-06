@@ -129,9 +129,10 @@ test(
             }
         );
         stubModule(
-            "src/v2/core/policies/ValidationStaffPolicy.js",
+            "src/v2/core/services/AdministrativePermissionAccessService.js",
             {
-                canManageServerTools: () => true
+                canRead: () => true,
+                canWrite: () => true
             }
         );
         stubModule(

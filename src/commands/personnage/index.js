@@ -195,8 +195,9 @@ module.exports = {
             const characterId = interaction.options.getString("personnage", true);
             const newType = interaction.options.getString("nouveau_type", true);
             const service = require("../../v2/services/character/CharacterTypeCorrectionService");
-            const staffPolicy = require("../../v2/core/policies/StaffPermissionPolicy");
-            const isStaff = staffPolicy.canManageCharacters(interaction);
+            const isStaff = require("../../v2/core/services/StaffPermissionDecisionService")
+                .decide({ interaction, permission: "characters", write: true })
+                .allowed;
             let context;
 
             if (isStaff) {
@@ -346,8 +347,9 @@ module.exports = {
 
         let characters;
         if (subcommand === "type") {
-            const isStaff = require("../../v2/core/policies/StaffPermissionPolicy")
-                .canManageCharacters(interaction);
+            const isStaff = require("../../v2/core/services/StaffPermissionDecisionService")
+                .decide({ interaction, permission: "characters", write: false })
+                .allowed;
             characters = require("../../v2/services/character/CharacterTypeCorrectionService")
                 .search(
                     interaction.guildId,

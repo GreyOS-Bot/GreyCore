@@ -113,7 +113,7 @@ class StaffSettingsPage {
                 .setStyle(ButtonStyle.Secondary)
                 .setDisabled(page >= pageCount - 1),
             new ButtonBuilder()
-                .setCustomId("page:staff:settings:root")
+                .setCustomId("page:staff:section:settings")
                 .setLabel("Retour aux paramètres")
                 .setStyle(ButtonStyle.Secondary)
         ));
@@ -144,7 +144,7 @@ class StaffSettingsPage {
             ...payload,
             components: [new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
-                    .setCustomId("page:staff:settings:root")
+                    .setCustomId("page:staff:section:settings")
                     .setLabel("Retour aux paramètres")
                     .setEmoji("⬅️")
                     .setStyle(ButtonStyle.Secondary),

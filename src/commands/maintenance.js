@@ -7,9 +7,9 @@ const guildSettingsManager =
         "../v2/managers/GuildSettingsV2Manager"
     );
 
-const validationStaffPolicy =
+const administrativeAccess =
     require(
-        "../v2/core/policies/ValidationStaffPolicy"
+        "../v2/core/services/AdministrativePermissionAccessService"
     );
 
 const {
@@ -58,21 +58,29 @@ module.exports = {
             ),
 
     async execute(interaction) {
-        if (
-            !validationStaffPolicy
-                .canManageServerTools(
-                    interaction
-                )
-        ) {
-            return replyError(
-                interaction,
-                "Cette commande est réservée au staff."
-            );
-        }
-
         const action =
             interaction.options
                 .getSubcommand();
+
+        const allowed = action === "statut"
+            ? administrativeAccess.canRead(
+                interaction,
+                "settings"
+            )
+            : (
+                action === "activer"
+                || action === "desactiver"
+            ) && administrativeAccess.canWrite(
+                interaction,
+                "settings"
+            );
+
+        if (!allowed) {
+            return replyError(
+                interaction,
+                "Tu n’as pas la permission GreyCore requise pour gérer la maintenance."
+            );
+        }
 
         if (action === "activer") {
             const message =

@@ -39,10 +39,10 @@ test(
             }
         );
         stubModule(
-            "src/v2/core/services/StaffCommandAccessService.js",
+            "src/v2/core/services/ValidationPermissionAccessService.js",
             {
-                requireStaffCommandAccess:
-                    async () => true
+                canRead: () => true,
+                canWrite: () => true
             }
         );
         stubModule(

@@ -3,9 +3,14 @@ const repository =
         "./PhoneCallRepository"
     );
 
+const RINGING_CALL_MAXIMUM_AGE_SECONDS = 12 * 60 * 60;
+
 function createCall(
     data
 ) {
+    const createdAt =
+        new Date().toISOString();
+
     const callerPhoneId =
         Number(
             data.callerPhoneId
@@ -72,6 +77,14 @@ function createCall(
         );
     }
 
+    repository.expireStaleRingingCalls({
+        endedAt: createdAt,
+        limitDate: new Date(
+            Date.parse(createdAt)
+            - RINGING_CALL_MAXIMUM_AGE_SECONDS * 1000
+        ).toISOString()
+    });
+
     if (
         repository.getActiveForPhone(
             callerPhoneId
@@ -96,8 +109,7 @@ function createCall(
         repository.insertCall({
             callerPhoneId,
             receiverPhoneId,
-            createdAt:
-                new Date().toISOString()
+            createdAt
         });
 
     return repository.getById(

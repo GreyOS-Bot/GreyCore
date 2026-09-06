@@ -85,6 +85,7 @@ test(
             ,"GuildStaffRolePermissionsV2"
             ,"GuildStaffUserPermissionsV2"
             ,"GuildStaffPermissionSettingsV2"
+            ,"GuildStaffPermissionDefaultsV2"
             ,"NarrativeEntitiesV2"
             ,"NarrativeEntityTriggersV2"
             ,"NarrativeEntityMessagesV2"

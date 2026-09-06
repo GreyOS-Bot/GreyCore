@@ -13,10 +13,11 @@ const stateTypesAutocomplete =
         "../autocomplete/stateTypes"
     );
 
-const {
-    requireStaffCommandAccess
-} = require(
-    "../v2/core/services/StaffCommandAccessService"
+const staffPermissionPolicy = require(
+    "../v2/core/policies/StaffPermissionPolicy"
+);
+const { replyError } = require(
+    "../v2/core/services/InteractionResponseService"
 );
 
 module.exports = {
@@ -56,12 +57,11 @@ module.exports = {
     },
 
     async execute(interaction) {
-        if (
-            !await requireStaffCommandAccess(
-                interaction
-            )
-        ) {
-            return;
+        if (!staffPermissionPolicy.canManagePermissions(interaction)) {
+            return replyError(
+                interaction,
+                "Seul le propriétaire du serveur ou un administrateur peut supprimer un type d’état."
+            );
         }
 
         const stateTypeId =

@@ -236,9 +236,9 @@ test(
             require(
                 "../src/v2/services/character/CharacterTypeCorrectionService"
             );
-        const staffPolicy =
+        const decisionService =
             require(
-                "../src/v2/core/policies/StaffPermissionPolicy"
+                "../src/v2/core/services/StaffPermissionDecisionService"
             );
         const displayService =
             require(
@@ -251,16 +251,16 @@ test(
 
         const originalSearch =
             service.search;
-        const originalCanManage =
-            staffPolicy.canManageCharacters;
+        const originalDecide =
+            decisionService.decide;
         const originalResolveMany =
             displayService.resolveMany;
 
         context.after(() => {
             service.search =
                 originalSearch;
-            staffPolicy.canManageCharacters =
-                originalCanManage;
+            decisionService.decide =
+                originalDecide;
             displayService.resolveMany =
                 originalResolveMany;
         });
@@ -291,14 +291,14 @@ test(
                 async () => null
         };
 
-        staffPolicy.canManageCharacters =
-            () => false;
+        decisionService.decide =
+            () => ({ allowed: false });
         await command.autocomplete(
             interaction
         );
 
-        staffPolicy.canManageCharacters =
-            () => true;
+        decisionService.decide =
+            () => ({ allowed: true });
         await command.autocomplete(
             interaction
         );
