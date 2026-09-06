@@ -3,7 +3,11 @@ const repository =
         "./PhoneCallRepository"
     );
 
-const RINGING_CALL_MAXIMUM_AGE_SECONDS = 12 * 60 * 60;
+const {
+    RINGING_CALL_MAXIMUM_AGE_SECONDS
+} = require(
+    "./PhoneCallConstants"
+);
 
 function createCall(
     data

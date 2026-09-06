@@ -1,0 +1,6 @@
+const RINGING_CALL_MAXIMUM_AGE_SECONDS =
+    12 * 60 * 60;
+
+module.exports = {
+    RINGING_CALL_MAXIMUM_AGE_SECONDS
+};

@@ -18,6 +18,12 @@ const PhoneCallSessionManager =
         "../../managers/PhoneCallSessionManager"
     );
 
+const {
+    RINGING_CALL_MAXIMUM_AGE_SECONDS
+} = require(
+    "../../managers/phoneCall/PhoneCallConstants"
+);
+
 const PhoneCallUIManager =
     require(
         "../../managers/PhoneCallUIManager"
@@ -343,36 +349,7 @@ class PhoneCallStartPage {
         }
     );
 
-            /*
-             * Notification privée du destinataire.
-             * PhoneNotificationService enregistrera
-             * receiverMessage dans la même session.
-             */
-            await PhoneNotificationService
-                .notifyIncomingCall({
-                    client:
-                        interaction.client,
-
-                    call,
-
-                    receiverParticipant:
-                        receiver,
-
-                    senderCharacter:
-                        character
-                })
-                .catch(error => {
-
-                    logger.error(
-                        "❌ Notification d’appel impossible :",
-                        error
-                    );
-
-                    return null;
-
-                });
-
-            /* const missedTimeout =
+            const missedTimeout =
                 setTimeout(
                     async () => {
 
@@ -386,10 +363,8 @@ class PhoneCallStartPage {
 
                             if (
                                 !currentCall
-                                ||
-                                currentCall.status
-                                !==
-                                "ringing"
+                                || currentCall.status
+                                !== "ringing"
                             ) {
                                 return;
                             }
@@ -420,7 +395,8 @@ class PhoneCallStartPage {
                         }
 
                     },
-                    30000
+                    RINGING_CALL_MAXIMUM_AGE_SECONDS
+                        * 1000
                 );
 
             PhoneCallSessionManager
@@ -428,7 +404,35 @@ class PhoneCallStartPage {
                     call.id,
                     missedTimeout
                 );
-            */
+
+            /*
+             * Notification privée du destinataire.
+             * PhoneNotificationService enregistrera
+             * receiverMessage dans la même session.
+             */
+            await PhoneNotificationService
+                .notifyIncomingCall({
+                    client:
+                        interaction.client,
+
+                    call,
+
+                    receiverParticipant:
+                        receiver,
+
+                    senderCharacter:
+                        character
+                })
+                .catch(error => {
+
+                    logger.error(
+                        "❌ Notification d’appel impossible :",
+                        error
+                    );
+
+                    return null;
+
+                });
 
             return response;
 
