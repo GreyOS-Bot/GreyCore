@@ -26,7 +26,7 @@ class StaffConfigurationOverviewPage {
         const validationChannel = settings.getValidationChannelId(guildId);
         const logChannel = readable.logs ? settings.getErrorLogChannelId(guildId) : null;
         const maintenance = settings.getMaintenance(guildId);
-        const creationLimit = settings.getPlayedCharacterCreationLimit(guildId);
+        const creationLimit = readable.automations ? settings.getPlayedCharacterCreationLimit(guildId) : null;
         const moduleConfig = readable.modules ? modules.getConfiguration(guildId) : [];
         const staff = root ? permissions.getAssignments(guildId) : null;
         const approvalConfig = readable.automations ? approval.getConfiguration(guildId) : null;
@@ -88,7 +88,7 @@ class StaffConfigurationOverviewPage {
                         approvalEnabled ? `Rôle retiré : ${role(approvalConfig.remove_role_id)}` : null,
                         approvalEnabled ? `Rôle ajouté : ${role(approvalConfig.add_role_id)}` : null,
                         approvalEnabled ? `Message envoyé dans : ${channel(approvalConfig.welcome_channel_id)}` : null,
-                        `Limite de création PJ : ${creationLimit.enabled ? `✅ ${creationLimit.limitCount} tous les ${creationLimit.windowDays} jours` : "❌ Désactivée"}`,
+                        readable.automations ? `Limite de création PJ : ${creationLimit.enabled ? `✅ ${creationLimit.limitCount} tous les ${creationLimit.windowDays} jours` : "❌ Désactivée"}` : `Limite de création PJ : ${NO_ACCESS}`,
                         `Maintenance : ${maintenance.enabled ? "🛠️ Activée" : "✅ Désactivée"}`
                     ].filter(Boolean).join("\n")
                 },

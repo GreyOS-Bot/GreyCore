@@ -88,7 +88,7 @@ test("2C.6b applique la matrice stricte avant ensure et tout effet", async () =>
         ["automatisation", ["write", "automations"]],
         ["automatisation-desactiver", ["write", "automations"]],
         ["scenes", ["write", "scenes"]],
-        ["limite-pj", ["write", "settings"]],
+        ["limite-pj", ["write", "automations"]],
         ["modules", ["read", "modules"]]
     ]);
 

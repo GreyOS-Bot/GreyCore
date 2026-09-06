@@ -801,7 +801,7 @@ const CONFIG_ACCESS = Object.freeze({
     automatisation: Object.freeze({ permission: "automations", write: true }),
     "automatisation-desactiver": Object.freeze({ permission: "automations", write: true }),
     scenes: Object.freeze({ permission: "scenes", write: true }),
-    "limite-pj": Object.freeze({ permission: "settings", write: true }),
+    "limite-pj": Object.freeze({ permission: "automations", write: true }),
     modules: Object.freeze({ permission: "modules", write: false })
 });
 

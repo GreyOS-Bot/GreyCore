@@ -5,6 +5,7 @@ const { stubModule } = require("./helpers/moduleStub");
 
 let assignments = [];
 let reads = [];
+let creationLimitReads = 0;
 const read = (domain, value) => () => { reads.push(domain); return value; };
 stubModule("src/v2/managers/StaffPermissionV2Manager.js", {
     getPermissionAssignmentsForRoles: () => [],
@@ -20,7 +21,10 @@ stubModule("src/v2/managers/GuildSettingsV2Manager.js", {
     getValidationChannelId: read("settings", "validation"),
     getErrorLogChannelId: read("logs", "secret-log"),
     getMaintenance: read("settings", { enabled: false }),
-    getPlayedCharacterCreationLimit: read("settings", { enabled: false })
+    getPlayedCharacterCreationLimit: () => {
+        creationLimitReads += 1;
+        return read("automations", { enabled: true, limitCount: 17, windowDays: 23 })();
+    }
 });
 stubModule("src/v2/managers/GuildModuleV2Manager.js", {
     getAll: read("modules", [{ id: 1 }]),
@@ -118,6 +122,7 @@ test("2C.8D checklist protège chaque domaine et ne calcule pas de bilan global 
 
 function render(role = "member", target = page) {
     reads = [];
+    creationLimitReads = 0;
     const has = bit => role === "admin" && bit === PermissionFlagsBits.Administrator
         || role === "legacy" && [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.ViewChannel].includes(bit);
     return target.build({
@@ -126,3 +131,24 @@ function render(role = "member", target = page) {
         memberPermissions: { has }
     });
 }
+
+test("review fix 1: limite PJ sous automations/read, Maintenance reste Settings", () => {
+    for (const [grants, role, allowed] of [
+        [[grant("settings")], "member", false],
+        [[grant("settings"), grant("automations")], "member", true],
+        [[grant("settings"), grant("read_only")], "member", true],
+        [[grant("settings"), grant("read_only"), grant("automations", "deny")], "member", false],
+        [[], "owner", true],
+        [[], "admin", true]
+    ]) {
+        assignments = grants;
+        const payload = JSON.stringify(render(role));
+        assert.equal(creationLimitReads, allowed ? 1 : 0);
+        assert.match(payload, /Maintenance : ✅ Désactivée/);
+        if (allowed) assert.match(payload, /Limite de création PJ : ✅ 17 tous les 23 jours/);
+        else {
+            assert.match(payload, /Limite de création PJ : Accès non autorisé\./);
+            assert.doesNotMatch(payload, /17 tous les 23 jours/);
+        }
+    }
+});
