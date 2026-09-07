@@ -42,6 +42,19 @@ module.exports = {
                     phoneCallStartupCutoff
                 );
 
+        const runtimeDatabase = require("../database/database");
+        const runtimeSchemaReady = runtimeDatabase.open && Boolean(
+            runtimeDatabase.prepare(`SELECT 1 FROM sqlite_master
+                WHERE type='table' AND name='InstallationPhoneCallsV2'`).get()
+        );
+        const recoveredInstallationCalls = runtimeSchemaReady
+            ? require("../v2/services/phone/InstallationPhoneRuntimeService")
+                .reconcileInterruptedCalls(phoneCallStartupCutoff)
+            : { ringing: 0, accepted: 0 };
+
+        recoveredCalls.ringing += recoveredInstallationCalls.ringing;
+        recoveredCalls.accepted += recoveredInstallationCalls.accepted;
+
         if (
             recoveredCalls.ringing > 0
             || recoveredCalls.accepted > 0

@@ -219,6 +219,10 @@ class DeploymentV2Service {
                                 || null
                         });
 
+                    if (typeof phoneManager.createPhoneForInstallation === "function") {
+                        phoneManager.createPhoneForInstallation(installation.id);
+                    }
+
                     const approval =
                         validationManager
                             .approveInstallation({
@@ -297,6 +301,10 @@ class DeploymentV2Service {
                 guildId:
                     data.guildId
             });
+
+        if (typeof phoneManager.createPhoneForInstallation === "function") {
+            phoneManager.createPhoneForInstallation(installation.id);
+        }
 
         if (character.avatar_url) {
             installation =
@@ -416,7 +424,7 @@ class DeploymentV2Service {
                 lastname
             });
 
-        const phone =
+        const legacyPhone =
             phoneManager.createPhone({
                 continuityId:
                     continuity.id
@@ -434,6 +442,17 @@ class DeploymentV2Service {
                 guildId:
                     data.guildId
             });
+
+        const phone =
+            typeof phoneManager.createPhoneForInstallation === "function"
+                ? phoneManager.createPhoneForInstallation(
+                    installation.id,
+                    {
+                        phoneNumber:
+                            legacyPhone.phone_number
+                    }
+                )
+                : legacyPhone;
 
         if (character.avatar_url) {
             installation =

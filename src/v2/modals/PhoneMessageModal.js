@@ -78,10 +78,8 @@ module.exports = {
 
         const phone =
             PhoneV2Manager
-                .getPhoneByContinuity(
-                    dashboardData
-                        .continuity
-                        .id
+                .getPhoneForInstallation(
+                    dashboardData.installation.id
                 );
 
         if (!phone) {

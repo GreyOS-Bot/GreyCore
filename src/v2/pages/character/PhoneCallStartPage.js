@@ -160,11 +160,9 @@ class PhoneCallStartPage {
 
             }
 
-            const phone =
-                PhoneV2Manager
-                    .getPhoneByContinuity(
-                        continuity.id
-                    );
+            const phone = dashboardData.installation
+                ? PhoneV2Manager.getPhoneForInstallation(dashboardData.installation.id)
+                : PhoneV2Manager.getPhoneByContinuity(continuity.id);
 
             if (!phone) {
 

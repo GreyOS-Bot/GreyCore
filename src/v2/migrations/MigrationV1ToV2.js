@@ -535,10 +535,18 @@ createMissingPhones() {
     let created = 0;
 
     for (const continuity of continuities) {
-        phoneManager.createPhone({
+        const legacyPhone = phoneManager.createPhone({
             continuityId:
                 continuity.id
         });
+
+        if (typeof phoneManager.createPhoneForInstallation === "function") {
+            for (const installation of installationManager.getByContinuity(continuity.id)) {
+                phoneManager.createPhoneForInstallation(installation.id, {
+                    phoneNumber: legacyPhone.phone_number
+                });
+            }
+        }
 
         created++;
     }
@@ -595,13 +603,13 @@ run() {
                             stats.profilesMissing++;
                         }
 
-                        this.migrateInstallation(
+                        const installation = this.migrateInstallation(
                             v1Character,
                             characterV2,
                             continuity
                         );
 
-                        if (
+if (
     !phoneManager.getPhoneByContinuity(
         continuity.id
     )
@@ -611,6 +619,10 @@ run() {
             continuity.id
     });
 }
+
+                        if (typeof phoneManager.createPhoneForInstallation === "function") {
+                            phoneManager.createPhoneForInstallation(installation.id);
+                        }
 
                         stats.processed++;
                     } catch (error) {

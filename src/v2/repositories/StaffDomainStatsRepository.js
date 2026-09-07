@@ -2,51 +2,31 @@ const db = require("../../database/database");
 
 class StaffDomainStatsRepository {
     getPhoneStats(guildId) {
-        const phoneFilter = `
-            FROM ContinuityPhonesV2 AS phone
-            JOIN CharacterGuildInstallationsV2 AS installation
-                ON installation.continuity_id = phone.continuity_id
-            WHERE installation.guild_id = ?
-        `;
         const phones = db.prepare(`
             SELECT
-                COUNT(DISTINCT phone.id) AS total,
-                COUNT(DISTINCT CASE WHEN phone.is_active = 1 THEN phone.id END) AS active
-            ${phoneFilter}
+                COUNT(*) AS total,
+                COUNT(CASE WHEN is_active = 1 THEN 1 END) AS active
+            FROM InstallationPhonesV2 WHERE guild_id = ?
         `).get(guildId);
         const conversations = db.prepare(`
             SELECT
                 COUNT(DISTINCT conversation.id) AS total,
                 COUNT(DISTINCT CASE WHEN conversation.conversation_type = 'group' THEN conversation.id END) AS groups
-            FROM PhoneConversationsV2 AS conversation
-            JOIN PhoneConversationParticipantsV2 AS participant
-                ON participant.conversation_id = conversation.id
-            JOIN ContinuityPhonesV2 AS phone ON phone.id = participant.phone_id
-            JOIN CharacterGuildInstallationsV2 AS installation
-                ON installation.continuity_id = phone.continuity_id
-            WHERE installation.guild_id = ?
+            FROM InstallationPhoneConversationsV2 AS conversation
+            WHERE conversation.guild_id = ?
         `).get(guildId);
         const messages = db.prepare(`
             SELECT COUNT(DISTINCT message.id) AS total
-            FROM PhoneMessagesV2 AS message
-            JOIN PhoneConversationsV2 AS conversation ON conversation.id = message.conversation_id
-            JOIN PhoneConversationParticipantsV2 AS participant
-                ON participant.conversation_id = conversation.id
-            JOIN ContinuityPhonesV2 AS phone ON phone.id = participant.phone_id
-            JOIN CharacterGuildInstallationsV2 AS installation
-                ON installation.continuity_id = phone.continuity_id
-            WHERE installation.guild_id = ?
+            FROM InstallationPhoneMessagesV2 AS message
+            JOIN InstallationPhoneConversationsV2 AS conversation ON conversation.id = message.conversation_id
+            WHERE conversation.guild_id = ?
         `).get(guildId);
         const calls = db.prepare(`
             SELECT
                 COUNT(DISTINCT call.id) AS total,
                 COUNT(DISTINCT CASE WHEN call.status IN ('ringing', 'accepted') THEN call.id END) AS active
-            FROM PhoneCallsV2 AS call
-            JOIN ContinuityPhonesV2 AS phone
-                ON phone.id IN (call.caller_phone_id, call.receiver_phone_id)
-            JOIN CharacterGuildInstallationsV2 AS installation
-                ON installation.continuity_id = phone.continuity_id
-            WHERE installation.guild_id = ?
+            FROM InstallationPhoneCallsV2 AS call
+            WHERE call.guild_id = ?
         `).get(guildId);
         return { phones, conversations, messages, calls };
     }

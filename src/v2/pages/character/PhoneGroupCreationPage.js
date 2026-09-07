@@ -92,15 +92,14 @@ class PhoneGroupCreationPage {
         }
 
         let phone =
-            PhoneV2Manager.getPhoneByContinuity(
-                continuity.id
+            PhoneV2Manager.getPhoneForInstallation(
+                dashboardData.installation.id
             );
 
         if (!phone) {
-            phone = PhoneV2Manager.createPhone({
-                continuityId:
-                    continuity.id
-            });
+            phone = PhoneV2Manager.createPhoneForInstallation(
+                dashboardData.installation.id
+            );
         }
 
         return {

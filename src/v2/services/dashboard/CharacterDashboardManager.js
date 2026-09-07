@@ -290,6 +290,9 @@ class CharacterDashboardManager {
 
             continuity,
 
+            installation:
+                guildInstallation,
+
             profile,
 
             counts

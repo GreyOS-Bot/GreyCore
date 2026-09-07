@@ -18,6 +18,7 @@ class PhoneContactV2Manager {
     getById(
         contactId
     ) {
+        if (Number(contactId) >= 1000000000) return require("../repositories/InstallationPhoneRuntimeRepository").getContact(contactId);
         return reader.getById(
             contactId
         );
@@ -26,6 +27,7 @@ class PhoneContactV2Manager {
     getForPhone(
         phoneId
     ) {
+        if (Number(phoneId) >= 1000000000) return require("../repositories/InstallationPhoneRuntimeRepository").getContacts(phoneId);
         return reader.getForPhone(
             phoneId
         );
@@ -34,6 +36,7 @@ class PhoneContactV2Manager {
     getFavoriteForPhone(
         phoneId
     ) {
+        if (Number(phoneId) >= 1000000000) return this.getForPhone(phoneId).filter(contact => contact.favorite);
         return reader
             .getFavoriteForPhone(
                 phoneId
@@ -43,6 +46,7 @@ class PhoneContactV2Manager {
     getBlockedForPhone(
         phoneId
     ) {
+        if (Number(phoneId) >= 1000000000) return this.getForPhone(phoneId).filter(contact => contact.blocked);
         return reader
             .getBlockedForPhone(
                 phoneId
@@ -53,6 +57,7 @@ class PhoneContactV2Manager {
         ownerPhoneId,
         linkedPhoneId
     ) {
+        if (Number(ownerPhoneId) >= 1000000000) return require("../repositories/InstallationPhoneRuntimeRepository").getContactByLinkedPhone(ownerPhoneId, linkedPhoneId);
         return reader
             .getByLinkedPhone(
                 ownerPhoneId,
@@ -65,6 +70,7 @@ class PhoneContactV2Manager {
         displayName,
         phoneNumber = null
     ) {
+        if (Number(ownerPhoneId) >= 1000000000) return require("../repositories/InstallationPhoneRuntimeRepository").getExternalContact(ownerPhoneId, displayName, phoneNumber);
         return reader.getExternal(
             ownerPhoneId,
             displayName,
@@ -77,6 +83,14 @@ class PhoneContactV2Manager {
         linkedPhoneId,
         options = {}
     ) {
+        if (Number(ownerPhoneId) >= 1000000000) {
+            const owner = require("./InstallationPhoneV2Manager").getById(ownerPhoneId);
+            const linked = require("./InstallationPhoneV2Manager").getById(linkedPhoneId);
+            return require("../services/phone/InstallationPhoneRuntimeService").addContact({
+                guildId: owner.guild_id, contextId: owner.context_id, phoneId: ownerPhoneId,
+                linkedPhoneId, displayName: options.displayName || linked?.phone_number || "Contact", ...options
+            });
+        }
         return creationManager
             .createGreycoreContact(
                 ownerPhoneId,
@@ -89,6 +103,12 @@ class PhoneContactV2Manager {
         ownerPhoneId,
         data
     ) {
+        if (Number(ownerPhoneId) >= 1000000000) {
+            const owner = require("./InstallationPhoneV2Manager").getById(ownerPhoneId);
+            return require("../services/phone/InstallationPhoneRuntimeService").addContact({
+                guildId: owner.guild_id, contextId: owner.context_id, phoneId: ownerPhoneId, ...data
+            });
+        }
         return creationManager
             .createExternalContact(
                 ownerPhoneId,
@@ -100,6 +120,7 @@ class PhoneContactV2Manager {
         ownerPhoneId,
         linkedPhoneId
     ) {
+        if (Number(ownerPhoneId) >= 1000000000) return this.getByLinkedPhone(ownerPhoneId, linkedPhoneId) || this.createGreycoreContact(ownerPhoneId, linkedPhoneId);
         return creationManager
             .ensureGreycoreContact(
                 ownerPhoneId,
@@ -111,6 +132,10 @@ class PhoneContactV2Manager {
         phoneAId,
         phoneBId
     ) {
+        if (Number(phoneAId) >= 1000000000 || Number(phoneBId) >= 1000000000) return {
+            phoneAContact: this.ensureGreycoreContact(phoneAId, phoneBId),
+            phoneBContact: this.ensureGreycoreContact(phoneBId, phoneAId)
+        };
         return creationManager
             .ensureMutualGreycoreContacts(
                 phoneAId,
@@ -122,6 +147,7 @@ class PhoneContactV2Manager {
         contactId,
         data
     ) {
+        if (Number(contactId) >= 1000000000) return require("../repositories/InstallationPhoneRuntimeRepository").updateContact(contactId, data, new Date().toISOString());
         return settingsManager.update(
             contactId,
             data
@@ -132,6 +158,7 @@ class PhoneContactV2Manager {
         contactId,
         isFavorite
     ) {
+        if (Number(contactId) >= 1000000000) return this.update(contactId, { favorite: isFavorite });
         return settingsManager
             .setFavorite(
                 contactId,
@@ -143,6 +170,7 @@ class PhoneContactV2Manager {
         contactId,
         isPinned
     ) {
+        if (Number(contactId) >= 1000000000) return this.update(contactId, { pinned: isPinned });
         return settingsManager
             .setPinned(
                 contactId,
@@ -154,6 +182,7 @@ class PhoneContactV2Manager {
         contactId,
         isBlocked
     ) {
+        if (Number(contactId) >= 1000000000) return this.update(contactId, { blocked: isBlocked });
         return settingsManager
             .setBlocked(
                 contactId,
@@ -165,6 +194,8 @@ class PhoneContactV2Manager {
         contactId,
         occurredAt = null
     ) {
+        if (Number(contactId) >= 1000000000) return require("../repositories/InstallationPhoneRuntimeRepository")
+            .registerContactInteraction(contactId, occurredAt || new Date().toISOString());
         return settingsManager
             .registerInteraction(
                 contactId,
@@ -177,6 +208,10 @@ class PhoneContactV2Manager {
         query,
         limit = 10
     ) {
+        if (Number(ownerPhoneId) >= 1000000000) {
+            const value = String(query || "").toLowerCase();
+            return this.getForPhone(ownerPhoneId).filter(contact => contact.display_name.toLowerCase().includes(value) || String(contact.phone_number || "").includes(value)).slice(0, limit);
+        }
         return reader.search(
             ownerPhoneId,
             query,
@@ -187,6 +222,7 @@ class PhoneContactV2Manager {
     delete(
         contactId
     ) {
+        if (Number(contactId) >= 1000000000) return require("../repositories/InstallationPhoneRuntimeRepository").deleteContact(contactId);
         return settingsManager.delete(
             contactId
         );
@@ -195,6 +231,7 @@ class PhoneContactV2Manager {
     getPhoneById(
         phoneId
     ) {
+        if (Number(phoneId) >= 1000000000) return require("./InstallationPhoneV2Manager").getById(phoneId);
         return reader.getPhoneById(
             phoneId
         );

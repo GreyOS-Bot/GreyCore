@@ -134,18 +134,17 @@ const dashboardData =
 
         let phone =
             phoneV2Manager
-                .getPhoneByContinuity(
-                    continuity.id
+                .getPhoneForInstallation(
+                    dashboardData.installation.id
                 );
 
         if (!phone) {
 
             phone =
                 phoneV2Manager
-                    .createPhone({
-                        continuityId:
-                            continuity.id
-                    });
+                    .createPhoneForInstallation(
+                        dashboardData.installation.id
+                    );
 
         }
 

@@ -23,6 +23,11 @@ class PhoneConversationV2Manager {
     getById(
         conversationId
     ) {
+        if (Number(conversationId) >= 1000000000) {
+            const scoped = require("../repositories/InstallationPhoneRuntimeRepository")
+                .getConversation(conversationId);
+            if (scoped) return scoped;
+        }
         return repository.getById(
             conversationId
         );
@@ -40,6 +45,10 @@ class PhoneConversationV2Manager {
     getParticipants(
         conversationId
     ) {
+        if (Number(conversationId) >= 1000000000) {
+            const runtime = require("../repositories/InstallationPhoneRuntimeRepository");
+            return runtime.getConversationParticipants(conversationId);
+        }
         return repository
             .getParticipants(
                 conversationId
@@ -50,6 +59,10 @@ class PhoneConversationV2Manager {
         conversationId,
         phoneId
     ) {
+        if (Number(conversationId) >= 1000000000) {
+            const runtime = require("../repositories/InstallationPhoneRuntimeRepository");
+            return runtime.getConversationParticipant(conversationId, phoneId);
+        }
         return repository
             .getParticipant(
                 conversationId,
@@ -106,6 +119,12 @@ class PhoneConversationV2Manager {
     createGroup(
         data
     ) {
+        if (Number(data.ownerPhoneId) >= 1000000000) {
+            const phone = require("./InstallationPhoneV2Manager").getById(data.ownerPhoneId);
+            return require("../services/phone/InstallationPhoneRuntimeService").createGroup({
+                guildId: phone.guild_id, contextId: phone.context_id, ...data
+            });
+        }
         return creationManager
             .createGroup(
                 data
@@ -162,6 +181,10 @@ class PhoneConversationV2Manager {
     getForPhone(
         phoneId
     ) {
+        if (Number(phoneId) >= 1000000000) {
+            return require("../repositories/InstallationPhoneRuntimeRepository")
+                .getConversations(phoneId);
+        }
         return reader.getForPhone(
             phoneId
         );

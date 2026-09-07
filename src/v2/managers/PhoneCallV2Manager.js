@@ -41,6 +41,7 @@ class PhoneCallV2Manager {
     getById(
         callId
     ) {
+        if (Number(callId) >= 1000000000) return require("../repositories/InstallationPhoneRuntimeRepository").getCall(callId);
         return reader.getById(
             callId
         );
@@ -49,6 +50,7 @@ class PhoneCallV2Manager {
     getActiveForPhone(
         phoneId
     ) {
+        if (Number(phoneId) >= 1000000000) return require("../repositories/InstallationPhoneRuntimeRepository").getActiveCall(phoneId);
         return reader
             .getActiveForPhone(
                 phoneId
@@ -59,6 +61,7 @@ class PhoneCallV2Manager {
         phoneId,
         limit = 50
     ) {
+        if (Number(phoneId) >= 1000000000) return require("../repositories/InstallationPhoneRuntimeRepository").getCallHistory(phoneId).slice(0, limit);
         return reader
             .getHistoryForPhone(
                 phoneId,
@@ -69,6 +72,12 @@ class PhoneCallV2Manager {
     createCall(
         data
     ) {
+        if (Number(data.callerPhoneId) >= 1000000000) {
+            const phone = require("./InstallationPhoneV2Manager").getById(data.callerPhoneId);
+            return require("../services/phone/InstallationPhoneRuntimeService").createCall({
+                guildId: phone.guild_id, contextId: phone.context_id, ...data
+            });
+        }
         return creationManager
             .createCall(
                 data
@@ -76,8 +85,10 @@ class PhoneCallV2Manager {
     }
 
     acceptCall(
-        callId
+        callId,
+        phoneId
     ) {
+        if (Number(callId) >= 1000000000) return require("./PhoneV2Manager").acceptCall(callId, phoneId);
         return transitionManager
             .acceptCall(
                 callId
@@ -85,8 +96,10 @@ class PhoneCallV2Manager {
     }
 
     refuseCall(
-        callId
+        callId,
+        phoneId
     ) {
+        if (Number(callId) >= 1000000000) return require("./PhoneV2Manager").refuseCall(callId, phoneId);
         return transitionManager
             .refuseCall(
                 callId
@@ -94,8 +107,10 @@ class PhoneCallV2Manager {
     }
 
     cancelCall(
-        callId
+        callId,
+        phoneId
     ) {
+        if (Number(callId) >= 1000000000) return require("./PhoneV2Manager").cancelCall(callId, phoneId);
         return transitionManager
             .cancelCall(
                 callId
@@ -105,6 +120,7 @@ class PhoneCallV2Manager {
     markMissed(
         callId
     ) {
+        if (Number(callId) >= 1000000000) return require("./PhoneV2Manager").markMissed(callId);
         return transitionManager
             .markMissed(
                 callId
@@ -114,6 +130,13 @@ class PhoneCallV2Manager {
     createMessage(
         data
     ) {
+        if (Number(data.callId) >= 1000000000) {
+            const call = require("../repositories/InstallationPhoneRuntimeRepository").getCall(data.callId);
+            return require("../services/phone/InstallationPhoneRuntimeService").addCallMessage({
+                guildId: call.guild_id, contextId: call.context_id,
+                phoneId: data.speakerPhoneId, ...data
+            });
+        }
         return messageManager
             .createMessage(
                 data
@@ -123,6 +146,7 @@ class PhoneCallV2Manager {
     getMessages(
         callId
     ) {
+        if (Number(callId) >= 1000000000) return require("../repositories/InstallationPhoneRuntimeRepository").getCallMessages(callId);
         return messageManager
             .getMessages(
                 callId
@@ -130,8 +154,10 @@ class PhoneCallV2Manager {
     }
 
     endCall(
-        callId
+        callId,
+        phoneId
     ) {
+        if (Number(callId) >= 1000000000) return require("./PhoneV2Manager").endCall(callId, phoneId);
         return transitionManager
             .endCall(
                 callId

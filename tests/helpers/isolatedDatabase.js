@@ -108,6 +108,7 @@ function clearApplicationSchemaCache() {
         ,"src/database/schemaV2PublicPlaces.js"
         ,"src/database/schemaV2UserPlayBlocks.js"
         ,"src/database/schemaV2DiscordReferenceHealth.js"
+        ,"src/v2/repositories/InstallationPhoneSchema.js"
     ];
 
     for (const modulePath of schemaModules) {

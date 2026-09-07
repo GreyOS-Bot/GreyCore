@@ -17,8 +17,8 @@ module.exports = async function phoneVoicemailV2(interaction) {
         characterId,
         { guildId: interaction.guildId }
     );
-    const phone = dashboard?.continuity
-        ? PhoneV2Manager.getPhoneByContinuity(dashboard.continuity.id)
+    const phone = dashboard?.installation
+        ? PhoneV2Manager.getPhoneForInstallation(dashboard.installation.id)
         : null;
     const call = PhoneV2Manager.getCallById(callId);
 

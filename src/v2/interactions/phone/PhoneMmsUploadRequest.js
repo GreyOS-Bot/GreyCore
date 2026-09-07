@@ -57,8 +57,8 @@ async function start(
     }
 
     const phone =
-        phoneManager.getPhoneByContinuity(
-            dashboardData.continuity.id
+        phoneManager.getPhoneForInstallation(
+            dashboardData.installation.id
         );
 
     const conversation =

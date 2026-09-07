@@ -148,19 +148,16 @@ class CharacterPhoneConversationsPage {
 
         let phone =
             phoneV2Manager
-                .getPhoneByContinuity(
-                    continuity.id
+                .getPhoneForInstallation(
+                    dashboardData.installation.id
                 );
 
         if (!phone) {
 
             phone =
-                phoneV2Manager.createPhone({
-
-                    continuityId:
-                        continuity.id
-
-                });
+                phoneV2Manager.createPhoneForInstallation(
+                    dashboardData.installation.id
+                );
 
         }
 

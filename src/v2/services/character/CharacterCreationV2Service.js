@@ -368,7 +368,7 @@ class CharacterCreationV2Service {
                     data.story
             });
 
-        const phone =
+        const legacyPhone =
             phoneManager.createPhone({
                 continuityId:
                     continuity.id
@@ -386,6 +386,17 @@ class CharacterCreationV2Service {
                             data.type
                         )
             });
+
+        const phone =
+            typeof phoneManager.createPhoneForInstallation === "function"
+                ? phoneManager.createPhoneForInstallation(
+                    installation.id,
+                    {
+                        phoneNumber:
+                            legacyPhone.phone_number
+                    }
+                )
+                : legacyPhone;
 
         return {
             user,

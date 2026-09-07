@@ -113,8 +113,8 @@ if (!dashboardData) {
         if (dashboardData?.continuity) {
             const phone =
                 PhoneV2Manager
-                    .getPhoneByContinuity(
-                        dashboardData.continuity.id
+                    .getPhoneForInstallation(
+                        dashboardData.installation.id
                     );
 
             if (phone) {
@@ -237,7 +237,8 @@ if (!dashboardData) {
             const acceptedCall =
                 PhoneV2Manager
                     .acceptCall(
-                        call.id
+                        call.id,
+                        phone.id
                     );
 
             await PhoneCallUIManager
@@ -336,7 +337,8 @@ if (!dashboardData) {
             const refusedCall =
                 PhoneV2Manager
                     .refuseCall(
-                        call.id
+                        call.id,
+                        phone.id
                     );
 
             await PhoneCallUIManager
@@ -454,12 +456,14 @@ if (!dashboardData) {
 
                     ? PhoneV2Manager
                         .endCall(
-                            call.id
+                            call.id,
+                            phone.id
                         )
 
                     : PhoneV2Manager
                         .cancelCall(
-                            call.id
+                            call.id,
+                            phone.id
                         );
 
             /*

@@ -150,13 +150,9 @@ module.exports =
             );
         }
 
-        const phone =
-            PhoneV2Manager
-                .getPhoneByContinuity(
-                    dashboardData
-                        .continuity
-                        .id
-                );
+        const phone = dashboardData.installation
+            ? PhoneV2Manager.getPhoneForInstallation(dashboardData.installation.id)
+            : PhoneV2Manager.getPhoneByContinuity(dashboardData.continuity.id);
 
         if (!phone) {
             return editOrReplyError(

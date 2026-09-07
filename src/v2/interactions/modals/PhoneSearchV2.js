@@ -112,8 +112,8 @@ module.exports =
 
         const phone =
             PhoneV2Manager
-                .getPhoneByContinuity(
-                    continuity.id
+                .getPhoneForInstallation(
+                    dashboardData.installation.id
                 );
 
         if (!phone) {

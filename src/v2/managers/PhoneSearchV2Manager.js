@@ -68,6 +68,18 @@ class PhoneSearchV2Manager {
             );
         }
 
+        if (viewerPhoneId >= 1000000000) {
+            if (String(viewerPhone.guild_id) !== guildId) {
+                throw new Error("Le Phone n’appartient pas à cette Guild.");
+            }
+            require("./InstallationPhoneV2Manager")
+                .requirePhoneInstallationInContext(
+                    viewerPhoneId,
+                    guildId,
+                    viewerPhone.context_id
+                );
+        }
+
         const query =
             this.normalize(
                 options.query || ""

@@ -285,6 +285,7 @@ function initializeSchemaV2() {
     initializeProfileSchemaV2();
     initializeMediaSchemaV2();
     initializeRoleplaySchemaV2();
+    require("../v2/repositories/InstallationPhoneSchema")(db);
     initializeInstallationSchemaV2();
     initializeAssetSchemaV2();
     initializeAutomationSchemaV2();
