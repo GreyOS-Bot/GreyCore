@@ -9,6 +9,7 @@ function loadService(fetch) {
     require("../src/database/schemaV2DiscordReferenceHealth")();
     const saved = [];
     stubModule("src/v2/managers/SceneAssistantV2Manager.js", {
+        getScene: id => ({ id, status: 'active', channel_ids: 'channel' }),
         getInactiveScenes: () => [{ id: "scene", guild_id: "guild", channel_id: "channel", inactivity_hours: 48, status: "active" }],
         saveClosurePrompt: data => saved.push(data)
     });

@@ -249,6 +249,7 @@ test(
             { archived: true, locked: true }
         );
         stubModule("src/v2/managers/SceneAssistantV2Manager.js", {
+            getScene: id => ({ id, status: 'active', channel_ids: id }),
             getInactiveScenes: () => [
                 {
                     id: "scene-open",

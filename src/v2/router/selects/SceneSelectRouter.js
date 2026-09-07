@@ -1,6 +1,7 @@
 const handler = require("../../interactions/scenes/SceneInteractionHandler");
 
 module.exports = async interaction => {
+    if (interaction.customId?.startsWith('v3_scene_action:')) return require('../../interactions/scenes/SceneScopedInteractionHandler')(interaction);
     if (interaction.isStringSelectMenu?.() && interaction.customId === "v2_scene_resume_select") {
         await handler.selectResume(interaction);
         return true;

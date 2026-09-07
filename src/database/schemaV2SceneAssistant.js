@@ -226,4 +226,7 @@ function ensureColumn(tableName, columnName, definition) {
     }
 }
 
-module.exports = initializeSceneAssistantSchemaV2;
+module.exports = function initialize() {
+    initializeSceneAssistantSchemaV2();
+    require('./schemaSceneContexts')(db);
+};

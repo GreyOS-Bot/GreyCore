@@ -75,44 +75,52 @@ class SceneAssistantV2Manager {
 
     createScene({
         guildId,
+        contextId = null,
         title,
         channelId,
         createdBy = null,
         startedAt = new Date().toISOString()
     }) {
-        const scene = repository.createScene({
+        return repository.createSceneWithChannel({
             id: `scenev2_${randomUUID()}`,
             guildId,
+            contextId,
+            channelId,
             title: String(title || "Scène RP").trim().slice(0, 100),
             createdBy,
             startedAt
         });
 
-        repository.linkChannel({
-            sceneId: scene.id,
-            guildId,
-            channelId,
-            createdBy,
-            linkedAt: startedAt
-        });
-
-        return repository.getScene(scene.id);
     }
 
-    getScene(sceneId) {
+    getScene(sceneId, scope = null) {
+        if (scope) return repository.getSceneInContext(sceneId, scope);
         return repository.getScene(sceneId);
     }
 
-    getActiveSceneByChannel(guildId, channelId) {
-        return repository.getActiveSceneByChannel(guildId, channelId);
+    resolveContext(guildId, contextId = null, options) {
+        return repository.resolveContext(guildId, contextId, options);
     }
 
-    getActiveScenes(guildId) {
-        return repository.getActiveScenes(guildId);
+    getContexts(guildId) { return repository.getContexts(guildId); }
+
+    getBoundSceneContext(guildId, channelId) { return repository.getBoundSceneContext(guildId, channelId); }
+
+    getScenes(guildId, contextId = null) {
+        return repository.getScenes(guildId, contextId);
+    }
+
+    getActiveSceneByChannel(guildId, channelId, contextId = null) {
+        return repository.getActiveSceneByChannel(guildId, channelId, contextId);
+    }
+
+    getActiveScenes(guildId, contextId = null) {
+        return repository.getActiveScenes(guildId, contextId);
     }
 
     proposeSceneStart({
         guildId,
+        contextId = null,
         channelId,
         messageId,
         characterId = null,
@@ -120,6 +128,7 @@ class SceneAssistantV2Manager {
     }) {
         return repository.saveStartProposal({
             guildId,
+            contextId,
             channelId,
             messageId,
             characterId,
@@ -163,8 +172,8 @@ class SceneAssistantV2Manager {
             });
     }
 
-    recordSceneMessage(sceneId, occurredAt = new Date().toISOString()) {
-        return repository.recordSceneMessage(sceneId, occurredAt);
+    recordSceneMessage(sceneId, occurredAt = new Date().toISOString(), scope = null) {
+        return repository.recordSceneMessage(sceneId, occurredAt, scope);
     }
 
     getPendingClosurePrompt(sceneId) {
@@ -186,19 +195,21 @@ class SceneAssistantV2Manager {
         });
     }
 
-    resolveClosurePrompt(sceneId, status) {
+    resolveClosurePrompt(sceneId, status, scope = null) {
         return repository.resolveClosurePrompt(
             sceneId,
             status,
-            new Date().toISOString()
+            new Date().toISOString(),
+            scope
         );
     }
 
-    addClosureVote(sceneId, discordUserId) {
+    addClosureVote(sceneId, discordUserId, scope = null) {
         return repository.addClosureVote(
             sceneId,
             discordUserId,
-            new Date().toISOString()
+            new Date().toISOString(),
+            scope
         );
     }
 
@@ -206,41 +217,43 @@ class SceneAssistantV2Manager {
         return repository.isSceneParticipantUser(sceneId, discordUserId);
     }
 
-    keepSceneOpen(sceneId) {
+    keepSceneOpen(sceneId, scope = null) {
         const now = new Date().toISOString();
-        repository.touchScene(sceneId, now);
-        repository.resolveClosurePrompt(sceneId, "cancelled", now);
+        repository.touchScene(sceneId, now, scope);
+        repository.resolveClosurePrompt(sceneId, "cancelled", now, scope);
         return repository.getScene(sceneId);
     }
 
     closeScene(
         sceneId,
         {
-            requirePendingPrompt = false
+            requirePendingPrompt = false,
+            ...scope
         } = {}
     ) {
         const now = new Date().toISOString();
         return repository.closeScene(
             sceneId,
             now,
-            requirePendingPrompt
+            requirePendingPrompt,
+            scope
         );
     }
 
-    markSceneConclude(sceneId, notifiedAt = new Date().toISOString()) {
-        return repository.markSceneConclude(sceneId, notifiedAt);
+    markSceneConclude(sceneId, notifiedAt = new Date().toISOString(), scope = null) {
+        return repository.markSceneConclude(sceneId, notifiedAt, scope);
     }
 
-    restartScene(sceneId, startedAt = new Date().toISOString()) {
-        return repository.restartScene(sceneId, startedAt);
+    restartScene(sceneId, startedAt = new Date().toISOString(), scope = null) {
+        return repository.restartScene(sceneId, startedAt, scope);
     }
 
-    addParticipant(sceneId, characterId, joinedAt = new Date().toISOString()) {
-        return repository.addParticipant(sceneId, characterId, joinedAt);
+    addParticipant(sceneId, characterId, joinedAt = new Date().toISOString(), scope = null) {
+        return repository.addParticipant(sceneId, characterId, joinedAt, scope);
     }
 
-    getActiveSceneForCharacter(guildId, characterId) {
-        return repository.getActiveSceneForCharacter(guildId, characterId);
+    getActiveSceneForCharacter(guildId, characterId, contextId = null) {
+        return repository.getActiveSceneForCharacter(guildId, characterId, contextId);
     }
 
     claimTimelineWarning(sceneAId, sceneBId, characterId) {
@@ -317,17 +330,19 @@ class SceneAssistantV2Manager {
         return repository.removeScope(guildId, channelId);
     }
 
-    getCycle(guildId, channelId) {
-        return repository.getCycle(guildId, channelId);
+    getCycle(guildId, channelId, contextId = null) {
+        return repository.getCycle(guildId, channelId, contextId);
     }
 
     recordMessage({
         guildId,
+        contextId = null,
         channelId,
         occurredAt = new Date().toISOString()
     }) {
         return repository.recordMessage({
             guildId,
+            contextId,
             channelId,
             occurredAt
         });
@@ -335,11 +350,13 @@ class SceneAssistantV2Manager {
 
     startNewCycle({
         guildId,
+        contextId = null,
         channelId,
         startedAt = new Date().toISOString()
     }) {
         return repository.startNewCycle({
             guildId,
+            contextId,
             channelId,
             startedAt
         });
@@ -347,11 +364,13 @@ class SceneAssistantV2Manager {
 
     markConclude({
         guildId,
+        contextId = null,
         channelId,
         notifiedAt = new Date().toISOString()
     }) {
         return repository.markConclude({
             guildId,
+            contextId,
             channelId,
             notifiedAt
         });

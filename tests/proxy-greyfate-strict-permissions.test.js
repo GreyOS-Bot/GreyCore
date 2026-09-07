@@ -84,6 +84,7 @@ test("2C.7f préserve le duo et exige scenes/write avant ACK pour le fallback", 
     stubModule("src/v2/services/greyfate/GreyFateIntegrationService.js", {
         enabled: () => true,
         duo: () => duo,
+        assertDuoContext: duo => duo,
         sceneStart: async () => {
             effects.push("sceneStart");
             return { duplicate: true };

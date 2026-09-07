@@ -1,3 +1,4 @@
+const sceneScopes = require('../../services/scenes/SceneContextInteractionService');
 const {
     ActionRowBuilder,
     ModalBuilder,
@@ -51,7 +52,8 @@ function canMoveScene(interaction, scene, staffWrite = undefined) {
     );
 }
 
-function start(interaction) {
+function start(interaction, contextId = null) {
+    contextId = manager.resolveContext(interaction.guildId, contextId, { write: true }).id;
     const title = new TextInputBuilder()
         .setCustomId("title")
         .setLabel("Nom de la scène")
@@ -62,19 +64,21 @@ function start(interaction) {
 
     return interaction.showModal(
         new ModalBuilder()
-            .setCustomId("v2_scene_start_submit")
+            .setCustomId(sceneScopes.issue(interaction, { action: 'start', contextId }))
             .setTitle("Commencer une scène")
             .addComponents(new ActionRowBuilder().addComponents(title))
     );
 }
 
-async function submitStart(interaction) {
-    if (manager.getActiveSceneByChannel(interaction.guildId, interaction.channelId)) {
+async function submitStart(interaction, contextId = null) {
+    contextId = manager.resolveContext(interaction.guildId, contextId, { write: true }).id;
+    if (manager.getActiveSceneByChannel(interaction.guildId, interaction.channelId, contextId)) {
         return replyError(interaction, "Une scène est déjà active dans ce salon.");
     }
 
     const scene = manager.createScene({
         guildId: interaction.guildId,
+        contextId,
         channelId: interaction.channelId,
         title: interaction.fields.getTextInputValue("title"),
         createdBy: interaction.user.id
@@ -93,8 +97,9 @@ async function submitStart(interaction) {
     );
 }
 
-async function submitMove(interaction, sceneId, destinationId) {
-    const scene = manager.getScene(sceneId);
+async function submitMove(interaction, sceneId, destinationId, contextId = null) {
+    const scene = manager.getScene(sceneId, { guildId: interaction.guildId, contextId, write: true });
+    contextId = scene?.context_id ?? contextId;
     if (!scene || scene.guild_id !== interaction.guildId) {
         return editOrReplyError(interaction, "Cette scène est introuvable.");
     }
@@ -164,9 +169,13 @@ async function submitMove(interaction, sceneId, destinationId) {
         transition?.url ? `\n[Voir le message d’origine](${transition.url})` : ""
     ].filter(Boolean).join("\n");
 
+    if (!canMoveScene(interaction, manager.getScene(sceneId, { guildId: interaction.guildId, contextId, write: true }))) {
+        return editOrReplyError(interaction, MOVE_PERMISSION_ERROR);
+    }
     const moveResult =
         manager.moveSceneIfCurrent({
             sceneId,
+            contextId,
             guildId:
                 interaction.guildId,
             expectedSourceChannelId:
@@ -229,9 +238,10 @@ async function submitMove(interaction, sceneId, destinationId) {
     });
 }
 
-function resume(interaction) {
+function resume(interaction, contextId = null) {
+    contextId = manager.resolveContext(interaction.guildId, contextId, { write: true }).id;
     const canManageScenes = canWriteScenes(interaction);
-    const scenes = manager.getActiveScenes(interaction.guildId)
+    const scenes = manager.getActiveScenes(interaction.guildId, contextId)
         .filter(scene => !String(scene.channel_ids || "").split(",").includes(interaction.channelId))
         .filter(scene => canManageScenes || canMoveScene(interaction, scene, false))
         .slice(0, 25);
@@ -244,7 +254,7 @@ function resume(interaction) {
         content: "🔗 Choisis la scène à poursuivre dans ce salon.",
         components: [new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
-                .setCustomId("v2_scene_resume_select")
+                .setCustomId(sceneScopes.issue(interaction, { action: 'resume', contextId }))
                 .setPlaceholder("Choisir une scène")
                 .addOptions(scenes.map(scene => ({
                     label: scene.title.slice(0, 100),
@@ -266,14 +276,15 @@ function canWriteScenes(interaction) {
     }).allowed;
 }
 
-async function selectResume(interaction) {
+async function selectResume(interaction, contextId = null) {
     const {
         sceneId,
         expectedSourceChannelId
     } = parseResumeSelection(
         interaction.values[0]
     );
-    const scene = manager.getScene(sceneId);
+    const scene = manager.getScene(sceneId, { guildId: interaction.guildId, contextId, write: true });
+    contextId = scene?.context_id ?? contextId;
     if (!scene || scene.guild_id !== interaction.guildId) {
         return replyError(interaction, "Cette scène est introuvable.");
     }
@@ -355,9 +366,13 @@ async function selectResume(interaction) {
             : ""
     ].filter(Boolean).join("\n");
 
+    if (!canMoveScene(interaction, manager.getScene(scene.id, { guildId: interaction.guildId, contextId, write: true }))) {
+        return replyError(interaction, MOVE_PERMISSION_ERROR);
+    }
     const moveResult =
         manager.moveSceneIfCurrent({
             sceneId: scene.id,
+            contextId,
             guildId: interaction.guildId,
             expectedSourceChannelId,
             destinationChannelId:
@@ -414,8 +429,9 @@ async function selectResume(interaction) {
     });
 }
 
-function openMove(interaction, sceneId) {
-    const scene = manager.getScene(sceneId);
+function openMove(interaction, sceneId, contextId = null) {
+    const scene = manager.getScene(sceneId, { guildId: interaction.guildId, contextId, write: true });
+    contextId = scene?.context_id ?? contextId;
     if (!scene || scene.guild_id !== interaction.guildId) {
         return replyError(interaction, "Cette scène est introuvable.");
     }
@@ -427,26 +443,28 @@ function openMove(interaction, sceneId) {
         content: "➡️ Choisis le salon où poursuivre la scène.",
         components: [new ActionRowBuilder().addComponents(
             new ChannelSelectMenuBuilder()
-                .setCustomId(`v2_scene_move_channel:${sceneId}`)
+                .setCustomId(sceneScopes.issue(interaction, { action: 'moveChannel', sceneId, contextId: scene.context_id ?? contextId }))
                 .setPlaceholder("Salon de destination")
                 .setChannelTypes(ChannelType.GuildText, ChannelType.PublicThread, ChannelType.PrivateThread)
         )]
     });
 }
 
-function openNewMove(interaction) {
+function openNewMove(interaction, contextId = null) {
+    contextId = manager.resolveContext(interaction.guildId, contextId, { write: true }).id;
     return replyPrivate(interaction, {
         content: "➡️ Choisis le salon où poursuivre cette scène.",
         components: [new ActionRowBuilder().addComponents(
             new ChannelSelectMenuBuilder()
-                .setCustomId("v2_scene_move_new_channel")
+                .setCustomId(sceneScopes.issue(interaction, { action: 'newChannel', contextId }))
                 .setPlaceholder("Salon de destination")
                 .setChannelTypes(ChannelType.GuildText, ChannelType.PublicThread, ChannelType.PrivateThread)
         )]
     });
 }
 
-function selectNewMoveChannel(interaction) {
+function selectNewMoveChannel(interaction, contextId = null) {
+    contextId = manager.resolveContext(interaction.guildId, contextId, { write: true }).id;
     const destinationId = interaction.values[0];
     const title = new TextInputBuilder()
         .setCustomId("title")
@@ -464,7 +482,7 @@ function selectNewMoveChannel(interaction) {
 
     return interaction.showModal(
         new ModalBuilder()
-            .setCustomId(`v2_scene_move_new_submit:${destinationId}`)
+            .setCustomId(sceneScopes.issue(interaction, { action: 'newMove', destinationId, contextId }))
             .setTitle("Poursuivre en rattrapage")
             .addComponents(
                 new ActionRowBuilder().addComponents(title),
@@ -473,8 +491,9 @@ function selectNewMoveChannel(interaction) {
     );
 }
 
-async function submitNewMove(interaction, destinationId) {
-    if (manager.getActiveSceneByChannel(interaction.guildId, interaction.channelId)) {
+async function submitNewMove(interaction, destinationId, contextId = null) {
+    contextId = manager.resolveContext(interaction.guildId, contextId, { write: true }).id;
+    if (manager.getActiveSceneByChannel(interaction.guildId, interaction.channelId, contextId)) {
         return replyError(interaction, "Une scène est déjà active dans ce salon. Relance la demande de rattrapage.");
     }
     const destination = await interaction.client.channels
@@ -489,21 +508,23 @@ async function submitNewMove(interaction, destinationId) {
     if (interaction.channelId === destinationId) {
         return replyError(interaction, "Cette scène se trouve déjà dans ce salon.");
     }
-    if (manager.getActiveSceneByChannel(interaction.guildId, destinationId)) {
+    if (manager.getActiveSceneByChannel(interaction.guildId, destinationId, contextId)) {
         return replyError(interaction, "Une autre scène active utilise déjà ce salon.");
     }
 
     const scene = manager.createScene({
         guildId: interaction.guildId,
+        contextId,
         channelId: interaction.channelId,
         title: interaction.fields.getTextInputValue("title"),
         createdBy: interaction.user.id
     });
-    return submitMove(interaction, scene.id, destinationId);
+    return submitMove(interaction, scene.id, destinationId, contextId);
 }
 
-function selectMoveChannel(interaction, sceneId) {
-    const scene = manager.getScene(sceneId);
+function selectMoveChannel(interaction, sceneId, contextId = null) {
+    const scene = manager.getScene(sceneId, { guildId: interaction.guildId, contextId, write: true });
+    contextId = scene?.context_id ?? contextId;
     if (!scene || scene.guild_id !== interaction.guildId) {
         return replyError(interaction, "Cette scène est introuvable.");
     }
@@ -521,19 +542,20 @@ function selectMoveChannel(interaction, sceneId) {
 
     return interaction.showModal(
         new ModalBuilder()
-            .setCustomId(`v2_scene_move_submit:${sceneId}:${destinationId}`)
+            .setCustomId(sceneScopes.issue(interaction, { action: 'move', sceneId, destinationId, contextId: scene.context_id ?? contextId }))
             .setTitle("Déplacer la scène")
             .addComponents(new ActionRowBuilder().addComponents(message))
     );
 }
 
-async function voteClose(interaction, sceneId) {
-    const scene = manager.getScene(sceneId);
+async function voteClose(interaction, sceneId, contextId = null) {
+    const scene = manager.getScene(sceneId, { guildId: interaction.guildId, contextId, write: true });
+    contextId = scene?.context_id ?? contextId;
     const prompt = manager.getClosurePromptByMessage(
         interaction.message.id
     );
 
-    if (!scene || !prompt || scene.guild_id !== interaction.guildId) {
+    if (!scene || !prompt || prompt.scene_id !== sceneId || scene.guild_id !== interaction.guildId) {
         return replyError(interaction, "Cette proposition de clôture n'est plus active.");
     }
 
@@ -544,7 +566,7 @@ async function voteClose(interaction, sceneId) {
         );
     }
 
-    const votes = manager.addClosureVote(sceneId, interaction.user.id);
+    const votes = manager.addClosureVote(sceneId, interaction.user.id, { guildId: interaction.guildId, contextId });
     if (votes < 2) {
         return interaction.update({
             components: [
@@ -558,7 +580,9 @@ async function voteClose(interaction, sceneId) {
             sceneId,
             {
                 requirePendingPrompt:
-                    true
+                    true,
+                guildId: interaction.guildId,
+                contextId
             }
         );
 
@@ -582,13 +606,14 @@ async function voteClose(interaction, sceneId) {
     });
 }
 
-async function keepOpen(interaction, sceneId, cancelled = false) {
-    const scene = manager.getScene(sceneId);
+async function keepOpen(interaction, sceneId, cancelled = false, contextId = null) {
+    const scene = manager.getScene(sceneId, { guildId: interaction.guildId, contextId, write: true });
+    contextId = scene?.context_id ?? contextId;
     const prompt = manager.getClosurePromptByMessage(
         interaction.message.id
     );
 
-    if (!scene || !prompt || scene.guild_id !== interaction.guildId) {
+    if (!scene || !prompt || prompt.scene_id !== sceneId || scene.guild_id !== interaction.guildId) {
         return replyError(interaction, "Cette proposition de clôture n'est plus active.");
     }
 
@@ -599,7 +624,7 @@ async function keepOpen(interaction, sceneId, cancelled = false) {
         );
     }
 
-    manager.keepSceneOpen(sceneId);
+    manager.keepSceneOpen(sceneId, { guildId: interaction.guildId, contextId });
     return interaction.update({
         content: cancelled
             ? "❌ Proposition de clôture annulée."
@@ -609,8 +634,9 @@ async function keepOpen(interaction, sceneId, cancelled = false) {
     });
 }
 
-async function closeNow(interaction, sceneId) {
-    const scene = manager.getScene(sceneId);
+async function closeNow(interaction, sceneId, contextId = null) {
+    const scene = manager.getScene(sceneId, { guildId: interaction.guildId, contextId, write: true });
+    contextId = scene?.context_id ?? contextId;
     if (!scene || scene.guild_id !== interaction.guildId) {
         return replyError(interaction, "Cette scène est introuvable ou déjà clôturée.");
     }
@@ -620,7 +646,7 @@ async function closeNow(interaction, sceneId) {
         return replyError(interaction, "Seuls un participant ou la personne ayant créé cette scène peuvent la clôturer.");
     }
     const closedScene =
-        manager.closeScene(sceneId);
+        manager.closeScene(sceneId, { guildId: interaction.guildId, contextId });
 
     if (!closedScene) {
         return replyError(

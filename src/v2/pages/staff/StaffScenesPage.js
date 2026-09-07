@@ -8,18 +8,27 @@ const {
 const manager = require("../../managers/SceneAssistantV2Manager");
 
 class StaffScenesPage {
-    build(interaction) {
+    build(interaction, contextId = null, contextPage = 0) {
+        const context = manager.resolveContext(interaction.guildId, contextId);
+        const contexts = manager.getContexts(interaction.guildId);
+        const lastPage = Math.max(0, Math.ceil(contexts.length / 25) - 1);
+        contextPage = Math.max(0, Math.min(lastPage, Number.isInteger(contextPage) ? contextPage : 0));
+        const token = require('../../services/scenes/SceneContextSelectionService').create({
+            guildId: interaction.guildId, userId: interaction.user?.id, contextId: context.id, page: contextPage
+        });
         const configuration = manager.getConfiguration(interaction.guildId);
         const enabled = Number(configuration?.is_enabled) === 1;
         const scopes = manager.getScopes(interaction.guildId);
         const expressions = manager.getTriggerExpressions(interaction.guildId);
-        const scenes = manager.getActiveScenes(interaction.guildId);
+        const scenes = manager.getActiveScenes(interaction.guildId, context.id);
 
         return {
             embeds: [new EmbedBuilder()
                 .setColor(enabled ? 0x57F287 : 0x99AAB5)
                 .setTitle("🎬 Administration des cycles de scènes")
                 .setDescription([
+                    `Contexte : **${context.name}**${context.is_default ? ' (défaut)' : ''} · \`${context.id}\``,
+                    'Configuration de l’assistant et lieux publics : globaux au serveur.',
                     `Assistant : **${enabled ? "activé ✅" : "désactivé ❌"}**`,
                     `Zones RP : **${scopes.length}**`,
                     `Scènes actives : **${scenes.length}**`,
@@ -93,12 +102,12 @@ class StaffScenesPage {
                 ),
                 new ActionRowBuilder().addComponents(
                     new ButtonBuilder()
-                        .setCustomId("v2_staff_scenes_diagnostic")
+                        .setCustomId(`v3_staff_scene:diagnostic:${token}`)
                         .setLabel("Diagnostic ici")
                         .setEmoji("🧪")
                         .setStyle(ButtonStyle.Secondary),
                     new ButtonBuilder()
-                        .setCustomId("v2_staff_scenes_new_cycle")
+                        .setCustomId(`v3_staff_scene:cycle:${token}`)
                         .setLabel("Nouveau cycle ici")
                         .setEmoji("🔄")
                         .setStyle(ButtonStyle.Primary),
@@ -114,13 +123,18 @@ class StaffScenesPage {
                         .setStyle(ButtonStyle.Secondary)
                 ),
                 new ActionRowBuilder().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId("v2_help:staff_scenes")
-                        .setLabel("Aide")
-                        .setEmoji("❓")
-                        .setStyle(ButtonStyle.Secondary)
+                    new StringSelectMenuBuilder()
+                        .setCustomId(`v3_staff_scene:select:${token}`)
+                        .setPlaceholder(`Contexte — page ${contextPage + 1}/${lastPage + 1}`)
+                        .addOptions(contexts.slice(contextPage * 25, contextPage * 25 + 25).map(item => ({
+                            label: item.name.slice(0, 100), value: item.id, default: item.id === context.id
+                        })))
                 ),
-                navigationRow()
+                navigationRow().addComponents(
+                    new ButtonBuilder().setCustomId(`v3_staff_scene:prev:${token}`).setLabel('Contextes précédents').setStyle(ButtonStyle.Secondary).setDisabled(contextPage === 0),
+                    new ButtonBuilder().setCustomId(`v3_staff_scene:next:${token}`).setLabel('Contextes suivants').setStyle(ButtonStyle.Secondary).setDisabled(contextPage === lastPage),
+                    new ButtonBuilder().setCustomId('v2_help:staff_scenes').setLabel('Aide').setStyle(ButtonStyle.Secondary)
+                )
             ]
         };
     }
@@ -186,13 +200,13 @@ class StaffScenesPage {
         };
     }
 
-    buildDiagnostic(interaction) {
+    buildDiagnostic(interaction, contextId = null) {
         const configuration = manager.getConfiguration(interaction.guildId);
         const scopes = manager.getScopes(interaction.guildId);
         const channelIds = require("../../services/scenes/SceneAssistantService")
             .getChannelAndParentIds(interaction.channel, interaction.channelId);
         const matchedScope = scopes.find(scope => channelIds.includes(String(scope.channel_id)));
-        const activeScene = manager.getActiveSceneByChannel(interaction.guildId, interaction.channelId);
+        const activeScene = manager.getActiveSceneByChannel(interaction.guildId, interaction.channelId, contextId);
         return {
             embeds: [new EmbedBuilder().setColor(matchedScope ? 0x57F287 : 0xFEE75C)
                 .setTitle("🧪 Diagnostic des scènes")

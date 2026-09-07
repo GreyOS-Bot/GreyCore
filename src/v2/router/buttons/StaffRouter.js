@@ -1,6 +1,7 @@
 module.exports = async interaction => {
     if (!interaction.isButton?.()) return false;
     if (!interaction.customId) return false;
+    if (interaction.customId.startsWith('v3_staff_scene:') && await require('../../interactions/scenes/StaffSceneContextHandler')(interaction)) return true;
 
     if (interaction.customId.startsWith('v3_context:')) {
         return require('../../pages/staff/StaffContextsPage').handle(interaction);

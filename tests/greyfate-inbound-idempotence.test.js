@@ -9,6 +9,7 @@ const servicePath = require.resolve("../src/v2/services/greyfate/GreyFateIntegra
 
 function fixture() {
     const isolated = createIsolatedDatabase();
+    isolated.database.exec("CREATE TABLE Guilds(id TEXT PRIMARY KEY); INSERT INTO Guilds VALUES ('guild');");
     require("../src/database/schemaV2DiscordReferenceHealth")();
     delete require.cache[repositoryPath];
     delete require.cache[servicePath];

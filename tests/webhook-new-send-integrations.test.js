@@ -150,6 +150,8 @@ test(
         const repository = {
             initializeSchema: () => {},
             upsertEvent: () => {},
+            validateDuo: () => ({ id: 'context' }),
+            assertDuoContext: duo => duo,
             upsertDuo: (payload, duo) => {
                 duos.set(duo.duoId, {
                     duo_id: duo.duoId,

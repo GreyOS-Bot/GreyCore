@@ -3,6 +3,7 @@ const handler = require("../../interactions/scenes/SceneInteractionHandler");
 module.exports = async interaction => {
     if (!interaction.isModalSubmit()) return false;
     if (!interaction.customId) return false;
+    if (interaction.customId.startsWith('v3_scene_action:')) return require('../../interactions/scenes/SceneScopedInteractionHandler')(interaction);
     if (interaction.customId === "v2_scene_start_submit") {
         await handler.submitStart(interaction);
         return true;

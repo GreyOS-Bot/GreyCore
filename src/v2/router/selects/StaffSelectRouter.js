@@ -8,6 +8,7 @@ const { replyError } = require(
 );
 
 module.exports = async interaction => {
+    if (interaction.customId?.startsWith('v3_staff_scene:') && await require('../../interactions/scenes/StaffSceneContextHandler')(interaction)) return true;
     const characterReadAction = interaction.customId?.startsWith("v2_staff_character_gender_select:")
         || interaction.customId === "v2_staff_characters_statistics_user_select"
         || interaction.customId === "v2_staff_characters_user_select";

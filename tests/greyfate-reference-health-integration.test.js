@@ -7,6 +7,8 @@ function loadFixture(resolution) {
     const errors = [];
     let webhooks = 0;
     stubModule("src/v2/repositories/GreyFateRepository.js", {
+        validateDuo: () => ({ id: 'context' }),
+        assertDuoContext: duo => duo,
         initializeSchema: () => {}, upsertEvent: () => {},
         upsertDuo: (payload, duo) => duos.set(duo.duoId, {
             duo_id: duo.duoId, thread_id: duo.threadId, guild_id: payload.guildId,

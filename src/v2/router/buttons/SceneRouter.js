@@ -1,4 +1,5 @@
 const handler = require("../../interactions/scenes/SceneInteractionHandler");
+const scopes = require("../../services/scenes/SceneContextInteractionService");
 
 module.exports = async interaction => {
     if (!interaction.isButton()) return false;
@@ -24,23 +25,28 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId.startsWith("v2_scene_move:")) {
-        await handler.openMove(interaction, interaction.customId.split(":")[1]);
+        const { sceneId, contextId } = scopes.parseScene(interaction.customId);
+        await handler.openMove(interaction, sceneId, contextId);
         return true;
     }
     if (interaction.customId.startsWith("v2_scene_close_vote:")) {
-        await handler.voteClose(interaction, interaction.customId.split(":")[1]);
+        const { sceneId, contextId } = scopes.parseScene(interaction.customId);
+        await handler.voteClose(interaction, sceneId, contextId);
         return true;
     }
     if (interaction.customId.startsWith("v2_scene_close_now:")) {
-        await handler.closeNow(interaction, interaction.customId.split(":")[1]);
+        const { sceneId, contextId } = scopes.parseScene(interaction.customId);
+        await handler.closeNow(interaction, sceneId, contextId);
         return true;
     }
     if (interaction.customId.startsWith("v2_scene_keep_open:")) {
-        await handler.keepOpen(interaction, interaction.customId.split(":")[1]);
+        const { sceneId, contextId } = scopes.parseScene(interaction.customId);
+        await handler.keepOpen(interaction, sceneId, false, contextId);
         return true;
     }
     if (interaction.customId.startsWith("v2_scene_close_cancel:")) {
-        await handler.keepOpen(interaction, interaction.customId.split(":")[1], true);
+        const { sceneId, contextId } = scopes.parseScene(interaction.customId);
+        await handler.keepOpen(interaction, sceneId, true, contextId);
         return true;
     }
     return false;

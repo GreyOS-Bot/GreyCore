@@ -81,6 +81,13 @@ class SceneInactivityService {
         }
     }
 
+    isCurrentSnapshot(scene) {
+        const current = manager.getScene(scene.id, { guildId: scene.guild_id, contextId: scene.context_id, write: true });
+        return current && ['active', 'conclude'].includes(current.status)
+            && String(current.channel_ids || '').split(',').includes(scene.channel_id)
+            && current.last_rp_message_at === scene.last_rp_message_at;
+    }
+
     async check(now = new Date()) {
         if (!this.client) {
             return [];
@@ -108,6 +115,8 @@ class SceneInactivityService {
                     continue;
                 }
 
+                if (!this.isCurrentSnapshot(scene)) continue;
+
                 const access =
                     await threadAccessService.ensureWritable(
                         channel
@@ -132,6 +141,9 @@ class SceneInactivityService {
                 const writableChannel =
                     access.channel || channel;
 
+                // Revalidate after Discord awaits: a disabled Context cannot produce a new prompt.
+                if (!this.isCurrentSnapshot(scene)) continue;
+
                 const message = await writableChannel.send(
                     sceneAssistantService.buildClosurePrompt(
                         scene,
@@ -139,9 +151,11 @@ class SceneInactivityService {
                     )
                 );
 
+                if (!this.isCurrentSnapshot(scene)) continue;
                 manager.saveClosurePrompt({
                     sceneId: scene.id,
                     guildId: scene.guild_id,
+                    contextId: scene.context_id,
                     channelId: scene.channel_id,
                     messageId: message.id
                 });

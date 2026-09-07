@@ -13,6 +13,7 @@ function loadHandler({
     const byId = new Map(scenes.map(scene => [scene.id, scene]));
 
     stubModule("src/v2/managers/SceneAssistantV2Manager.js", {
+        resolveContext: (_guildId, contextId) => ({ id: contextId ?? 'default-context' }),
         getScene: id => byId.get(id) || null,
         getActiveScenes: () => scenes,
         getActiveSceneByChannel: () => null,

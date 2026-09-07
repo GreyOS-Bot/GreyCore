@@ -1,5 +1,7 @@
 const db = require("../../database/database");
 const { randomUUID } = require("node:crypto");
+const SceneContextRepository = require('./SceneContextRepository');
+const contextAccess = new SceneContextRepository(db);
 
 const CLAIM_PROCESSING = "processing";
 const CLAIM_FAILED_UNCERTAIN = "failed_uncertain";
@@ -55,6 +57,7 @@ class GreyFateRepository {
         ]) {
             if (!columns.has(name)) db.exec(`ALTER TABLE GreyFateDuos ADD COLUMN ${name} ${type}`);
         }
+        require('./SceneContextMigration')(db);
     }
 
     hasOperation(operationKey) {
@@ -132,8 +135,30 @@ class GreyFateRepository {
     }
 
     upsertDuo(payload, duo, now) {
-        db.prepare("INSERT INTO GreyFateDuos(duo_id,event_id,guild_id,thread_id,male_user_id,female_user_id,male_character,female_character,updated_at) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(duo_id) DO UPDATE SET thread_id=excluded.thread_id,male_character=excluded.male_character,female_character=excluded.female_character,updated_at=excluded.updated_at")
-            .run(duo.duoId, payload.eventId, payload.guildId, duo.threadId, duo.maleUserId, duo.femaleUserId, duo.maleCharacter, duo.femaleCharacter, now);
+        return db.transaction(() => {
+            const context = this.validateDuo(payload, duo);
+            db.prepare("INSERT INTO GreyFateDuos(duo_id,event_id,guild_id,context_id,thread_id,male_user_id,female_user_id,male_character,female_character,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(duo_id) DO UPDATE SET thread_id=excluded.thread_id,male_character=excluded.male_character,female_character=excluded.female_character,updated_at=excluded.updated_at")
+                .run(duo.duoId, payload.eventId, payload.guildId, context.id, duo.threadId, duo.maleUserId, duo.femaleUserId, duo.maleCharacter, duo.femaleCharacter, now);
+        }).immediate();
+    }
+
+    validateDuo(payload, duo) {
+        const current = this.getDuo(duo.duoId);
+        if (current && (current.guild_id !== payload.guildId || current.event_id !== payload.eventId)) {
+            throw new Error('Ce duo appartient à une autre Guild ou soirée.');
+        }
+        const explicit = duo.contextId ?? payload.contextId ?? null;
+        const context = contextAccess.resolve(payload.guildId, explicit ?? current?.context_id ?? null, { write: true });
+        if (current && current.context_id !== context.id) throw new Error('Le contexte de ce duo est immuable.');
+        return context;
+    }
+
+    assertDuoContext(duo, scope = {}) {
+        const current = this.getDuo(duo?.duo_id);
+        if (!current || current.guild_id !== duo.guild_id || current.thread_id !== duo.thread_id
+            || current.context_id !== duo.context_id) throw new Error('Ce duo ne correspond pas à cette scène.');
+        contextAccess.require(current, { guildId: duo.guild_id, contextId: duo.context_id, ...scope });
+        return current;
     }
 
     getDuo(duoId) {

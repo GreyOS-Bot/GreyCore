@@ -22,6 +22,7 @@ function stubServiceDependencies() {
 
 function createFixture(context, occurrence = "2026-08-29T12:00:00.000Z") {
     const isolated = createIsolatedDatabase();
+    isolated.database.exec("CREATE TABLE Guilds(id TEXT PRIMARY KEY); INSERT INTO Guilds VALUES ('guild');");
     context.after(() => isolated.cleanup());
     stubServiceDependencies();
     clear(repositoryPath);
@@ -32,6 +33,7 @@ function createFixture(context, occurrence = "2026-08-29T12:00:00.000Z") {
         status,closure_prompt_sent_at,updated_at
     ) VALUES ('duo','event','guild','thread','male','female','ACTIVE',?,?)`)
         .run(occurrence, occurrence);
+    repository.initializeSchema(); // Legacy fixture is explicitly backfilled, as on upgrade.
     clear(servicePath);
     return {
         isolated,
@@ -55,6 +57,7 @@ test("le bouton CONTINUE encode exactement l'occurrence persistée", async () =>
     let sentComponents;
     stubServiceDependencies();
     stubModule("src/v2/repositories/GreyFateRepository.js", {
+        assertDuoContext: duo => duo,
         getDuo: () => ({
             duo_id: "duo", guild_id: "guild", thread_id: "thread",
             closed_at: null, closure_prompt_sent_at: null
@@ -211,6 +214,7 @@ test("le routeur réserve les trois effets Discord au seul gagnant et refuse les
         closure_prompt_sent_at: occurrence, closed_at: null
     };
     stubModule("src/v2/services/greyfate/GreyFateIntegrationService.js", {
+        assertDuoContext: duo => duo,
         enabled: () => true,
         duo: () => duo,
         decodeOccurrence: value => value === encoded ? occurrence : null,
@@ -262,6 +266,7 @@ test("START et CLOSE conservent leurs clés stables", async () => {
     stubServiceDependencies();
     stubModule("src/v2/repositories/GreyFateRepository.js", {
         markStarted: () => {},
+        assertDuoContext: duo => duo,
         markClosed: () => {}
     });
     clear(servicePath);

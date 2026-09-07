@@ -1,3 +1,4 @@
+const sceneScopes = require('./SceneContextInteractionService');
 const {
     EmbedBuilder,
     ActionRowBuilder,
@@ -77,9 +78,12 @@ class SceneAssistantService {
             return null;
         }
 
+        const boundContext = manager.getBoundSceneContext(guildId, channelId);
+        if (boundContext && !boundContext.is_active) return null;
         const scene = manager.getActiveSceneByChannel(
             guildId,
-            channelId
+            channelId,
+            boundContext?.id ?? null
         );
 
         const moveIntentDetected =
@@ -107,13 +111,15 @@ class SceneAssistantService {
         if (cancelledClosurePrompt) {
             manager.resolveClosurePrompt(
                 scene.id,
-                "activity_resumed"
+                "activity_resumed",
+                { guildId, contextId: scene.context_id }
             );
         }
 
         const cycle = manager.recordSceneMessage(
             scene.id,
-            this.getMessageTimestamp(message)
+            this.getMessageTimestamp(message),
+            { guildId, contextId: scene.context_id }
         );
         const closureIntentDetected = manager.matchesClosureExpression(
             message.content
@@ -151,7 +157,9 @@ class SceneAssistantService {
             cycle.status !== "conclude";
 
         const updatedCycle = manager.markSceneConclude(
-            scene.id
+            scene.id,
+            new Date().toISOString(),
+            { guildId, contextId: scene.context_id }
         );
 
         return {
@@ -232,6 +240,7 @@ class SceneAssistantService {
 
     startNewCycle({
         guildId,
+        contextId = null,
         channel
     }) {
         if (!channel?.id) {
@@ -266,15 +275,17 @@ class SceneAssistantService {
 
         const current = manager.getActiveSceneByChannel(
             guildId,
-            channel.id
+            channel.id,
+            contextId
         );
 
         if (current) {
-            return manager.restartScene(current.id);
+            return manager.restartScene(current.id, new Date().toISOString(), { guildId, contextId });
         }
 
         return manager.createScene({
             guildId,
+            contextId,
             channelId: channel.id,
             title: `Scène de #${channel.name || channel.id}`
         });
@@ -445,7 +456,7 @@ class SceneAssistantService {
                 ].join("\n\n"))],
             components: [new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
-                    .setCustomId(`v2_scene_move:${scene.id}`)
+                    .setCustomId(sceneScopes.sceneId("v2_scene_move", scene))
                     .setLabel("Continuer la scène")
                     .setEmoji("➡️")
                     .setStyle(ButtonStyle.Primary),
@@ -490,7 +501,7 @@ class SceneAssistantService {
                 .setDescription("GreyCore a détecté une fin de scène. Un participant peut confirmer sa clôture, ou ignorer cette proposition.")],
             components: [new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
-                    .setCustomId(`v2_scene_close_now:${scene.id}`)
+                    .setCustomId(sceneScopes.sceneId("v2_scene_close_now", scene))
                     .setLabel("Clôturer la scène")
                     .setEmoji("🏁")
                     .setStyle(ButtonStyle.Danger),
@@ -520,17 +531,17 @@ class SceneAssistantService {
     buildClosureActions(scene, voteCount) {
         return new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
-                    .setCustomId(`v2_scene_close_vote:${scene.id}`)
+                    .setCustomId(sceneScopes.sceneId("v2_scene_close_vote", scene))
                     .setLabel(`Clôturer · ${voteCount}/2`)
                     .setEmoji("✅")
                     .setStyle(ButtonStyle.Danger),
                 new ButtonBuilder()
-                    .setCustomId(`v2_scene_keep_open:${scene.id}`)
+                    .setCustomId(sceneScopes.sceneId("v2_scene_keep_open", scene))
                     .setLabel("Laisser ouverte")
                     .setEmoji("⏳")
                     .setStyle(ButtonStyle.Primary),
                 new ButtonBuilder()
-                    .setCustomId(`v2_scene_close_cancel:${scene.id}`)
+                    .setCustomId(sceneScopes.sceneId("v2_scene_close_cancel", scene))
                     .setLabel("Annuler")
                     .setEmoji("❌")
                     .setStyle(ButtonStyle.Secondary)
@@ -543,13 +554,15 @@ class SceneAssistantService {
 
         const previous = manager.getActiveSceneForCharacter(
             scene.guild_id,
-            characterId
+            characterId,
+            scene.context_id
         );
 
         manager.addParticipant(
             scene.id,
             characterId,
-            this.getMessageTimestamp(message)
+            this.getMessageTimestamp(message),
+            { guildId: scene.guild_id, contextId: scene.context_id }
         );
 
         if (!previous || previous.id === scene.id) return null;

@@ -66,6 +66,7 @@ test(
             "src/v2/services/greyfate/GreyFateIntegrationService.js",
             {
                 enabled: () => true,
+                assertDuoContext: duo => duo,
                 duo: () => duo,
                 decodeOccurrence:
                     () => "occurrence",

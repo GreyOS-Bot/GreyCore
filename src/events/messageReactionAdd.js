@@ -25,14 +25,16 @@ module.exports = {
         const proposal = sceneAssistantManager
             .getStartProposalByMessage(message.id);
 
-        if (!proposal) {
+        if (!proposal || proposal.guild_id !== (message.guildId || message.guild?.id)
+            || proposal.channel_id !== (message.channelId || message.channel?.id)) {
             return;
         }
 
         if (
             sceneAssistantManager.getActiveSceneByChannel(
                 proposal.guild_id,
-                proposal.channel_id
+                proposal.channel_id,
+                proposal.context_id
             )
         ) {
             sceneAssistantManager.resolveStartProposal(
@@ -57,6 +59,7 @@ module.exports = {
 
         const scene = sceneAssistantManager.createScene({
             guildId: proposal.guild_id,
+            contextId: proposal.context_id,
             channelId: proposal.channel_id,
             title: `Scène du ${dateLabel}`,
             createdBy: user.id,
@@ -67,13 +70,15 @@ module.exports = {
             sceneAssistantManager.addParticipant(
                 scene.id,
                 proposal.character_id,
-                startedAt
+                startedAt,
+                { guildId: proposal.guild_id, contextId: scene.context_id }
             );
         }
 
         sceneAssistantManager.recordSceneMessage(
             scene.id,
-            startedAt
+            startedAt,
+            { guildId: proposal.guild_id, contextId: scene.context_id }
         );
 
         sceneAssistantManager.resolveStartProposal(

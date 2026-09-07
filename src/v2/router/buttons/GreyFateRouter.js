@@ -18,6 +18,7 @@ module.exports = async interaction => {
         permission: "scenes",
         write: true
     }).allowed) throw new Error("Action réservée au duo ou au staff.");
+    service.assertDuoContext(duo, { guildId: interaction.guildId, contextId: duo.context_id });
     await interaction.deferUpdate();
     try {
         if (action === "greyfate_scene_start") { const result = await service.sceneStart(duo, interaction.user.id); if (!result.duplicate) { await interaction.editReply({ components: [] }); await service.sendAsWeaver(interaction.channel, "Le fil est noué. Votre scène commence maintenant."); } await replyPrivate(interaction, result.duplicate ? "Cette scène est déjà commencée." : "🧵 Scène ouverte."); return true; }
