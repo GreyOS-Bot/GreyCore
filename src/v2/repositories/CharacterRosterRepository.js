@@ -6,6 +6,7 @@ const db =
 const ROSTER_SELECT = `
     SELECT DISTINCT
         character.id,
+        installation.id AS installation_id,
         character.proxy_name,
         character.character_type,
         character.is_archived,
@@ -60,6 +61,16 @@ class CharacterRosterRepository {
                 ? 1
                 : 0
         );
+    }
+
+    getRosterByContext(guildId, contextId, includeArchived = false) {
+        return db.prepare(`
+            ${ROSTER_SELECT}
+            WHERE installation.guild_id = ? AND installation.context_id = ?
+            AND installation.status = 'approved'
+            AND (? = 1 OR character.is_archived = 0)
+            ORDER BY firstname COLLATE NOCASE ASC, character.proxy_name COLLATE NOCASE ASC
+        `).all(guildId, contextId, includeArchived ? 1 : 0);
     }
 
     getByOwnerOnGuild(

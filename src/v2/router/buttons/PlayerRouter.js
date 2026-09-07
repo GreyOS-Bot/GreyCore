@@ -52,8 +52,10 @@ module.exports = async interaction => {
         || interaction.customId.startsWith("v2_player_directory_page:")
     ) {
         const [, letter = "all", rawPage = "0"] = interaction.customId.split(":");
-        const characters = require("../../managers/CharacterRosterV2Manager")
-            .getRoster(interaction.guildId, { includeArchived: false });
+        const rosterManager = require("../../managers/CharacterRosterV2Manager");
+        const characters = typeof rosterManager.getRosterByContext === "function"
+            ? rosterManager.getRosterByContext(interaction.guildId, null, { includeArchived: false })
+            : rosterManager.getRoster(interaction.guildId, { includeArchived: false });
         await interaction.update(
             require("../../views/player/PlayerDirectoryView").build(characters, {
                 letter,
@@ -69,10 +71,17 @@ module.exports = async interaction => {
             guildId: interaction.guildId,
             channel: interaction.channel
         });
+        const sceneContextId = status.scene?.context_id
+            || status.cycle?.context_id
+            || (typeof sceneManager.resolveContext === "function"
+                ? sceneManager.resolveContext(interaction.guildId, null).id
+                : null);
         await interaction.update(
             require("../../views/player/PlayerScenesView").build(
                 status,
-                sceneManager.getActiveScenes(interaction.guildId)
+                sceneContextId
+                    ? sceneManager.getActiveScenes(interaction.guildId, sceneContextId)
+                    : sceneManager.getActiveScenes(interaction.guildId)
             )
         );
         return true;

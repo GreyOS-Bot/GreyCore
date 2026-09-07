@@ -18,6 +18,14 @@ class CharacterRosterV2Manager {
         );
     }
 
+    getRosterByContext(guildId, contextId = null, options = {}) {
+        const installationManager = require("./InstallationV2Manager");
+        const context = installationManager.resolveContext(guildId, contextId);
+        return rosterRepository.getRosterByContext(
+            String(guildId), context.id, options.includeArchived === true
+        );
+    }
+
     getByOwnerOnGuild(
         guildId,
         discordUserId

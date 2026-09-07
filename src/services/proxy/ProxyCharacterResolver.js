@@ -15,13 +15,23 @@ function resolveProxyCharacter({
     discordUserId,
     guildId,
     proxyName,
+    contextId = null,
     isStaff = false
 }) {
+    if (contextId === null) {
+        try {
+            contextId = require("../../v2/managers/InstallationV2Manager")
+                .resolveContext(guildId, null)?.id || null;
+        } catch {
+            contextId = null;
+        }
+    }
     let character =
         findPlayableV2Character({
             discordUserId,
             guildId,
             proxyName,
+            contextId,
             isStaff
         });
 
@@ -30,6 +40,7 @@ function resolveProxyCharacter({
             discordUserId,
             guildId,
             proxyName,
+            contextId,
             isStaff
         });
 
@@ -147,6 +158,7 @@ function findPlayableV2Character({
     discordUserId,
     guildId,
     proxyName,
+    contextId = null,
     isStaff
 }) {
     const installation =
@@ -154,6 +166,7 @@ function findPlayableV2Character({
             discordUserId,
             guildId,
             proxyName,
+            contextId,
             isStaff
         });
 
@@ -183,11 +196,18 @@ function findV2Installation({
     discordUserId,
     guildId,
     proxyName,
+    contextId = null,
     isStaff
 }) {
+    const contextScoped = contextId !== null
+        && db.prepare("PRAGMA table_info(CharacterGuildInstallationsV2)").all()
+            .some(column => column.name === "context_id");
     const installation = db.prepare(`
         SELECT
             character.id AS character_id,
+            installation.id AS installation_id,
+            installation.continuity_id,
+            ${contextScoped ? "installation.context_id," : "NULL AS context_id,"}
             character.proxy_name,
             character.character_type,
             user.discord_user_id,
@@ -227,6 +247,7 @@ function findV2Installation({
                 continuity.id
 
         WHERE installation.guild_id = ?
+        ${contextScoped ? "AND installation.context_id = ?" : ""}
         AND (
             LOWER(character.proxy_name) =
                 LOWER(?)
@@ -262,6 +283,7 @@ function findV2Installation({
         LIMIT 1
     `).get(
         guildId,
+        ...(contextScoped ? [contextId] : []),
         proxyName,
         proxyName,
         discordUserId,

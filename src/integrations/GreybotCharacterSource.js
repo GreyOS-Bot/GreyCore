@@ -15,6 +15,10 @@ function getPlayableCharactersForGuild(
         );
 }
 
+function getPlayableCharactersForGuildAndContext(guildId, contextId) {
+    return installationManager.getPlayableCharactersForGuildAndContext(guildId, contextId);
+}
+
 function getDatabasePath() {
     return database.databasePath;
 }
@@ -62,6 +66,7 @@ function getQbbCharactersForGuild(guildId) {
 
 module.exports = {
     getPlayableCharactersForGuild,
+    getPlayableCharactersForGuildAndContext,
     getQbbCharactersForGuild,
     getDatabasePath
 };

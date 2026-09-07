@@ -83,6 +83,8 @@ module.exports =
                 message.guild.id,
             proxyName:
                 proxy.character,
+            contextId:
+                resolveRuntimeContextId(message),
             isStaff:
                 staffPermissionDecisionService.decide({
                     guild:
@@ -310,6 +312,20 @@ module.exports =
 
         return true;
     };
+
+function resolveRuntimeContextId(message) {
+    try {
+        const sceneContext = require("../../../v2/managers/SceneAssistantV2Manager")
+            .getActiveSceneByChannel(message.guild.id, message.channel?.id)
+            ?.context_id;
+        if (sceneContext) return sceneContext;
+        return require("../../../v2/managers/InstallationV2Manager")
+            .resolveContext(message.guild.id, null).id;
+    } catch {
+        // Legacy/non-scene test fixtures have no Context domain. Runtime DBs do.
+        return null;
+    }
+}
 
 async function downloadAttachments(
     attachments

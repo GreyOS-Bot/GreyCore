@@ -99,6 +99,16 @@ class ValidationManagerV2 {
         );
     }
 
+    requireInstallationForGuild(installationId, guildId) {
+        return require("../../managers/InstallationV2Manager")
+            .requireInGuild(installationId, guildId);
+    }
+
+    requireInstallationForContext(installationId, guildId, contextId) {
+        return require("../../managers/InstallationV2Manager")
+            .requireInContext(installationId, guildId, contextId);
+    }
+
     getPendingForGuild(
         guildId,
         limit = 25

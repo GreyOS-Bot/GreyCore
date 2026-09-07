@@ -19,8 +19,10 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId?.startsWith("v2_player_directory_letter_")) {
-        const characters = require("../../managers/CharacterRosterV2Manager")
-            .getRoster(interaction.guildId, { includeArchived: false });
+        const rosterManager = require("../../managers/CharacterRosterV2Manager");
+        const characters = typeof rosterManager.getRosterByContext === "function"
+            ? rosterManager.getRosterByContext(interaction.guildId, null, { includeArchived: false })
+            : rosterManager.getRoster(interaction.guildId, { includeArchived: false });
         await interaction.update(
             require("../../views/player/PlayerDirectoryView").build(characters, {
                 letter: interaction.values[0],

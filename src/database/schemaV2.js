@@ -185,6 +185,8 @@ function initializeSchemaV2() {
 
             guild_id TEXT NOT NULL,
 
+            context_id TEXT,
+
             status TEXT NOT NULL DEFAULT 'draft',
 
             visibility TEXT NOT NULL DEFAULT 'private',
@@ -213,6 +215,10 @@ function initializeSchemaV2() {
             FOREIGN KEY(guild_id)
                 REFERENCES Guilds(id)
                 ON DELETE CASCADE,
+
+            FOREIGN KEY(guild_id, context_id)
+                REFERENCES Contexts(guild_id, id)
+                ON DELETE RESTRICT,
 
             UNIQUE(continuity_id, guild_id)
         )
@@ -273,6 +279,8 @@ function initializeSchemaV2() {
             idx_installations_v2_guild
         ON CharacterGuildInstallationsV2(guild_id)
     `).run();
+
+    require("../v2/repositories/InstallationContextMigration")(db);
 
     initializeProfileSchemaV2();
     initializeMediaSchemaV2();

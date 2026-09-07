@@ -18,7 +18,7 @@ function ownerLabel(ownerId) {
     return ownerId ? `<@${ownerId}>` : "Utilisateur introuvable";
 }
 
-function build(roster, requestedPage = 0) {
+function build(roster, requestedPage = 0, context = null, contextToken = null) {
     const characters = [...roster].sort((left, right) =>
         displayName(left).localeCompare(displayName(right), "fr", { sensitivity: "base" })
     );
@@ -34,7 +34,7 @@ function build(roster, requestedPage = 0) {
     ].join(" — "));
 
     const components = [];
-    if (visible.length) {
+    if (visible.length && !context) {
         components.push(new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
                 .setCustomId("v2_staff_characters_manage_character")
@@ -53,13 +53,17 @@ function build(roster, requestedPage = 0) {
     }
     components.push(new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(`v2_staff_characters_roster_page:${page - 1}`)
+            .setCustomId(contextToken
+                ? `v3_staff_character:rosterpage:${contextToken}:${page - 1}`
+                : `v2_staff_characters_roster_page:${page - 1}`)
             .setLabel("Précédent")
             .setEmoji("◀️")
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(page === 0),
         new ButtonBuilder()
-            .setCustomId(`v2_staff_characters_roster_page:${page + 1}`)
+            .setCustomId(contextToken
+                ? `v3_staff_character:rosterpage:${contextToken}:${page + 1}`
+                : `v2_staff_characters_roster_page:${page + 1}`)
             .setLabel("Suivant")
             .setEmoji("▶️")
             .setStyle(ButtonStyle.Secondary)
@@ -72,6 +76,7 @@ function build(roster, requestedPage = 0) {
             .setColor(0x5865F2)
             .setTitle("👥 Personnages du serveur")
             .setDescription([
+                context ? `Context : **${context.name}** · \`${context.id}\`` : "Vue Guild-wide historique.",
                 "Sélectionne n’importe quel personnage pour le corriger ou le supprimer, même si son ancien utilisateur Discord est introuvable.",
                 "",
                 lines.join("\n") || "Aucun personnage installé."

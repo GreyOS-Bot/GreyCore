@@ -17,6 +17,17 @@ const ALLOWED_STATUSES =
 
 class InstallationV2Manager {
 
+    resolveContext(guildId, contextId = null) {
+        if (!repository.supportsContexts()) return null;
+        const ContextRepository = require("../repositories/ContextRepository");
+        const ContextService = require("../services/contexts/ContextService");
+        const ContextResolutionService = require("../services/contexts/ContextResolutionService");
+        const contexts = new ContextService(new ContextRepository());
+        return new ContextResolutionService(contexts).resolve({
+            guildId: String(guildId), contextId
+        });
+    }
+
     getById(
         installationId
     ) {
@@ -75,6 +86,53 @@ class InstallationV2Manager {
             );
     }
 
+    getByGuildAndContext(guildId, contextId) {
+        const context = this.resolveContext(guildId, contextId);
+        return repository.getByGuildAndContext(String(guildId), context.id);
+    }
+
+    getByContinuityGuildAndContext(continuityId, guildId, contextId) {
+        const context = this.resolveContext(guildId, contextId);
+        return repository.getByContinuityGuildAndContext(continuityId, String(guildId), context.id);
+    }
+
+    requireInContext(installationId, guildId, contextId) {
+        const installation = this.requireInstallation(installationId);
+        const context = this.resolveContext(guildId, contextId);
+        if (installation.guild_id !== String(guildId) || installation.context_id !== context.id) {
+            throw new Error("Installation introuvable dans ce Context.");
+        }
+        return installation;
+    }
+
+    requireInGuild(installationId, guildId) {
+        const installation = this.requireInstallation(installationId);
+        if (installation.guild_id !== String(guildId)) {
+            throw new Error("Cette installation appartient à une autre Guild.");
+        }
+        return installation;
+    }
+
+    requireInstallationInSceneContext(installationId, scene) {
+        if (!scene?.guild_id || !scene?.context_id) {
+            throw new Error("La Scene ne possède pas de Context exact.");
+        }
+        return this.requireInContext(installationId, scene.guild_id, scene.context_id);
+    }
+
+    requireInstallationForGreyFate(installationId, operation, scene = null) {
+        if (!operation?.guild_id || !operation?.context_id) {
+            throw new Error("L’opération GreyFate ne possède pas de Context exact.");
+        }
+        const installation = this.requireInContext(
+            installationId, operation.guild_id, operation.context_id
+        );
+        if (scene && (scene.guild_id !== operation.guild_id || scene.context_id !== operation.context_id)) {
+            throw new Error("GreyFate, Scene et Installation appartiennent à des Contexts différents.");
+        }
+        return installation;
+    }
+
     getPlayableCharactersForGuild(
         guildId
     ) {
@@ -94,9 +152,17 @@ class InstallationV2Manager {
             );
     }
 
+    getPlayableCharactersForGuildAndContext(guildId, contextId) {
+        const normalizedGuildId = String(guildId || "").trim();
+        if (!normalizedGuildId) throw new Error("Le serveur est obligatoire.");
+        const context = this.resolveContext(normalizedGuildId, contextId);
+        return repository.getPlayableCharactersForGuildAndContext(normalizedGuildId, context.id);
+    }
+
     create(
         data
     ) {
+        const context = this.resolveContext(data.guildId, data.contextId ?? null);
         const existing =
             this.getAnyByContinuityAndGuild(
                 data.continuityId,
@@ -128,6 +194,8 @@ class InstallationV2Manager {
                 data.continuityId,
             guildId:
                 data.guildId,
+            contextId:
+                context?.id || null,
             status:
                 data.status
                 || InstallationStatus.DRAFT,
@@ -165,8 +233,10 @@ class InstallationV2Manager {
     createDraft({
         continuityId,
         guildId,
+        contextId = null,
         visibility = "private"
     }) {
+        const context = this.resolveContext(guildId, contextId);
         const existing =
             this.getAnyByContinuityAndGuild(
                 continuityId,
@@ -178,6 +248,9 @@ class InstallationV2Manager {
             && existing.status !==
                 InstallationStatus.ARCHIVED
         ) {
+            if (contextId !== null && existing.context_id && existing.context_id !== context.id) {
+                throw new Error("Cette histoire est déjà installée dans un autre Context de cette Guild.");
+            }
             return existing;
         }
 
@@ -205,6 +278,8 @@ class InstallationV2Manager {
                 continuityId:
                     continuity.id,
                 guildId,
+                contextId:
+                    context?.id || null,
                 visibility,
                 createdAt:
                     new Date()

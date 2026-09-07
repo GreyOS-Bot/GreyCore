@@ -5,6 +5,11 @@ const db =
 
 class InstallationRepository {
 
+    supportsContexts() {
+        return db.prepare("PRAGMA table_info(CharacterGuildInstallationsV2)")
+            .all().some(column => column.name === "context_id");
+    }
+
     getById(
         installationId
     ) {
@@ -102,6 +107,32 @@ class InstallationRepository {
         );
     }
 
+    getByGuildAndContext(
+        guildId,
+        contextId
+    ) {
+        return db.prepare(`
+            SELECT installation.*, character.proxy_name,
+                continuity.name AS continuity_name
+            FROM CharacterGuildInstallationsV2 AS installation
+            JOIN CharactersV2 AS character
+                ON character.id = installation.character_id
+            JOIN CharacterContinuitiesV2 AS continuity
+                ON continuity.id = installation.continuity_id
+            WHERE installation.guild_id = ?
+            AND installation.context_id = ?
+            ORDER BY installation.installed_at DESC
+        `).all(guildId, contextId);
+    }
+
+    getByContinuityGuildAndContext(continuityId, guildId, contextId) {
+        return db.prepare(`
+            SELECT * FROM CharacterGuildInstallationsV2
+            WHERE continuity_id = ? AND guild_id = ? AND context_id = ?
+            AND status != 'archived'
+        `).get(continuityId, guildId, contextId);
+    }
+
     getPlayableCharactersForGuild(
         guildId
     ) {
@@ -141,6 +172,26 @@ class InstallationRepository {
         );
     }
 
+    getPlayableCharactersForGuildAndContext(guildId, contextId) {
+        return db.prepare(`
+            SELECT character.id, installation.id AS installation_id,
+                installation.guild_id, installation.context_id,
+                installation.continuity_id,
+                user.discord_user_id AS owner_id,
+                character.proxy_name AS name,
+                COALESCE(installation.local_avatar_url, character.avatar_url) AS avatar
+            FROM CharacterGuildInstallationsV2 AS installation
+            JOIN CharactersV2 AS character ON character.id = installation.character_id
+            JOIN UsersV2 AS user ON user.id = character.owner_user_id
+            WHERE installation.guild_id = ? AND installation.context_id = ?
+            AND installation.status = 'approved'
+            AND installation.proxy_enabled = 1
+            AND character.character_type = 'personnage_joue'
+            AND character.is_archived = 0
+            ORDER BY character.proxy_name COLLATE NOCASE ASC, character.id ASC
+        `).all(guildId, contextId);
+    }
+
     getContinuityById(
         continuityId
     ) {
@@ -156,12 +207,18 @@ class InstallationRepository {
     insert(
         data
     ) {
+        if (!this.supportsContexts()) {
+            const legacy = { ...data };
+            delete legacy.contextId;
+            return this.insertLegacy(legacy);
+        }
         const result =
             db.prepare(`
                 INSERT INTO CharacterGuildInstallationsV2 (
                     character_id,
                     continuity_id,
                     guild_id,
+                    context_id,
                     status,
                     visibility,
                     proxy_enabled,
@@ -174,13 +231,14 @@ class InstallationRepository {
                     last_activity_at
                 )
                 VALUES (
-                    ?, ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?, ?
                 )
             `).run(
                 data.characterId,
                 data.continuityId,
                 data.guildId,
+                data.contextId,
                 data.status,
                 data.visibility,
                 data.proxyEnabled,
@@ -198,29 +256,57 @@ class InstallationRepository {
         );
     }
 
+    insertLegacy(data) {
+        const result = db.prepare(`
+            INSERT INTO CharacterGuildInstallationsV2 (
+                character_id, continuity_id, guild_id, status, visibility,
+                proxy_enabled, local_avatar_url, validated_by, validated_at,
+                rejection_reason, installed_at, updated_at, last_activity_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            data.characterId, data.continuityId, data.guildId, data.status,
+            data.visibility, data.proxyEnabled, data.localAvatarUrl,
+            data.validatedBy, data.validatedAt, data.rejectionReason,
+            data.installedAt, data.updatedAt, data.lastActivityAt
+        );
+        return this.getById(result.lastInsertRowid);
+    }
+
     insertDraft({
         characterId,
         continuityId,
         guildId,
+        contextId,
         visibility,
         createdAt
     }) {
+        if (!this.supportsContexts()) {
+            const result = db.prepare(`
+                INSERT INTO CharacterGuildInstallationsV2 (
+                    character_id, continuity_id, guild_id, status,
+                    visibility, installed_at, updated_at
+                ) VALUES (?, ?, ?, 'draft', ?, ?, ?)
+            `).run(characterId, continuityId, guildId, visibility, createdAt, createdAt);
+            return this.getById(result.lastInsertRowid);
+        }
         const result =
             db.prepare(`
                 INSERT INTO CharacterGuildInstallationsV2 (
                     character_id,
                     continuity_id,
                     guild_id,
+                    context_id,
                     status,
                     visibility,
                     installed_at,
                     updated_at
                 )
-                VALUES (?, ?, ?, 'draft', ?, ?, ?)
+                VALUES (?, ?, ?, ?, 'draft', ?, ?, ?)
             `).run(
                 characterId,
                 continuityId,
                 guildId,
+                contextId,
                 visibility,
                 createdAt,
                 createdAt
