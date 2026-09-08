@@ -1,6 +1,7 @@
 const service = require("../../services/greyfate/GreyFateIntegrationService");
 const staffPermissionDecisionService = require("../../core/services/StaffPermissionDecisionService");
 const { replyPrivate } = require("../../core/services/InteractionResponseService");
+const {ModalBuilder,TextInputBuilder,TextInputStyle,ActionRowBuilder}=require("discord.js");
 const {
     toPublicErrorMessage,
     GREYFATE_MESSAGES
@@ -19,6 +20,14 @@ module.exports = async interaction => {
         write: true
     }).allowed) throw new Error("Action réservée au duo ou au staff.");
     service.assertDuoContext(duo, { guildId: interaction.guildId, contextId: duo.context_id });
+    if(action==="greyfate_quest_answer"){
+        const step=Number(encodedOccurrence),kind=extraParts[0]||"ANSWER";
+        if(!Number.isInteger(step)||step<1||!["ANSWER","RP","FINAL"].includes(kind))throw new Error("Étape de quête invalide.");
+        const modal=new ModalBuilder().setCustomId(`greyfate_quest_submit:${duoId}:${step}:${kind}`).setTitle(kind==="FINAL"?"Votre conclusion":"Proposer une réponse");
+        if(kind==="FINAL")modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId("who").setLabel("Qui a détourné le rendez-vous ?").setStyle(TextInputStyle.Short).setMaxLength(300)),new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId("where").setLabel("Où ?").setStyle(TextInputStyle.Short).setMaxLength(300)),new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId("what").setLabel("Qu'a-t-il voulu empêcher ?").setStyle(TextInputStyle.Paragraph).setMaxLength(800)));
+        else modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId("answer").setLabel(kind==="RP"?"Résumez votre scène pour le staff":"Votre réponse").setStyle(TextInputStyle.Paragraph).setMaxLength(1500)));
+        await interaction.showModal(modal);return true;
+    }
     await interaction.deferUpdate();
     try {
         if (action === "greyfate_scene_start") { const result = await service.sceneStart(duo, interaction.user.id); if (!result.duplicate) { await interaction.editReply({ components: [] }); await service.sendAsWeaver(interaction.channel, "Le fil est noué. Votre scène commence maintenant."); } await replyPrivate(interaction, result.duplicate ? "Cette scène est déjà commencée." : "🧵 Scène ouverte."); return true; }

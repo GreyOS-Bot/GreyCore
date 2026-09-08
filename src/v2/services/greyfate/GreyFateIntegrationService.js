@@ -12,7 +12,8 @@ const SUPPORTED_EVENTS = new Set([
     "GREYFATE_EVENT_STARTED",
     "GREYFATE_DUO_CLOSURE_DUE",
     "GREYFATE_EVENT_COMPLETED",
-    "GREYFATE_EVENT_CONTINUED"
+    "GREYFATE_EVENT_CONTINUED",
+    "GREYFATE_QUEST_DELIVERY"
 ]);
 
 class GreyFateIntegrationService {
@@ -258,7 +259,7 @@ class GreyFateIntegrationService {
         if (typeof payload.operationKey !== "string" || !payload.operationKey.trim()) throw new Error("operationKey requis");
         if (typeof payload.type !== "string" || !SUPPORTED_EVENTS.has(payload.type)) throw new Error("Type d’événement invalide");
     }
-    async process(payload, executionState = { externalEffectAttempted: false }) { if (payload.type === "GREYFATE_EVENT_STARTED") return this.eventStarted(payload, executionState); if (payload.type === "GREYFATE_DUO_CLOSURE_DUE") return this.closureDue(payload, executionState); if (payload.type === "GREYFATE_EVENT_COMPLETED" || payload.type === "GREYFATE_EVENT_CONTINUED") return; throw new Error(`Événement inconnu : ${payload.type}`); }
+    async process(payload, executionState = { externalEffectAttempted: false }) { if (payload.type === "GREYFATE_EVENT_STARTED") return this.eventStarted(payload, executionState); if (payload.type === "GREYFATE_DUO_CLOSURE_DUE") return this.closureDue(payload, executionState); if (payload.type === "GREYFATE_QUEST_DELIVERY") return this.questDelivery(payload, executionState); if (payload.type === "GREYFATE_EVENT_COMPLETED" || payload.type === "GREYFATE_EVENT_CONTINUED") return; throw new Error(`Événement inconnu : ${payload.type}`); }
     entity(guildId) { return entityManager.getByGuild(guildId).find(e => e.name.toLowerCase() === "the weaver of fate" && e.is_enabled) || null; }
     async sendAsWeaver(channel, content, components = [], executionState = null, reference = null) {
         const entity = this.entity(channel.guildId);
@@ -322,6 +323,9 @@ class GreyFateIntegrationService {
         };
     }
     async closeDuo(duo, actorId) { duo = this.assertDuoContext(duo); await this.sendToFate({ type: "GREYCORE_DUO_CLOSE", operationKey: `${duo.event_id}:${duo.duo_id}:CLOSE`, eventId: duo.event_id, guildId: duo.guild_id, duoId: duo.duo_id, threadId: duo.thread_id, actorId }); const now = new Date().toISOString(); repository.markClosed(duo.duo_id, now); }
+    questButton(duoId, step) { const kind=step.kind||"ANSWER",label=step.button||(kind==="FINAL"?"Soumettre notre conclusion":kind==="RP"?"Notre scène est terminée":"Proposer une réponse");return new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`greyfate_quest_answer:${duoId}:${step.number}:${kind}`).setLabel(label).setEmoji(kind==="FINAL"?"🕸️":kind==="RP"?"🎭":"🧵").setStyle(ButtonStyle.Primary)); }
+    async questDelivery(payload, executionState = { externalEffectAttempted: false }) { const duo=this.duo(payload.duoId);if(!duo||duo.event_id!==payload.eventId||duo.guild_id!==payload.guildId||duo.thread_id!==payload.threadId)throw new Error("Livraison de quête hors contexte.");const channel=await this.resolveDuoThread(duo);let content,components=[];if(payload.decision==="START"){content=`**${payload.step.title}**\n\n${payload.step.prompt}`;components=[this.questButton(duo.duo_id,payload.step)];}else if(payload.decision==="REJECTED"){content=payload.rejection||"Vous tirez sur le mauvais fil.";}else if(payload.decision==="APPROVED"){if(payload.winner)content=`${payload.reviewedStep?.approval||"Le staff a validé votre conclusion."}\n\n**Le fil est complet. Votre duo est le premier à avoir résolu le mystère.**`;else if(payload.nextStep){content=`${payload.reviewedStep?.approval||"Cette réponse est validée par le staff."}\n\n**${payload.nextStep.title}**\n\n${payload.nextStep.prompt}`;components=[this.questButton(duo.duo_id,payload.nextStep)];}else content=payload.reviewedStep?.approval||"Cette réponse est validée par le staff.";}else throw new Error("Décision de quête invalide.");return this.sendAsWeaver(channel,content,components,executionState,this.referenceForDuo(duo)); }
+    async submitQuestAnswer(duo, actorId, stepNumber, answer, operationId) {duo=this.assertDuoContext(duo);const text=String(answer||"").trim();if(!text)throw new Error("La réponse ne peut pas être vide.");return this.sendToFate({type:"GREYCORE_QUEST_ANSWER",operationKey:`${duo.event_id}:${duo.duo_id}:QUEST:${stepNumber}:${operationId}`,eventId:duo.event_id,guildId:duo.guild_id,duoId:duo.duo_id,threadId:duo.thread_id,actorId,answer:text});}
     duo(id) { return repository.getDuo(id); }
     assertDuoContext(duo, scope) { return repository.assertDuoContext(duo, scope); }
 
