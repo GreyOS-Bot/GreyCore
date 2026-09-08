@@ -7,6 +7,9 @@ const characterManager =
 const dashboardManager =
     require("../../services/dashboard/CharacterDashboardManager");
 
+const installationManager =
+    require("../../managers/InstallationV2Manager");
+
 const characterManagementPolicy =
     require("../../core/policies/CharacterManagementPolicy");
 
@@ -49,7 +52,8 @@ async function getCharacterContext(
     interaction,
     characterId,
     {
-        requireManage = false
+        requireManage = false,
+        installationId = null
     } = {}
 ) {
     if (!interaction.guildId) {
@@ -61,15 +65,34 @@ async function getCharacterContext(
         return null;
     }
 
+    const selectedInstallation = installationId
+        ? installationManager.getById(installationId)
+        : null;
+
+    if (
+        installationId
+        && (
+            !selectedInstallation
+            || String(selectedInstallation.guild_id)
+                !== String(interaction.guildId)
+            || String(selectedInstallation.character_id)
+                !== String(characterId)
+        )
+    ) {
+        await replyError(interaction, "Installation introuvable dans ce Context.");
+        return null;
+    }
+
     const dashboardData =
         dashboardManager.getPlayableDashboardData(
             characterId,
             {
-                guildId: interaction.guildId
+                guildId: interaction.guildId,
+                continuityId: selectedInstallation?.continuity_id
             }
         );
 
-    if (!dashboardData?.continuity) {
+    if (!dashboardData?.continuity || !dashboardData?.installation) {
         await replyError(
             interaction,
             "Ce personnage n’est pas jouable sur ce serveur."
@@ -96,6 +119,7 @@ async function getCharacterContext(
         dashboardData,
         character: dashboardData.character,
         continuity: dashboardData.continuity,
+        installation: dashboardData.installation,
         canManage: manages
     };
 }
@@ -105,7 +129,8 @@ async function getAssetContext(
     assetId,
     {
         requireManage = false,
-        requireRead = false
+        requireRead = false,
+        contextId = null
     } = {}
 ) {
     const asset = assetManager.getById(assetId);
@@ -113,6 +138,7 @@ async function getAssetContext(
     if (
         !asset
         || String(asset.guild_id) !== String(interaction.guildId)
+        || contextId && asset.context_id !== contextId
     ) {
         await replyError(
             interaction,
@@ -141,11 +167,16 @@ async function getAssetContext(
             character.id,
             {
                 guildId: interaction.guildId,
-                continuityId: asset.continuity_id
+                continuityId: asset.continuity_id,
+                contextId: asset.context_id
             }
         );
 
-    if (!dashboardData) {
+    if (
+        !dashboardData
+        || Number(dashboardData.installation?.id)
+            !== Number(asset.installation_id)
+    ) {
         await replyError(
             interaction,
             "Ce bien n’est plus lié à une continuité jouable."
@@ -186,6 +217,7 @@ async function getAssetContext(
         asset,
         character,
         continuity: dashboardData.continuity,
+        installation: dashboardData.installation,
         dashboardData,
         canManage: manages
     };

@@ -115,6 +115,8 @@ function initializeAssetSchemaV2() {
             created_at DESC
         )
     `).run();
+
+    require("../v2/repositories/InstallationAssetSchema")(db);
 }
 
 module.exports =

@@ -62,6 +62,10 @@ test(
                         continuity: {
                             id: "continuity"
                         },
+                        installation: {
+                            id: 7,
+                            context_id: "context"
+                        },
                         character: {
                             proxy_name: "Alba"
                         }
@@ -69,7 +73,8 @@ test(
                 getAssetContext:
                     async () => ({
                         asset: {
-                            id: 8
+                            id: 8,
+                            context_id: "context"
                         }
                     })
             }

@@ -22,10 +22,10 @@ function imageUploadLabel(
         .setFileUploadComponent(image);
 }
 
-function createAssetModal(characterId, type) {
+function createAssetModal(characterId, type, installationId = null) {
     const modal = new ModalBuilder()
         .setCustomId(
-            `v2_asset_create_modal:${characterId}:${type.id}`
+            `v2_asset_create_modal:${characterId}:${type.id}:${installationId || ""}`
         )
         .setTitle(`Ajouter : ${type.label}`);
 
@@ -68,7 +68,7 @@ function createAssetModal(characterId, type) {
 function editAssetModal(asset) {
     const modal = new ModalBuilder()
         .setCustomId(
-            `v2_asset_edit_modal:${asset.id}:${asset.character_id}`
+            `v2_asset_edit_modal:${asset.id}:${asset.character_id}:${asset.context_id}`
         )
         .setTitle("Modifier le bien");
 
@@ -111,10 +111,10 @@ function editAssetModal(asset) {
     return modal;
 }
 
-function transferSearchModal(assetId, characterId) {
+function transferSearchModal(assetId, characterId, contextId = null) {
     const modal = new ModalBuilder()
         .setCustomId(
-            `v2_asset_transfer_modal:${assetId}:${characterId}`
+            `v2_asset_transfer_modal:${assetId}:${characterId}:${contextId || ""}`
         )
         .setTitle("Offrir ou transférer un bien");
 

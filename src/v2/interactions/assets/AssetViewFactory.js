@@ -5,14 +5,14 @@ const {
 
 const UI = require("../../framework");
 
-function typePicker(characterId, types) {
+function typePicker(characterId, installationId, types) {
     return {
         content: "Choisis le type du bien à ajouter.",
         components: [
             new ActionRowBuilder().addComponents(
                 new StringSelectMenuBuilder()
                     .setCustomId(
-                        `v2_asset_create_type:${characterId}`
+                            `v2_asset_create_type:${characterId}:${installationId || ""}`
                     )
                     .setPlaceholder("Type de bien")
                     .addOptions(
@@ -65,22 +65,22 @@ function detail(asset, { canManage = false } = {}) {
         ? [
             new ActionRowBuilder().addComponents(
                 UI.button.primary({
-                    id: `v2_asset_edit:${asset.id}:${asset.character_id}`,
+                    id: `v2_asset_edit:${asset.id}:${asset.character_id}:${asset.context_id}`,
                     label: "Modifier",
                     emoji: "✏️"
                 }),
                 UI.button.primary({
-                    id: `v2_asset_transfer:${asset.id}:${asset.character_id}`,
+                    id: `v2_asset_transfer:${asset.id}:${asset.character_id}:${asset.context_id}`,
                     label: "Offrir / transférer",
                     emoji: "🎁"
                 }),
                 UI.button.secondary({
-                    id: `v2_asset_history:${asset.id}:${asset.character_id}`,
+                    id: `v2_asset_history:${asset.id}:${asset.character_id}:${asset.context_id}`,
                     label: "Historique",
                     emoji: "📚"
                 }),
                 UI.button.danger({
-                    id: `v2_asset_delete:${asset.id}:${asset.character_id}`,
+                    id: `v2_asset_delete:${asset.id}:${asset.character_id}:${asset.context_id}`,
                     label: "Supprimer",
                     emoji: "🗑️"
                 })
@@ -194,7 +194,7 @@ function transferCandidates(asset, candidates) {
             new ActionRowBuilder().addComponents(
                 new StringSelectMenuBuilder()
                     .setCustomId(
-                        `v2_asset_transfer_select:${asset.id}:${asset.character_id}`
+                            `v2_asset_transfer_select:${asset.id}:${asset.character_id}:${asset.context_id}`
                     )
                     .setPlaceholder("Personnage destinataire")
                     .addOptions(
@@ -206,7 +206,7 @@ function transferCandidates(asset, candidates) {
                                 candidate.continuity.name
                                 || "Continuité active"
                             ).slice(0, 100),
-                            value: String(candidate.continuity.id)
+                            value: String(candidate.installation.id)
                         }))
                     )
             )
@@ -226,12 +226,12 @@ function deleteConfirmation(asset) {
         components: [
             new ActionRowBuilder().addComponents(
                 UI.button.danger({
-                    id: `v2_asset_delete_confirm:${asset.id}:${asset.character_id}`,
+                    id: `v2_asset_delete_confirm:${asset.id}:${asset.character_id}:${asset.context_id}`,
                     label: "Supprimer définitivement",
                     emoji: "🗑️"
                 }),
                 UI.button.secondary({
-                    id: `v2_asset_open:${asset.id}`,
+                    id: `v2_asset_open:${asset.id}:${asset.context_id}`,
                     label: "Annuler",
                     emoji: "⬅️"
                 })

@@ -62,12 +62,13 @@ function getUploadedImageUrl(
     return attachment.url;
 }
 
-async function openTypePicker(interaction, characterId) {
+async function openTypePicker(interaction, characterId, installationId = null) {
     const context = await accessService.getCharacterContext(
         interaction,
         characterId,
         {
             requireManage: true
+            ,installationId
         }
     );
 
@@ -88,16 +89,17 @@ async function openTypePicker(interaction, characterId) {
 
     return replyPrivate(
         interaction,
-        viewFactory.typePicker(characterId, types)
+        viewFactory.typePicker(characterId, installationId, types)
     );
 }
 
-async function showCreateModal(interaction, characterId, typeId) {
+async function showCreateModal(interaction, characterId, typeId, installationId = null) {
     const context = await accessService.getCharacterContext(
         interaction,
         characterId,
         {
             requireManage: true
+            ,installationId
         }
     );
 
@@ -119,16 +121,17 @@ async function showCreateModal(interaction, characterId, typeId) {
     }
 
     return interaction.showModal(
-        modalFactory.createAssetModal(characterId, type)
+        modalFactory.createAssetModal(characterId, type, installationId)
     );
 }
 
-async function saveCreateModal(interaction, characterId, typeId) {
+async function saveCreateModal(interaction, characterId, typeId, installationId = null) {
     const context = await accessService.getCharacterContext(
         interaction,
         characterId,
         {
             requireManage: true
+            ,installationId
         }
     );
 
@@ -139,6 +142,8 @@ async function saveCreateModal(interaction, characterId, typeId) {
     try {
         const asset = assetManager.create({
         guildId: interaction.guildId,
+        contextId: context.installation.context_id,
+        installationId: context.installation.id,
         continuityId: context.continuity.id,
         assetTypeId: typeId,
         name: interaction.fields.getTextInputValue("name"),
@@ -160,10 +165,11 @@ async function saveCreateModal(interaction, characterId, typeId) {
     }
 }
 
-async function openDetail(interaction, assetId) {
+async function openDetail(interaction, assetId, contextId = null) {
     const context = await accessService.getAssetContext(
         interaction,
-        assetId
+        assetId,
+        { contextId }
     );
 
     if (!context) {
@@ -180,12 +186,13 @@ async function openDetail(interaction, assetId) {
     );
 }
 
-async function showEditModal(interaction, assetId) {
+async function showEditModal(interaction, assetId, contextId = null) {
     const context = await accessService.getAssetContext(
         interaction,
         assetId,
         {
-            requireManage: true
+            requireManage: true,
+            contextId
         }
     );
 
@@ -198,12 +205,13 @@ async function showEditModal(interaction, assetId) {
     );
 }
 
-async function saveEditModal(interaction, assetId) {
+async function saveEditModal(interaction, assetId, contextId = null) {
     const context = await accessService.getAssetContext(
         interaction,
         assetId,
         {
-            requireManage: true
+            requireManage: true,
+            contextId
         }
     );
 
@@ -229,7 +237,11 @@ async function saveEditModal(interaction, assetId) {
 
         const asset = assetManager.update(
             assetId,
-            changes
+            changes,
+            {
+                guildId: interaction.guildId,
+                contextId: context.asset.context_id
+            }
         );
 
         return replyPrivate(
@@ -244,12 +256,13 @@ async function saveEditModal(interaction, assetId) {
     }
 }
 
-async function showTransferModal(interaction, assetId) {
+async function showTransferModal(interaction, assetId, contextId = null) {
     const context = await accessService.getAssetContext(
         interaction,
         assetId,
         {
-            requireManage: true
+            requireManage: true,
+            contextId
         }
     );
 
@@ -260,17 +273,19 @@ async function showTransferModal(interaction, assetId) {
     return interaction.showModal(
         modalFactory.transferSearchModal(
             context.asset.id,
-            context.character.id
+            context.character.id,
+            context.asset.context_id
         )
     );
 }
 
-async function showTransferHistory(interaction, assetId) {
+async function showTransferHistory(interaction, assetId, contextId = null) {
     const context = await accessService.getAssetContext(
         interaction,
         assetId,
         {
-            requireRead: true
+            requireRead: true,
+            contextId
         }
     );
 
@@ -283,18 +298,23 @@ async function showTransferHistory(interaction, assetId) {
         viewFactory.transferHistory(
             context.asset,
             assetManager.getTransfers(
-                assetId
+                assetId,
+                {
+                    guildId: interaction.guildId,
+                    contextId: context.asset.context_id
+                }
             )
         )
     );
 }
 
-async function findTransferCandidates(interaction, assetId) {
+async function findTransferCandidates(interaction, assetId, contextId = null) {
     const context = await accessService.getAssetContext(
         interaction,
         assetId,
         {
-            requireManage: true
+            requireManage: true,
+            contextId
         }
     );
 
@@ -311,7 +331,8 @@ async function findTransferCandidates(interaction, assetId) {
             interaction.guildId,
             query,
             {
-                excludeCharacterId: context.character.id
+                excludeCharacterId: context.character.id,
+                contextId: context.asset.context_id
             }
         )
         .filter(candidate =>
@@ -334,12 +355,13 @@ async function findTransferCandidates(interaction, assetId) {
     );
 }
 
-async function transfer(interaction, assetId, targetContinuityId) {
+async function transfer(interaction, assetId, targetInstallationId, contextId = null) {
     const context = await accessService.getAssetContext(
         interaction,
         assetId,
         {
-            requireManage: true
+            requireManage: true,
+            contextId
         }
     );
 
@@ -348,8 +370,10 @@ async function transfer(interaction, assetId, targetContinuityId) {
     }
 
     const asset = assetManager.transfer(assetId, {
-        toContinuityId: targetContinuityId,
-        expectedContinuityId: context.asset.continuity_id,
+        guildId: interaction.guildId,
+        contextId: context.asset.context_id,
+        toInstallationId: targetInstallationId,
+        expectedInstallationId: context.asset.installation_id,
         transferredBy: interaction.user.id
     });
 
@@ -485,12 +509,13 @@ async function saveTypeModal(interaction, characterId) {
     );
 }
 
-async function confirmDelete(interaction, assetId) {
+async function confirmDelete(interaction, assetId, contextId = null) {
     const context = await accessService.getAssetContext(
         interaction,
         assetId,
         {
-            requireManage: true
+            requireManage: true,
+            contextId
         }
     );
 
@@ -503,12 +528,13 @@ async function confirmDelete(interaction, assetId) {
     );
 }
 
-async function deleteConfirmed(interaction, assetId) {
+async function deleteConfirmed(interaction, assetId, contextId = null) {
     const context = await accessService.getAssetContext(
         interaction,
         assetId,
         {
-            requireManage: true
+            requireManage: true,
+            contextId
         }
     );
 
@@ -516,7 +542,10 @@ async function deleteConfirmed(interaction, assetId) {
         return;
     }
 
-    assetManager.delete(assetId);
+    assetManager.delete(assetId, {
+        guildId: interaction.guildId,
+        contextId: context.asset.context_id
+    });
 
     return characterAssetsPage.execute(
         interaction,

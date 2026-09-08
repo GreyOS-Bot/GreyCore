@@ -18,6 +18,9 @@ const profileManager =
 const relationshipManager =
     require("../../managers/RelationshipV2Manager");
 
+const assetManager =
+    require("../../managers/AssetV2Manager");
+
 const encounterManager =
     require("../../managers/EncounterV2Manager");
 
@@ -804,7 +807,16 @@ class CharacterDashboardManager {
                 0,
 
             inventory:
-                0,
+                installation
+                    && typeof assetManager
+                        .countForInstallationInContext
+                        === "function"
+                    ? assetManager.countForInstallationInContext(
+                        installation.id,
+                        installation.guild_id,
+                        installation.context_id
+                    )
+                    : 0,
 
             vehicles:
                 0,

@@ -507,9 +507,9 @@ Les biens sont rattachés à une continuité et à un serveur : ils peuvent donc
 
 `AssetTypesV2` contient les catégories configurées par le serveur. GreyCore installe les catégories Véhicule, Propriété, Entreprise, Animal et Autre bien, puis le staff peut en ajouter.
 
-`ContinuityAssetsV2` contient les biens, leur nom, leur description, leurs caractéristiques et, si besoin, un lien d’image. Un bien possède un seul propriétaire à la fois.
+Depuis la Phase 3F, `InstallationAssetsV2` contient les biens runtime et rattache chaque propriétaire à une Installation, une Guild et un Context exacts. `InstallationAssetTransfersV2` conserve les transferts entre Installations du même Context.
 
-`ContinuityAssetTransfersV2` conserve chaque transfert entre deux continuités afin de préserver l’historique RP.
+`ContinuityAssetsV2` et `ContinuityAssetTransfersV2` sont conservées comme archives et sources de migration legacy en lecture seule.
 
 ---
 

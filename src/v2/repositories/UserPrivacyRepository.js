@@ -147,6 +147,8 @@ class UserPrivacyRepository {
             ["CharacterChangeRequestsV2", "submitted_by"],
             ["ContinuityAssetsV2", "created_by"],
             ["ContinuityAssetTransfersV2", "transferred_by"],
+            ["InstallationAssetsV2", "created_by"],
+            ["InstallationAssetTransfersV2", "transferred_by"],
             ["GuildSceneAssistantScopesV2", "created_by"],
             ["PendingRelationships", "requested_by"],
             ["PendingRelationships", "target_owner_id"],

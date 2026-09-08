@@ -191,6 +191,7 @@ function loadManagers() {
     const modules = [
         "../src/v2/repositories/AssetTypeRepository",
         "../src/v2/repositories/AssetRepository",
+        "../src/v2/repositories/InstallationAssetRepository",
         "../src/v2/managers/AssetTypeV2Manager",
         "../src/v2/managers/AssetV2Manager"
     ];
@@ -209,7 +210,7 @@ function loadManagers() {
             "../src/v2/managers/AssetV2Manager"
         ),
         assetRepository: require(
-            "../src/v2/repositories/AssetRepository"
+            "../src/v2/repositories/InstallationAssetRepository"
         )
     };
 }
@@ -246,8 +247,15 @@ function createAssetTables(database) {
             character_id TEXT NOT NULL,
             continuity_id TEXT NOT NULL,
             guild_id TEXT NOT NULL,
+            context_id TEXT NOT NULL,
             status TEXT NOT NULL,
             proxy_enabled INTEGER NOT NULL
+        );
+
+        CREATE TABLE Contexts (
+            id TEXT PRIMARY KEY,
+            guild_id TEXT NOT NULL,
+            is_active INTEGER NOT NULL DEFAULT 1
         );
 
         CREATE TABLE AssetTypesV2 (
@@ -292,6 +300,9 @@ function createAssetTables(database) {
         INSERT INTO Guilds (id, name, created_at)
         VALUES ('guild-a', 'GreyOS', '2026-01-01');
 
+        INSERT INTO Contexts(id,guild_id,is_active)
+        VALUES('context-a','guild-a',1);
+
         INSERT INTO UsersV2 (id, discord_user_id)
         VALUES
             (1, 'discord-a'),
@@ -325,12 +336,15 @@ function createAssetTables(database) {
             character_id,
             continuity_id,
             guild_id,
+            context_id,
             status,
             proxy_enabled
         )
         VALUES
-            (1, 'character-a', 'continuity-a', 'guild-a', 'approved', 1),
-            (2, 'character-b', 'continuity-b', 'guild-a', 'approved', 1),
-            (3, 'character-c', 'continuity-c', 'guild-a', 'approved', 1);
+            (1, 'character-a', 'continuity-a', 'guild-a', 'context-a', 'approved', 1),
+            (2, 'character-b', 'continuity-b', 'guild-a', 'context-a', 'approved', 1),
+            (3, 'character-c', 'continuity-c', 'guild-a', 'context-a', 'approved', 1);
     `);
+
+    require("../src/v2/repositories/InstallationAssetSchema")(database);
 }

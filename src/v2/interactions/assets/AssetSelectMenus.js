@@ -8,7 +8,8 @@ async function handleAssetSelectMenus(interaction) {
         await handler.showCreateModal(
             interaction,
             id.split(":")[1],
-            Number(interaction.values[0])
+            Number(interaction.values[0]),
+            id.split(":")[2] || null
         );
 
         return true;
@@ -17,7 +18,8 @@ async function handleAssetSelectMenus(interaction) {
     if (id.startsWith("v2_asset_select:")) {
         await handler.openDetail(
             interaction,
-            Number(interaction.values[0])
+            Number(interaction.values[0]),
+            id.split(":")[2] || null
         );
 
         return true;
@@ -27,7 +29,8 @@ async function handleAssetSelectMenus(interaction) {
         await handler.transfer(
             interaction,
             Number(id.split(":")[1]),
-            interaction.values[0]
+            interaction.values[0],
+            id.split(":")[3] || null
         );
 
         return true;

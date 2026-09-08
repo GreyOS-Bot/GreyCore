@@ -17,7 +17,8 @@ module.exports =
             await handler.saveCreateModal(
                 interaction,
                 parts[1],
-                Number(parts[2])
+                Number(parts[2]),
+                parts[3] || null
             );
 
             return true;
@@ -26,7 +27,8 @@ module.exports =
         if (id.startsWith("v2_asset_edit_modal:")) {
             await handler.saveEditModal(
                 interaction,
-                Number(parts[1])
+                Number(parts[1]),
+                parts[3] || null
             );
 
             return true;
@@ -35,7 +37,8 @@ module.exports =
         if (id.startsWith("v2_asset_transfer_modal:")) {
             await handler.findTransferCandidates(
                 interaction,
-                Number(parts[1])
+                Number(parts[1]),
+                parts[3] || null
             );
 
             return true;

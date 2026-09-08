@@ -1,5 +1,5 @@
 const repository =
-    require("../repositories/AssetRepository");
+    require("../repositories/InstallationAssetRepository");
 
 const typeManager =
     require("./AssetTypeV2Manager");
@@ -11,14 +11,37 @@ class AssetV2Manager {
     }
 
     getForContinuity(guildId, continuityId) {
-        return repository.getForContinuity(guildId, continuityId);
+        const candidates = repository.getCandidates(guildId, continuityId);
+        return candidates.length === 1
+            ? repository.getForInstallation(candidates[0].id, candidates[0].context_id)
+            : [];
     }
 
     countForContinuity(guildId, continuityId) {
-        return repository.countForContinuity(guildId, continuityId);
+        return this.getForContinuity(guildId, continuityId).length;
     }
 
-    getTransfers(assetId) {
+    getForInstallationInContext(installationId, guildId, contextId) {
+        const installation = this.requireInstallation(
+            installationId,
+            guildId,
+            contextId,
+            false
+        );
+
+        return repository.getForInstallation(
+            installation.id,
+            installation.context_id
+        );
+    }
+
+    countForInstallationInContext(installationId, guildId, contextId) {
+        this.requireInstallation(installationId, guildId, contextId, false);
+        return repository.countForInstallation(installationId, contextId);
+    }
+
+    getTransfers(assetId, scope = {}) {
+        this.requireAssetScope(this.requireAsset(assetId), scope, false);
         return repository.getTransfers(assetId);
     }
 
@@ -33,18 +56,14 @@ class AssetV2Manager {
             throw new Error("Ce type de bien n’est pas disponible.");
         }
 
-        if (!repository.getContinuityForGuild(
-            data.guildId,
-            data.continuityId
-        )) {
-            throw new Error("Cette continuité n’est pas jouable sur ce serveur.");
-        }
+        const installation = this.resolveInstallation(data, true);
 
         const now = new Date().toISOString();
 
         return repository.create({
             guildId: data.guildId,
-            continuityId: data.continuityId,
+            contextId: installation.context_id,
+            installationId: installation.id,
             assetTypeId: type.id,
             name: this.normalizeRequired(data.name, "Le nom du bien est obligatoire."),
             description: this.normalizeOptional(data.description, 1_500),
@@ -56,8 +75,9 @@ class AssetV2Manager {
         });
     }
 
-    update(assetId, data) {
+    update(assetId, data, scope = {}) {
         const asset = this.requireAsset(assetId);
+        this.requireAssetScope(asset, scope, true);
 
         return repository.update(asset.id, {
             name: data.name === undefined
@@ -78,34 +98,41 @@ class AssetV2Manager {
 
     transfer(assetId, data) {
         const asset = this.requireAsset(assetId);
-        const expectedContinuityId =
-            data.expectedContinuityId === undefined
-                ? asset.continuity_id
-                : data.expectedContinuityId;
-        const target = repository.getContinuityForGuild(
-            asset.guild_id,
-            data.toContinuityId
-        );
+        this.requireAssetScope(asset, data, true);
+        const expectedInstallationId = data.expectedInstallationId === undefined
+            ? data.expectedContinuityId === undefined
+                ? asset.installation_id
+                : String(data.expectedContinuityId) === String(asset.continuity_id)
+                    ? asset.installation_id
+                    : -1
+            : Number(data.expectedInstallationId);
+        const target = this.resolveInstallation({
+            guildId: asset.guild_id,
+            contextId: asset.context_id,
+            installationId: data.toInstallationId,
+            continuityId: data.toContinuityId
+        }, true);
 
         if (!target) {
             throw new Error("Le personnage choisi n’est pas jouable sur ce serveur.");
         }
 
-        if (target.id === asset.continuity_id) {
+        if (target.id === asset.installation_id) {
             throw new Error("Ce bien appartient déjà à ce personnage.");
         }
 
         return repository.transfer(asset, {
-            toContinuityId: target.id,
-            expectedContinuityId,
+            toInstallationId: target.id,
+            expectedInstallationId,
             transferredBy: String(data.transferredBy || "").trim(),
             note: this.normalizeOptional(data.note, 500),
             createdAt: new Date().toISOString()
         });
     }
 
-    delete(assetId) {
+    delete(assetId, scope = {}) {
         const asset = this.requireAsset(assetId);
+        this.requireAssetScope(asset, scope, true);
 
         repository.delete(asset.id);
 
@@ -120,6 +147,76 @@ class AssetV2Manager {
         }
 
         return asset;
+    }
+
+    requireAssetScope(asset, scope = {}, write = false) {
+        if (
+            scope.guildId
+            && String(asset.guild_id) !== String(scope.guildId)
+            || scope.contextId
+            && asset.context_id !== scope.contextId
+        ) {
+            throw new Error("Bien introuvable dans ce Context.");
+        }
+
+        if (write && !asset.context_is_active) {
+            throw new Error("Ce Context est inactif.");
+        }
+
+        return asset;
+    }
+
+    requireInstallation(installationId, guildId, contextId, write = true) {
+        const installation = repository.getInstallation(installationId);
+
+        if (
+            !installation
+            || String(installation.guild_id) !== String(guildId)
+            || contextId && installation.context_id !== contextId
+            || installation.status !== "approved"
+            || Number(installation.is_archived) === 1
+            || write && !installation.context_is_active
+        ) {
+            throw new Error("Cette Installation n’est pas disponible dans ce Context.");
+        }
+
+        return installation;
+    }
+
+    resolveInstallation(data, write = true) {
+        if (data.installationId) {
+            return this.requireInstallation(
+                data.installationId,
+                data.guildId,
+                data.contextId,
+                write
+            );
+        }
+
+        const candidates = repository.getCandidates(
+            data.guildId,
+            data.continuityId,
+            data.contextId || null
+        );
+
+        if (candidates.length !== 1) {
+            throw new Error("La Continuity ne détermine pas une Installation unique dans ce Context.");
+        }
+
+        return this.requireInstallation(
+            candidates[0].id,
+            data.guildId,
+            data.contextId,
+            write
+        );
+    }
+
+    getLegacyAssets(guildId) {
+        return repository.getLegacyAssets(guildId);
+    }
+
+    getLegacyTransfers(guildId) {
+        return repository.getLegacyTransfers(guildId);
     }
 
     normalizeRequired(value, message) {

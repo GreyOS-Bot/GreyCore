@@ -34,8 +34,8 @@ class StaffDomainStatsRepository {
     getBankStats(guildId) {
         return {
             types: db.prepare(`SELECT COUNT(*) AS total FROM AssetTypesV2 WHERE guild_id = ? AND is_archived = 0`).get(guildId).total,
-            assets: db.prepare(`SELECT COUNT(*) AS total FROM ContinuityAssetsV2 WHERE guild_id = ?`).get(guildId).total,
-            transfers: db.prepare(`SELECT COUNT(*) AS total FROM ContinuityAssetTransfersV2 WHERE guild_id = ?`).get(guildId).total
+            assets: db.prepare(`SELECT COUNT(*) AS total FROM InstallationAssetsV2 WHERE guild_id = ?`).get(guildId).total,
+            transfers: db.prepare(`SELECT COUNT(*) AS total FROM InstallationAssetTransfersV2 WHERE guild_id = ?`).get(guildId).total
         };
     }
 
@@ -46,12 +46,7 @@ class StaffDomainStatsRepository {
             pending: db.prepare(`
                 SELECT COUNT(DISTINCT pending.id) AS total
                 FROM PendingInstallationRelationshipsV2 AS pending
-                JOIN CharacterGuildInstallationsV2 AS installation
-                    ON installation.continuity_id IN (
-                        pending.requester_continuity_id,
-                        pending.target_continuity_id
-                    )
-                WHERE installation.guild_id = ? AND pending.status = 'pending'
+                WHERE pending.guild_id = ? AND pending.status = 'pending'
             `).get(guildId).total
         };
     }

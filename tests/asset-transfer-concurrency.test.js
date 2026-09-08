@@ -40,8 +40,9 @@ test(
                 getAssetContext:
                     async () => ({
                         asset: {
-                            continuity_id:
-                                "continuity-a"
+                            continuity_id: "continuity-a",
+                            installation_id: 1,
+                            context_id: "context-a"
                         },
                         character: {
                             proxy_name:
@@ -104,10 +105,11 @@ test(
         assert.deepEqual(
             receivedData,
             {
-                toContinuityId:
+                toInstallationId:
                     "continuity-b",
-                expectedContinuityId:
-                    "continuity-a",
+                expectedInstallationId: 1,
+                guildId: "guild",
+                contextId: "context-a",
                 transferredBy:
                     "discord-a"
             }

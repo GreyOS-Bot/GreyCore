@@ -73,7 +73,7 @@ class CharacterAssetsPage {
         if (canManage) {
             const managementButtons = [
                 UI.button.success({
-                    id: `v2_asset_add:${character.id}`,
+                    id: `v2_asset_add:${character.id}:${dashboardData.installation.id}`,
                     label: "Ajouter un bien",
                     emoji: "➕"
                 })
@@ -101,7 +101,7 @@ class CharacterAssetsPage {
                 new ActionRowBuilder().addComponents(
                     new StringSelectMenuBuilder()
                         .setCustomId(
-                            `v2_asset_select:${character.id}`
+                            `v2_asset_select:${character.id}:${dashboardData.installation.context_id}`
                         )
                         .setPlaceholder("Consulter un bien")
                         .addOptions(
@@ -156,9 +156,10 @@ class CharacterAssetsPage {
             });
         }
 
-        const assets = assetManager.getForContinuity(
+        const assets = assetManager.getForInstallationInContext(
+            dashboardData.installation.id,
             interaction.guildId,
-            dashboardData.continuity.id
+            dashboardData.installation.context_id
         );
 
         return interaction.update(
