@@ -39,12 +39,15 @@ class DashboardRepository {
     getSearchableCharacterReferences(
         guildId,
         excludeCharacterId,
-        requireProxyEnabled = true
+        requireProxyEnabled = true,
+        contextId = null
     ) {
         return db.prepare(`
             SELECT
                 character.id AS character_id,
-                continuity.id AS continuity_id
+                continuity.id AS continuity_id,
+                installation.id AS installation_id,
+                installation.context_id
 
             FROM CharacterGuildInstallationsV2
                 AS installation
@@ -59,6 +62,7 @@ class DashboardRepository {
                     installation.continuity_id
 
             WHERE installation.guild_id = ?
+            AND (? IS NULL OR installation.context_id = ?)
             AND installation.status = 'approved'
             AND (
                 ? = 0
@@ -76,6 +80,8 @@ class DashboardRepository {
                     COLLATE NOCASE ASC
         `).all(
             guildId,
+            contextId,
+            contextId,
             requireProxyEnabled
                 ? 1
                 : 0,

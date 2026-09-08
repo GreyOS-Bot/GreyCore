@@ -17,7 +17,7 @@ const INVENTORY_PAGE_SIZE = 50;
 const METRICS = Object.freeze([
     Object.freeze({ key: "narrative.characters.total", query: "SELECT COUNT(*) FROM CharactersV2 WHERE is_archived = 0" }),
     Object.freeze({ key: "narrative.scenes.active", query: "SELECT COUNT(*) FROM ScenesV2 WHERE lower(status) = 'active'" }),
-    Object.freeze({ key: "narrative.relationships.total", query: "SELECT COUNT(*) FROM ContinuityRelationshipsV2" }),
+    Object.freeze({ key: "narrative.relationships.total", query: "SELECT COUNT(*) FROM InstallationRelationshipsV2" }),
     Object.freeze({ key: "narrative.continuities.total", query: "SELECT COUNT(*) FROM CharacterContinuitiesV2 WHERE is_archived = 0" })
 ]);
 

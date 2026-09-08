@@ -23,6 +23,7 @@ test(
                 isolated.database
             );
 
+            require("../src/v2/repositories/InstallationRelationshipSchema")(isolated.database);
             const manager =
                 loadManager();
 
@@ -115,14 +116,14 @@ test(
 
             const forRequester =
                 manager
-                    .getDisplayRelationships(
-                        "continuity-a"
+                    .getDisplayRelationshipsForInstallation(
+                        1, "guild", "context"
                     )[0];
 
             const forTarget =
                 manager
-                    .getDisplayRelationships(
-                        "continuity-b"
+                    .getDisplayRelationshipsForInstallation(
+                        2, "guild", "context"
                     )[0];
 
             assert.equal(
@@ -250,8 +251,8 @@ test(
             );
             assert.equal(
                 manager
-                    .getForContinuity(
-                        "continuity-a"
+                    .getForInstallationInContext(
+                        1, "guild", "context"
                     )
                     .length,
                 0
@@ -433,6 +434,12 @@ function createRelationshipTables(
                 PRIMARY KEY
         );
 
+        CREATE TABLE Contexts (
+            id TEXT PRIMARY KEY,
+            guild_id TEXT NOT NULL,
+            is_active INTEGER NOT NULL DEFAULT 1
+        );
+
         CREATE TABLE UsersV2 (
             id TEXT
                 PRIMARY KEY,
@@ -466,6 +473,14 @@ function createRelationshipTables(
             firstname TEXT,
             lastname TEXT,
             alias TEXT
+        );
+
+        CREATE TABLE CharacterGuildInstallationsV2 (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            character_id TEXT NOT NULL,
+            continuity_id TEXT NOT NULL,
+            guild_id TEXT NOT NULL,
+            context_id TEXT NOT NULL
         );
 
         CREATE TABLE RelationshipTypes (
@@ -535,6 +550,9 @@ function createRelationshipTables(
         INSERT INTO Guilds (id)
         VALUES ('guild');
 
+        INSERT INTO Contexts(id,guild_id,is_active)
+        VALUES ('context','guild',1);
+
         INSERT INTO UsersV2 (
             id,
             discord_user_id
@@ -575,6 +593,11 @@ function createRelationshipTables(
             'Salazar',
             NULL
         );
+
+        INSERT INTO CharacterGuildInstallationsV2(character_id,continuity_id,guild_id,context_id)
+        VALUES ('character-a','continuity-a','guild','context'),
+               ('character-b','continuity-b','guild','context'),
+               ('character-c','continuity-c','guild','context');
 
         INSERT INTO RelationshipTypes (
             id,

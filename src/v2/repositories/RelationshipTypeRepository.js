@@ -84,6 +84,8 @@ class RelationshipTypeRepository {
             "SELECT COUNT(*) AS total FROM CharacterRelationships WHERE guild_id = ? AND relationship_type_id = ?",
             "SELECT COUNT(*) AS total FROM PendingRelationships WHERE guild_id = ? AND relationship_type_id = ?",
             "SELECT COUNT(*) AS total FROM ContinuityRelationshipsV2 WHERE guild_id = ? AND relationship_type_id = ?",
+            "SELECT COUNT(*) AS total FROM InstallationRelationshipsV2 WHERE guild_id = ? AND relationship_type_id = ?",
+            "SELECT COUNT(*) AS total FROM PendingInstallationRelationshipsV2 WHERE guild_id = ? AND relationship_type_id = ?",
             `SELECT COUNT(DISTINCT pending.id) AS total
              FROM PendingContinuityRelationshipsV2 AS pending
              JOIN CharacterGuildInstallationsV2 AS installation

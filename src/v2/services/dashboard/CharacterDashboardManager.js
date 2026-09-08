@@ -209,11 +209,6 @@ class CharacterDashboardManager {
                 continuity.id
             );
 
-        const counts =
-            this.getCounts(
-                continuity.id
-            );
-
         const guildInstallation = options.guildId
             ? installationManager
                 .getByCharacter(character.id)
@@ -222,6 +217,12 @@ class CharacterDashboardManager {
                     && installation.continuity_id === continuity.id
                 )
             : null;
+
+        const counts =
+            this.getCounts(
+                continuity.id,
+                guildInstallation
+            );
 
         const dashboardCharacter = {
 
@@ -582,7 +583,8 @@ class CharacterDashboardManager {
         query,
         {
             excludeCharacterId = null,
-            limit = 25
+            limit = 25,
+            contextId = null
         } = {},
         requireProxyEnabled = true
     ) {
@@ -615,7 +617,8 @@ class CharacterDashboardManager {
                 .getSearchableCharacterReferences(
                     guildId,
                     excludeCharacterId,
-                    requireProxyEnabled
+                    requireProxyEnabled,
+                    contextId
                 );
 
         const seenCharacterIds =
@@ -703,6 +706,10 @@ class CharacterDashboardManager {
                             displayName
                     },
                     continuity,
+                    installationId:
+                        row.installation_id,
+                    contextId:
+                        row.context_id,
                     characterId:
                         character.id,
                     continuityId:
@@ -755,7 +762,8 @@ class CharacterDashboardManager {
      * à une continuité.
      */
     getCounts(
-        continuityId
+        continuityId,
+        installation = null
     ) {
 
         if (!continuityId) {
@@ -767,11 +775,16 @@ class CharacterDashboardManager {
         return {
 
             relations:
-                relationshipManager
-                    .getForContinuity(
-                        continuityId
-                    )
-                    .length,
+                installation
+                    && typeof relationshipManager
+                        .getForInstallationInContext
+                        === "function"
+                    ? relationshipManager.getForInstallationInContext(
+                        installation.id,
+                        installation.guild_id,
+                        installation.context_id
+                    ).length
+                    : 0,
 
             encounters:
                 encounterManager

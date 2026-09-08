@@ -130,6 +130,7 @@ class UserPrivacyRepository {
             ["CharacterGuildInstallationsV2", "validated_by"],
             ["PendingRelationships", "responded_by"],
             ["PendingContinuityRelationshipsV2", "responded_by"],
+            ["PendingInstallationRelationshipsV2", "responded_by"],
             ["CharacterChangeRequestsV2", "reviewed_by"],
             ["InstallationValidationHistoryV2", "actor_id"]
         ];
@@ -140,6 +141,7 @@ class UserPrivacyRepository {
             ["CharacterStates", "created_by"],
             ["CharacterEncounters", "created_by"],
             ["ContinuityRelationshipsV2", "created_by"],
+            ["InstallationRelationshipsV2", "created_by"],
             ["ContinuityStatesV2", "created_by"],
             ["ContinuityEncountersV2", "created_by"],
             ["CharacterChangeRequestsV2", "submitted_by"],
@@ -149,7 +151,9 @@ class UserPrivacyRepository {
             ["PendingRelationships", "requested_by"],
             ["PendingRelationships", "target_owner_id"],
             ["PendingContinuityRelationshipsV2", "requested_by"],
-            ["PendingContinuityRelationshipsV2", "target_owner_id"]
+            ["PendingContinuityRelationshipsV2", "target_owner_id"],
+            ["PendingInstallationRelationshipsV2", "requested_by"],
+            ["PendingInstallationRelationshipsV2", "target_owner_id"]
         ];
 
         for (

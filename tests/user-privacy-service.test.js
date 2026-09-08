@@ -58,6 +58,16 @@ function createDatabase() {
             id INTEGER PRIMARY KEY,
             created_by TEXT NOT NULL
         );
+        CREATE TABLE InstallationRelationshipsV2 (
+            id INTEGER PRIMARY KEY,
+            created_by TEXT NOT NULL
+        );
+        CREATE TABLE PendingInstallationRelationshipsV2 (
+            id INTEGER PRIMARY KEY,
+            requested_by TEXT NOT NULL,
+            target_owner_id TEXT NOT NULL,
+            responded_by TEXT
+        );
         CREATE TABLE GuildCharacterApprovalAutomationRunsV2 (
             guild_id TEXT,
             discord_user_id TEXT,
@@ -89,6 +99,9 @@ test(
             INSERT INTO MigrationV1ToV2 VALUES ('continuity', 'old-c', 'continuity');
             INSERT INTO MigrationV1ToV2 VALUES ('installation', 'old-i', '7');
             INSERT INTO StateTypes VALUES (1, 'user-1');
+            INSERT INTO InstallationRelationshipsV2 VALUES (1, 'user-1');
+            INSERT INTO PendingInstallationRelationshipsV2
+                VALUES (1, 'user-1', 'user-1', 'user-1');
             INSERT INTO GuildCharacterApprovalAutomationRunsV2 VALUES ('guild', 'user-1');
         `);
 
@@ -133,6 +146,18 @@ test(
         assert.equal(
             db.prepare("SELECT created_by FROM StateTypes WHERE id = 1").get().created_by,
             "forgotten:test"
+        );
+        assert.equal(
+            db.prepare("SELECT created_by FROM InstallationRelationshipsV2 WHERE id = 1").get().created_by,
+            "forgotten:test"
+        );
+        assert.deepEqual(
+            db.prepare("SELECT requested_by, target_owner_id, responded_by FROM PendingInstallationRelationshipsV2 WHERE id = 1").get(),
+            {
+                requested_by: "forgotten:test",
+                target_owner_id: "forgotten:test",
+                responded_by: null
+            }
         );
         assert.equal(
             db.prepare("SELECT COUNT(*) AS total FROM GuildCharacterApprovalAutomationRunsV2").get().total,

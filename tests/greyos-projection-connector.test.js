@@ -64,6 +64,15 @@ test("la projection GreyOS ne contient que des compteurs agrégés", () => {
     assert.equal(JSON.stringify(projection).includes("message"), false);
 });
 
+test("la projection Relationships compte uniquement le runtime 3E", () => {
+    const metric = connector.METRICS.find(
+        entry => entry.key === "narrative.relationships.total"
+    );
+
+    assert.match(metric.query, /InstallationRelationshipsV2/);
+    assert.doesNotMatch(metric.query, /ContinuityRelationshipsV2/);
+});
+
 test("l’inventaire pseudonymise le serveur sans publier son identifiant ni son nom", () => {
     const guild = { id: "123456789012345678", name: "Serveur secret", memberCount: 42 };
     const pages = connector.inventoryPages({

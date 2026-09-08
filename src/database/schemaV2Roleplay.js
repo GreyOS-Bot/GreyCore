@@ -392,6 +392,8 @@ function initializeRoleplaySchemaV2() {
         )
     `).run();
 
+    require("../v2/repositories/InstallationRelationshipSchema")(db);
+
     console.log(
         "✅ Tables RP de Greycore Database V2 prêtes."
     );

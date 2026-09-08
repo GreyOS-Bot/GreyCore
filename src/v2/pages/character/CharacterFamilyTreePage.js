@@ -55,10 +55,16 @@ class CharacterFamilyTreePage {
             || null;
 
         const tree = continuityId
-            ? relationshipManager.getFamilyTree(
-                continuityId,
-                interaction.guildId
-            )
+            ? dashboardData.installation
+                ? relationshipManager.getFamilyTree(
+                    dashboardData.installation.id,
+                    interaction.guildId,
+                    dashboardData.installation.context_id
+                )
+                : relationshipManager.getFamilyTree(
+                    continuityId,
+                    interaction.guildId
+                )
             : [];
 
         const navigationRow =

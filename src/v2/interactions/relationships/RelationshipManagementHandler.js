@@ -110,10 +110,13 @@ class RelationshipManagementHandler {
 
         const relationships =
             continuityId
-                ? relationshipManager
-                    .getDisplayRelationships(
-                        continuityId
+                ? dashboardData.installation
+                    ? relationshipManager.getDisplayRelationshipsForInstallation(
+                        dashboardData.installation.id,
+                        interaction.guildId,
+                        dashboardData.installation.context_id
                     )
+                    : relationshipManager.getDisplayRelationships(continuityId)
                 : [];
 
         if (
@@ -169,10 +172,13 @@ class RelationshipManagementHandler {
             );
 
         const relationship =
-            relationshipManager
-                .getDisplayRelationships(
-                    continuityId
+            (dashboardData.installation
+                ? relationshipManager.getDisplayRelationshipsForInstallation(
+                    dashboardData.installation.id,
+                    interaction.guildId,
+                    dashboardData.installation.context_id
                 )
+                : relationshipManager.getDisplayRelationships(continuityId))
                 .find(item =>
                     String(item.id) ===
                     String(relationshipId)
@@ -307,6 +313,10 @@ class RelationshipManagementHandler {
                         note || null,
                     startedAt:
                         startedAt || null
+                },
+                {
+                    guildId: interaction.guildId,
+                    contextId: dashboardData.installation?.context_id
                 }
             );
         } catch (error) {
@@ -408,7 +418,11 @@ class RelationshipManagementHandler {
 
         try {
             relationshipManager.delete(
-                relationshipId
+                relationshipId,
+                {
+                    guildId: interaction.guildId,
+                    contextId: dashboardData.installation?.context_id
+                }
             );
         } catch (error) {
             return replyError(

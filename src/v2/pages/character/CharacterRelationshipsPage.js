@@ -69,9 +69,15 @@ class CharacterRelationshipsPage {
 
         const relationships =
             continuityId
-                ? relationshipManager.getDisplayRelationships(
-                    continuityId
-                )
+                ? dashboardData.installation
+                    ? relationshipManager.getDisplayRelationshipsForInstallation(
+                        dashboardData.installation.id,
+                        interaction.guildId,
+                        dashboardData.installation.context_id
+                    )
+                    : relationshipManager.getDisplayRelationships(
+                        continuityId
+                    )
                 : [];
 
         const relationshipsText =

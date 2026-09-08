@@ -575,6 +575,7 @@ function createDashboardTables(
                 NOT NULL,
             guild_id TEXT
                 NOT NULL,
+            context_id TEXT,
             status TEXT
                 NOT NULL,
             proxy_enabled INTEGER

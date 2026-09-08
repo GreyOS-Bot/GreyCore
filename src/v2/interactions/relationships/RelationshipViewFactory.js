@@ -45,9 +45,7 @@ function createSearchResults({
                                 .join(" • ")
                                 .slice(0, 100),
                         value:
-                            String(
-                                entry.characterId
-                            )
+                            `${entry.characterId}~${entry.continuityId}`
                     })
                 )
             );

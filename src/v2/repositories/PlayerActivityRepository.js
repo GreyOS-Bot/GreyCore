@@ -25,17 +25,21 @@ function getPendingRelationships(guildId, discordUserId) {
                 NULLIF(sourceContinuity.firstname, ''), sourceCharacter.proxy_name) AS source_name,
             COALESCE(NULLIF(targetProfile.alias, ''), NULLIF(targetProfile.firstname, ''),
                 NULLIF(targetContinuity.firstname, ''), targetCharacter.proxy_name) AS target_name
-        FROM PendingContinuityRelationshipsV2 pending
+        FROM PendingInstallationRelationshipsV2 pending
         JOIN RelationshipTypes type ON type.id = pending.relationship_type_id
+        JOIN CharacterGuildInstallationsV2 sourceInstallation
+            ON sourceInstallation.id = pending.requester_installation_id
+        JOIN CharacterGuildInstallationsV2 targetInstallation
+            ON targetInstallation.id = pending.target_installation_id
         JOIN CharacterContinuitiesV2 sourceContinuity
-            ON sourceContinuity.id = pending.requester_continuity_id
+            ON sourceContinuity.id = sourceInstallation.continuity_id
         JOIN CharacterContinuitiesV2 targetContinuity
-            ON targetContinuity.id = pending.target_continuity_id
+            ON targetContinuity.id = targetInstallation.continuity_id
         JOIN CharactersV2 sourceCharacter ON sourceCharacter.id = sourceContinuity.character_id
         JOIN CharactersV2 targetCharacter ON targetCharacter.id = targetContinuity.character_id
         LEFT JOIN CharacterProfilesV2 sourceProfile ON sourceProfile.continuity_id = sourceContinuity.id
         LEFT JOIN CharacterProfilesV2 targetProfile ON targetProfile.continuity_id = targetContinuity.id
-        WHERE type.guild_id = ?
+        WHERE pending.guild_id = ?
         AND pending.target_owner_id = ?
         AND pending.status = 'pending'
         ORDER BY pending.created_at DESC, pending.id DESC

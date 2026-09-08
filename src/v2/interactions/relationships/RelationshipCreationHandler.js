@@ -177,6 +177,8 @@ class RelationshipCreationHandler {
                     {
                         excludeCharacterId:
                             characterId,
+                        contextId:
+                            dashboardData.installation?.context_id,
                         limit:
                             25
                     }
@@ -264,6 +266,7 @@ class RelationshipCreationHandler {
         otherCharacterId,
         relationshipTypeId
     ) {
+        const [targetCharacterId, targetContinuityId] = String(otherCharacterId).split("~");
         const guildId =
             resolveRelationshipGuildId(
                 interaction,
@@ -290,10 +293,14 @@ class RelationshipCreationHandler {
         const dashboardB =
             characterDashboardManager
                 .getInstalledDashboardData(
-                    otherCharacterId,
+                    targetCharacterId,
                     {
                         guildId:
-                            guildId
+                            guildId,
+                        continuityId:
+                            targetContinuityId || undefined,
+                        contextId:
+                            dashboardA?.installation?.context_id
                     }
                 );
 
@@ -549,6 +556,12 @@ class RelationshipCreationHandler {
                 relationshipManager.create({
                     guildId:
                         guildId,
+                    contextId:
+                        dashboardA.installation?.context_id,
+                    installationAId:
+                        dashboardA.installation?.id,
+                    installationBId:
+                        dashboardB.installation?.id,
                     characterAId:
                         continuityA.character_id,
                     continuityAId:
@@ -591,6 +604,12 @@ class RelationshipCreationHandler {
                     .createRequest({
                         guildId:
                             guildId,
+                        contextId:
+                            dashboardA.installation?.context_id,
+                        requesterInstallationId:
+                            dashboardA.installation?.id,
+                        targetInstallationId:
+                            dashboardB.installation?.id,
                         requesterContinuityId:
                             continuityA.id,
                         targetContinuityId:

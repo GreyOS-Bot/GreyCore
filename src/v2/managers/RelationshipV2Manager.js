@@ -1,3 +1,5 @@
+/* Legacy implementation retained as inert source during the additive 3E cutover. */
+if (false) {
 const typeRepository =
     require(
         "../repositories/RelationshipTypeRepository"
@@ -689,5 +691,6 @@ class RelationshipV2Manager {
 
 }
 
-module.exports =
-    new RelationshipV2Manager();
+}
+
+module.exports = require("./InstallationRelationshipV2Manager");

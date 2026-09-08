@@ -42,10 +42,10 @@ class StaffDomainStatsRepository {
     getRelationshipStats(guildId) {
         return {
             types: db.prepare(`SELECT COUNT(*) AS total FROM RelationshipTypes WHERE guild_id = ?`).get(guildId).total,
-            relationships: db.prepare(`SELECT COUNT(*) AS total FROM ContinuityRelationshipsV2 WHERE guild_id = ?`).get(guildId).total,
+            relationships: db.prepare(`SELECT COUNT(*) AS total FROM InstallationRelationshipsV2 WHERE guild_id = ?`).get(guildId).total,
             pending: db.prepare(`
                 SELECT COUNT(DISTINCT pending.id) AS total
-                FROM PendingContinuityRelationshipsV2 AS pending
+                FROM PendingInstallationRelationshipsV2 AS pending
                 JOIN CharacterGuildInstallationsV2 AS installation
                     ON installation.continuity_id IN (
                         pending.requester_continuity_id,
