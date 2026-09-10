@@ -334,6 +334,8 @@ function initializeRoleplaySchemaV2() {
         )
     `).run();
 
+    require("../v2/repositories/InstallationEncounterSchema")(db);
+
         db.prepare(`
         CREATE INDEX IF NOT EXISTS
             idx_phone_calls_v2_caller

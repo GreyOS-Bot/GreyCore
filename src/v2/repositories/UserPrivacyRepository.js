@@ -144,6 +144,7 @@ class UserPrivacyRepository {
             ["InstallationRelationshipsV2", "created_by"],
             ["ContinuityStatesV2", "created_by"],
             ["ContinuityEncountersV2", "created_by"],
+            ["InstallationEncountersV2", "created_by"],
             ["CharacterChangeRequestsV2", "submitted_by"],
             ["ContinuityAssetsV2", "created_by"],
             ["ContinuityAssetTransfersV2", "transferred_by"],

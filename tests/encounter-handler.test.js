@@ -21,7 +21,8 @@ test(
             },
             continuity: {
                 id: "continuity-a"
-            }
+            },
+            installation:{id:1,character_id:"character",continuity_id:"continuity-a",guild_id:"guild",context_id:"context"}
         };
 
         const otherDashboard = {
@@ -32,15 +33,15 @@ test(
             },
             continuity: {
                 id: "continuity-b"
-            }
+            },
+            installation:{id:2,character_id:"other",continuity_id:"continuity-b",guild_id:"guild",context_id:"context"}
         };
 
         const rawEncounter = {
             id: "encounter",
-            continuity_a_id:
-                "continuity-a",
-            continuity_b_id:
-                "continuity-b",
+            installation_a_id: 1,
+            installation_b_id: 2,
+            guild_id:"guild",context_id:"context",
             external_name: null,
             location: "Le Steel",
             note: "Première rencontre",
@@ -58,10 +59,13 @@ test(
             {
                 getById:
                     () => rawEncounter,
-                getForContinuity:
+                getForInstallationInContext:
                     () => [
                         decoratedEncounter
                     ],
+                getEligibleTargets:()=>[{installation_id:2,proxy_name:"Billie",continuity_name:"B"}],
+                requireInstallation:id=>Number(id)===1?mainDashboard.installation:otherDashboard.installation,
+                requireScopedEncounter:()=>decoratedEncounter,
                 create: data => {
                     calls.push([
                         "create",
@@ -70,7 +74,7 @@ test(
 
                     return rawEncounter;
                 },
-                update: (
+                updateScoped: (
                     encounterId,
                     data
                 ) => {
@@ -82,7 +86,7 @@ test(
 
                     return rawEncounter;
                 },
-                delete:
+                deleteScoped:
                     encounterId => {
                         calls.push([
                             "delete",
@@ -119,12 +123,7 @@ test(
                             "character"
                             ? mainDashboard
                             : otherDashboard,
-                getPlayableDashboardData:
-                    characterId =>
-                        characterId ===
-                            "character"
-                            ? mainDashboard
-                            : otherDashboard,
+                getPlayableDashboardData: characterId => characterId === "character" ? mainDashboard : otherDashboard,
                 getInstalledCharactersForGuild:
                     () => [
                         {
@@ -195,14 +194,14 @@ test(
 
         await handler.openAdd(
             addInteraction,
-            "character"
+            "1"
         );
 
         assert.equal(
             customIds(
                 addInteraction.updated
             ).includes(
-                "v2_encounter_character:character"
+                "v2_encounter_character:1"
             ),
             true
         );
@@ -212,7 +211,7 @@ test(
 
         await handler.selectCharacter(
             externalSelection,
-            "character",
+            "1",
             "external"
         );
 
@@ -220,7 +219,7 @@ test(
             externalSelection.modal
                 .toJSON()
                 .custom_id,
-            "v2_enc_ext:continuity-a"
+            "v2_enc_ext:1"
         );
 
         const internalSelection =
@@ -228,15 +227,15 @@ test(
 
         await handler.selectCharacter(
             internalSelection,
-            "character",
-            "other"
+            "1",
+            "2"
         );
 
         assert.equal(
             internalSelection.modal
                 .toJSON()
                 .custom_id,
-            "v2_enc_int:continuity-a:continuity-b"
+            "v2_enc_int:1:2"
         );
 
         const createInteractionValue =
@@ -244,8 +243,8 @@ test(
 
         await handler.createInternal(
             createInteractionValue,
-            "continuity-a",
-            "continuity-b"
+            "1",
+            "2"
         );
 
         const createCall =
@@ -257,8 +256,8 @@ test(
 
         assert.equal(
             createCall[1]
-                .continuityAId,
-            "continuity-a"
+                .installationAId,
+            "1"
         );
 
         const manageInteraction =
@@ -266,14 +265,14 @@ test(
 
         await handler.openManage(
             manageInteraction,
-            "character"
+            "1"
         );
 
         assert.equal(
             customIds(
                 manageInteraction.updated
             ).includes(
-                "v2_encounter_manage_select:character"
+                "v2_encounter_manage_select:1"
             ),
             true
         );
@@ -283,7 +282,7 @@ test(
 
         await handler.openDetails(
             detailsInteraction,
-            "character",
+            "1",
             "encounter"
         );
 
@@ -294,24 +293,29 @@ test(
 
         assert.equal(
             detailIds.includes(
-                "v2_encounter_edit:character:encounter"
+                "v2_encounter_edit:1:encounter"
             ),
             true
         );
 
         assert.equal(
             detailIds.includes(
-                "v2_encounter_delete:character:encounter"
+                "v2_encounter_delete:1:encounter"
             ),
             true
         );
+
+        const forgedDetails = createInteraction("intruder");
+        await handler.openDetails(forgedDetails,"1","encounter");
+        assert.equal(forgedDetails.updated,undefined);
+        assert.match(forgedDetails.replied.content,/ne peux pas consulter/);
 
         const editInteraction =
             createInteraction();
 
         await handler.openEdit(
             editInteraction,
-            "character",
+            "1",
             "encounter"
         );
 
@@ -319,15 +323,25 @@ test(
             editInteraction.modal
                 .toJSON()
                 .custom_id,
-            "v2_encounter_edit_submit:character:encounter"
+            "v2_encounter_edit_submit:1:encounter"
         );
+
+        mainDashboard.character.owner_id = "new-owner";
+        const staleSubmit = createInteraction("user");
+        await handler.edit(staleSubmit,"1","encounter");
+        assert.equal(staleSubmit.updated,undefined);
+        assert.equal(calls.some(call => call[0] === "update"),false);
+        const createCount=calls.filter(call=>call[0]==="create").length;
+        await handler.createExternal(createInteraction("user"),"1");
+        assert.equal(calls.filter(call=>call[0]==="create").length,createCount);
+        mainDashboard.character.owner_id = "user";
 
         const submitInteraction =
             createInteraction();
 
         await handler.edit(
             submitInteraction,
-            "character",
+            "1",
             "encounter"
         );
 
@@ -345,7 +359,7 @@ test(
 
         await handler.confirmDelete(
             confirmInteraction,
-            "character",
+            "1",
             "encounter"
         );
 
@@ -354,14 +368,14 @@ test(
                 confirmInteraction
                     .updated
             ).includes(
-                "v2_encounter_delete_confirm:character:encounter"
+                "v2_encounter_delete_confirm:1:encounter"
             ),
             true
         );
 
         await handler.delete(
             createInteraction(),
-            "character",
+            "1",
             "encounter"
         );
 
@@ -379,7 +393,7 @@ test(
     }
 );
 
-function createInteraction() {
+function createInteraction(userId = "user") {
     const values = {
         external_name:
             "Sergueï",
@@ -395,7 +409,7 @@ function createInteraction() {
         guildId:
             "guild",
         user: {
-            id: "user"
+            id: userId
         },
         memberPermissions: null,
         fields: {

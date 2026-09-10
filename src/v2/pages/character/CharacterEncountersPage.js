@@ -60,14 +60,23 @@ class CharacterEncountersPage {
 
     async execute(
         interaction,
-        characterId
+        installationId
     ) {
 
+        let installation;
+        try {
+            installation = encounterManager.requireInstallation(installationId);
+        } catch {
+            return replyError(interaction,"Personnage introuvable.");
+        }
+
 const dashboardData =
-    characterDashboardManager.getDashboardData(
-        characterId,
+    characterDashboardManager.getPlayableDashboardData(
+        installation.character_id,
         {
-            guildId: interaction.guildId
+            guildId: interaction.guildId,
+            continuityId: installation.continuity_id,
+            installationId: installation.id
         }
     );
 
@@ -78,9 +87,7 @@ const dashboardData =
             );
         }
 
-        const continuityId =
-            dashboardData.continuity?.id
-            || dashboardData.continuity?.continuity_id;
+        const characterId = dashboardData.character.id;
 
         const isOwner =
             characterManagementPolicy
@@ -89,12 +96,13 @@ const dashboardData =
                     dashboardData.character
                 );
 
-        const encounters =
-            continuityId
-                ? encounterManager.getForContinuity(
-                    continuityId
-                )
-                : [];
+        if (!isOwner) {
+            return replyError(interaction,"Tu ne peux pas consulter les rencontres de ce personnage.");
+        }
+
+        const encounters = encounterManager.getForInstallationInContext(
+            installation.id,interaction.guildId,installation.context_id
+        );
 
         const embed =
             UI.embed.create({
@@ -225,7 +233,7 @@ const dashboardData =
                         UI.button.success({
 
                             id:
-                                `v2_encounter_add:${characterId}`,
+                                `v2_encounter_add:${installation.id}`,
 
                             label:
                                 "Ajouter",
@@ -238,7 +246,7 @@ const dashboardData =
                         UI.button.primary({
 
                             id:
-                                `v2_encounter_manage:${characterId}`,
+                                `v2_encounter_manage:${installation.id}`,
 
                             label:
                                 "Gérer",

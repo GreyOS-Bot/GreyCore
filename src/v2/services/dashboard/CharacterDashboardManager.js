@@ -218,6 +218,7 @@ class CharacterDashboardManager {
                 .find(installation =>
                     String(installation.guild_id) === String(options.guildId)
                     && installation.continuity_id === continuity.id
+                    && (!options.installationId || Number(installation.id) === Number(options.installationId))
                 )
             : null;
 
@@ -352,6 +353,13 @@ class CharacterDashboardManager {
                     }
 
                     if (
+                        options.installationId
+                        && Number(installation.id) !== Number(options.installationId)
+                    ) {
+                        return false;
+                    }
+
+                    if (
                         options.continuityId
                         &&
                         installation.continuity_id !==
@@ -379,7 +387,9 @@ class CharacterDashboardManager {
                 guildId,
                 continuityId:
                     playableInstallation
-                        .continuity_id
+                        .continuity_id,
+                installationId:
+                    playableInstallation.id
             }
         );
 
@@ -790,11 +800,14 @@ class CharacterDashboardManager {
                     : 0,
 
             encounters:
-                encounterManager
-                    .getForContinuity(
-                        continuityId
-                    )
-                    .length,
+                installation
+                    && typeof encounterManager.getForInstallationInContext === "function"
+                    ? encounterManager.getForInstallationInContext(
+                        installation.id,
+                        installation.guild_id,
+                        installation.context_id
+                    ).length
+                    : 0,
 
             states:
                 stateManager

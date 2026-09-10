@@ -76,73 +76,24 @@ class EncounterRepository {
     insert(
         data
     ) {
-        const result =
-            db.prepare(`
-                INSERT INTO ContinuityEncountersV2 (
-                    continuity_a_id,
-                    continuity_b_id,
-                    external_name,
-                    location,
-                    note,
-                    occurred_at,
-                    created_by,
-                    created_at,
-                    updated_at
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(
-                data.continuityAId,
-                data.continuityBId,
-                data.externalName,
-                data.location,
-                data.note,
-                data.occurredAt,
-                data.createdBy,
-                data.createdAt,
-                data.updatedAt
-            );
-
-        return this.getById(
-            result.lastInsertRowid
-        );
+        void data;
+        throw new Error("ContinuityEncountersV2 est une archive legacy en lecture seule.");
     }
 
     update(
         encounterId,
         data
     ) {
-        db.prepare(`
-            UPDATE ContinuityEncountersV2
-            SET
-                external_name = ?,
-                location = ?,
-                note = ?,
-                occurred_at = ?,
-                updated_at = ?
-            WHERE id = ?
-        `).run(
-            data.externalName,
-            data.location,
-            data.note,
-            data.occurredAt,
-            data.updatedAt,
-            encounterId
-        );
-
-        return this.getById(
-            encounterId
-        );
+        void encounterId;
+        void data;
+        throw new Error("ContinuityEncountersV2 est une archive legacy en lecture seule.");
     }
 
     delete(
         encounterId
     ) {
-        return db.prepare(`
-            DELETE FROM ContinuityEncountersV2
-            WHERE id = ?
-        `).run(
-            encounterId
-        );
+        void encounterId;
+        throw new Error("ContinuityEncountersV2 est une archive legacy en lecture seule.");
     }
 
 }

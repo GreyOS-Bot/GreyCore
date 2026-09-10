@@ -26,9 +26,7 @@ const {
 );
 
 const {
-    belongsToContinuity,
     canManageCharacter,
-    getContinuityId,
     getEncounterName,
     isValidDate,
     readTextField
@@ -36,12 +34,12 @@ const {
 
 async function openManage(
     interaction,
-    characterId
+    installationId
 ) {
     const dashboardData =
         getDashboard(
             interaction,
-            characterId
+            installationId
         );
 
     if (!dashboardData) {
@@ -63,18 +61,10 @@ async function openManage(
         );
     }
 
-    const continuityId =
-        getContinuityId(
-            dashboardData
-        );
-
-    const encounters =
-        continuityId
-            ? encounterManager
-                .getForContinuity(
-                    continuityId
-                )
-            : [];
+    const installation=dashboardData.installation;
+    const encounters=encounterManager.getForInstallationInContext(
+        installation.id,interaction.guildId,installation.context_id
+    );
 
     if (encounters.length === 0) {
         return replyError(
@@ -85,7 +75,7 @@ async function openManage(
 
     return interaction.update(
         viewFactory.manageSelection({
-            characterId,
+            installationId: installation.id,
             encounters
         })
     );
@@ -93,13 +83,13 @@ async function openManage(
 
 async function openDetails(
     interaction,
-    characterId,
+    installationId,
     encounterId
 ) {
     const dashboardData =
         getDashboard(
             interaction,
-            characterId
+            installationId
         );
 
     if (!dashboardData) {
@@ -109,28 +99,21 @@ async function openDetails(
         );
     }
 
-    const continuityId =
-        getContinuityId(
-            dashboardData
-        );
+    if (!canManageCharacter(interaction,dashboardData.character)) {
+        return replyError(interaction,"❌ Tu ne peux pas consulter cette rencontre.");
+    }
 
-    if (!continuityId) {
+    const installation=dashboardData.installation;
+
+    if (!installation) {
         return replyError(
             interaction,
             "❌ Continuité introuvable."
         );
     }
 
-    const encounter =
-        encounterManager
-            .getForContinuity(
-                continuityId
-            )
-            .find(
-                item =>
-                    String(item.id) ===
-                    String(encounterId)
-            );
+    let encounter;
+    try { encounter=encounterManager.requireScopedEncounter(encounterId,{installationId:installation.id,guildId:interaction.guildId,contextId:installation.context_id,actorId:interaction.user.id}); } catch { encounter=null; }
 
     if (!encounter) {
         return replyError(
@@ -142,7 +125,7 @@ async function openDetails(
     return interaction.update(
         viewFactory.details({
             dashboardData,
-            characterId,
+            installationId: installation.id,
             encounter
         })
     );
@@ -150,13 +133,13 @@ async function openDetails(
 
 async function openEdit(
     interaction,
-    characterId,
+    installationId,
     encounterId
 ) {
     const context =
         await resolveManagedEncounter(
             interaction,
-            characterId,
+            installationId,
             encounterId,
             "modifier"
         );
@@ -167,7 +150,7 @@ async function openEdit(
 
     return interaction.showModal(
         modalFactory.edit(
-            characterId,
+            installationId,
             context.encounter
         )
     );
@@ -175,13 +158,13 @@ async function openEdit(
 
 async function edit(
     interaction,
-    characterId,
+    installationId,
     encounterId
 ) {
     const context =
         await resolveManagedEncounter(
             interaction,
-            characterId,
+            installationId,
             encounterId,
             "modifier"
         );
@@ -236,8 +219,9 @@ async function edit(
     }
 
     try {
-        encounterManager.update(
+        encounterManager.updateScoped(
             encounterId,
+            {installationId:context.installation.id,guildId:interaction.guildId,contextId:context.installation.context_id,actorId:interaction.user.id},
             {
                 externalName:
                     context.encounter
@@ -267,20 +251,20 @@ async function edit(
 
     return openDetails(
         interaction,
-        characterId,
+        installationId,
         encounterId
     );
 }
 
 async function confirmDelete(
     interaction,
-    characterId,
+    installationId,
     encounterId
 ) {
     const context =
         await resolveManagedEncounter(
             interaction,
-            characterId,
+            installationId,
             encounterId,
             "supprimer"
         );
@@ -294,16 +278,7 @@ async function confirmDelete(
             .external_name;
 
     if (!displayName) {
-        const displayEncounter =
-            encounterManager
-                .getForContinuity(
-                    context.continuityId
-                )
-                .find(
-                    item =>
-                        String(item.id) ===
-                        String(encounterId)
-                );
+        const displayEncounter = context.encounter;
 
         displayName =
             getEncounterName(
@@ -315,7 +290,7 @@ async function confirmDelete(
     return interaction.update(
         viewFactory
             .deleteConfirmation({
-                characterId,
+                installationId,
                 encounterId,
                 displayName
             })
@@ -324,13 +299,13 @@ async function confirmDelete(
 
 async function deleteEncounter(
     interaction,
-    characterId,
+    installationId,
     encounterId
 ) {
     const context =
         await resolveManagedEncounter(
             interaction,
-            characterId,
+            installationId,
             encounterId,
             "supprimer"
         );
@@ -340,9 +315,8 @@ async function deleteEncounter(
     }
 
     try {
-        encounterManager.delete(
-            encounterId
-        );
+        encounterManager.deleteScoped(encounterId,{installationId:context.installation.id,
+            guildId:interaction.guildId,contextId:context.installation.context_id,actorId:interaction.user.id});
     } catch (error) {
         return replyError(
             interaction,
@@ -352,20 +326,20 @@ async function deleteEncounter(
 
     return encountersPage.execute(
         interaction,
-        characterId
+        installationId
     );
 }
 
 async function resolveManagedEncounter(
     interaction,
-    characterId,
+    installationId,
     encounterId,
     action
 ) {
     const dashboardData =
         getDashboard(
             interaction,
-            characterId
+            installationId
         );
 
     if (
@@ -398,17 +372,11 @@ async function resolveManagedEncounter(
         return null;
     }
 
-    const continuityId =
-        getContinuityId(
-            dashboardData
-        );
+    const installation=dashboardData.installation;
 
-    if (
-        !belongsToContinuity(
-            encounter,
-            continuityId
-        )
-    ) {
+    if (Number(encounter.installation_a_id)!==Number(installation.id)
+        || String(encounter.guild_id)!==String(interaction.guildId)
+        || String(encounter.context_id)!==String(installation.context_id)) {
         await replyError(
             interaction,
             "❌ Cette rencontre n’appartient pas à ce personnage."
@@ -418,7 +386,7 @@ async function resolveManagedEncounter(
     }
 
     return {
-        continuityId,
+        installation,
         dashboardData,
         encounter
     };
@@ -426,16 +394,12 @@ async function resolveManagedEncounter(
 
 function getDashboard(
     interaction,
-    characterId
+    installationId
 ) {
-    return dashboardManager
-        .getPlayableDashboardData(
-            characterId,
-            {
-                guildId:
-                    interaction.guildId
-            }
-        );
+    let installation;
+    try { installation=encounterManager.requireInstallation(installationId); } catch { return null; }
+    return dashboardManager.getPlayableDashboardData(installation.character_id,{guildId:interaction.guildId,
+        continuityId:installation.continuity_id,installationId:installation.id});
 }
 
 module.exports = {

@@ -23,7 +23,7 @@ class CharacterSocialCategoryPage {
             emoji: UI.icons.relations
         }));
         if (enabled("encounters")) buttons.push(UI.button.primary({
-            id: `page:character:encounters:${characterId}`,
+            id: `page:character:encounters:${data.installation?.id || characterId}`,
             label: count("Rencontres", data.counts.encounters),
             emoji: UI.icons.encounters
         }));

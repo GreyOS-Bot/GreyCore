@@ -13,7 +13,7 @@ const {
 } = require("./EncounterUtils");
 
 function addSelection({
-    characterId,
+    installationId,
     installedCharacters
 }) {
     const options = [
@@ -31,11 +31,7 @@ function addSelection({
             .slice(0, 24)
             .map(
                 entry => {
-                    const displayName =
-                        getCharacterName(
-                            entry.character,
-                            entry.profile
-                        );
+                    const displayName = entry.proxy_name || [entry.firstname,entry.lastname].filter(Boolean).join(" ") || "Personnage";
 
                     const continuityName =
                         entry.continuity
@@ -57,7 +53,7 @@ function addSelection({
                                 : "Personnage installé sur ce serveur",
                         value:
                             String(
-                                entry.characterId
+                                entry.installation_id
                             ),
                         emoji:
                             "👤"
@@ -69,7 +65,7 @@ function addSelection({
     const select =
         new StringSelectMenuBuilder()
             .setCustomId(
-                `v2_encounter_character:${characterId}`
+                `v2_encounter_character:${installationId}`
             )
             .setPlaceholder(
                 "Choisir le personnage rencontré"
@@ -85,20 +81,20 @@ function addSelection({
         components: [
             row(select),
             navigationRow(
-                `page:character:encounters:${characterId}`
+                `page:character:encounters:${installationId}`
             )
         ]
     };
 }
 
 function manageSelection({
-    characterId,
+    installationId,
     encounters
 }) {
     const select =
         new StringSelectMenuBuilder()
             .setCustomId(
-                `v2_encounter_manage_select:${characterId}`
+                `v2_encounter_manage_select:${installationId}`
             )
             .setPlaceholder(
                 "Choisir une rencontre"
@@ -164,7 +160,7 @@ function manageSelection({
         components: [
             row(select),
             navigationRow(
-                `page:character:encounters:${characterId}`
+                `page:character:encounters:${installationId}`
             )
         ]
     };
@@ -172,7 +168,7 @@ function manageSelection({
 
 function details({
     dashboardData,
-    characterId,
+    installationId,
     encounter
 }) {
     const embed =
@@ -250,7 +246,7 @@ function details({
                 .addComponents(
                     UI.button.primary({
                         id:
-                            `v2_encounter_edit:${characterId}:${encounter.id}`,
+                            `v2_encounter_edit:${installationId}:${encounter.id}`,
                         label:
                             "Modifier",
                         emoji:
@@ -258,7 +254,7 @@ function details({
                     }),
                     UI.button.danger({
                         id:
-                            `v2_encounter_delete:${characterId}:${encounter.id}`,
+                            `v2_encounter_delete:${installationId}:${encounter.id}`,
                         label:
                             "Supprimer",
                         emoji:
@@ -266,14 +262,14 @@ function details({
                     })
                 ),
             navigationRow(
-                `v2_encounter_manage:${characterId}`
+                `v2_encounter_manage:${installationId}`
             )
         ]
     });
 }
 
 function deleteConfirmation({
-    characterId,
+    installationId,
     encounterId,
     displayName
 }) {
@@ -290,7 +286,7 @@ function deleteConfirmation({
                 .addComponents(
                     UI.button.danger({
                         id:
-                            `v2_encounter_delete_confirm:${characterId}:${encounterId}`,
+                            `v2_encounter_delete_confirm:${installationId}:${encounterId}`,
                         label:
                             "Supprimer",
                         emoji:
@@ -298,7 +294,7 @@ function deleteConfirmation({
                     }),
                     UI.button.secondary({
                         id:
-                            `v2_encounter_details:${characterId}:${encounterId}`,
+                            `v2_encounter_details:${installationId}:${encounterId}`,
                         label:
                             "Annuler",
                         emoji:

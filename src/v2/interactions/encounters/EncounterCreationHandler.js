@@ -3,11 +3,6 @@ const encounterManager =
         "../../managers/EncounterV2Manager"
     );
 
-const continuityManager =
-    require(
-        "../../managers/ContinuityV2Manager"
-    );
-
 const dashboardManager =
     require(
         "../../services/dashboard/CharacterDashboardManager"
@@ -39,12 +34,12 @@ const {
 
 async function openAdd(
     interaction,
-    characterId
+    installationId
 ) {
     const dashboardData =
         getDashboard(
             interaction,
-            characterId
+            installationId
         );
 
     if (!dashboardData) {
@@ -66,36 +61,22 @@ async function openAdd(
         );
     }
 
-    const continuityId =
-        getContinuityId(
-            dashboardData
-        );
+    const installation = dashboardData.installation;
 
-    if (!continuityId) {
+    if (!installation) {
         return replyError(
             interaction,
             "❌ Ce personnage ne possède aucune continuité installée sur ce serveur."
         );
     }
 
-    const installedCharacters =
-        dashboardManager
-            .getInstalledCharactersForGuild(
-                interaction.guildId
-            )
-            .filter(
-                entry =>
-                    String(
-                        entry.characterId
-                    ) !==
-                        String(characterId)
-                    &&
-                    entry.continuity
-            );
+    const installedCharacters = encounterManager.getEligibleTargets(
+        installation.id,interaction.guildId,installation.context_id
+    );
 
     return interaction.update(
         viewFactory.addSelection({
-            characterId,
+            installationId: installation.id,
             installedCharacters
         })
     );
@@ -103,13 +84,13 @@ async function openAdd(
 
 async function selectCharacter(
     interaction,
-    characterId,
+    installationId,
     selectedValue
 ) {
     const dashboardData =
         getDashboard(
             interaction,
-            characterId
+            installationId
         );
 
     if (!dashboardData) {
@@ -131,12 +112,9 @@ async function selectCharacter(
         );
     }
 
-    const continuityAId =
-        getContinuityId(
-            dashboardData
-        );
+    const installationA = dashboardData.installation;
 
-    if (!continuityAId) {
+    if (!installationA) {
         return replyError(
             interaction,
             "❌ Continuité principale introuvable."
@@ -149,40 +127,24 @@ async function selectCharacter(
     ) {
         return openExternalModal(
             interaction,
-            characterId,
-            continuityAId
+            installationId,
+            installationA.id
         );
     }
 
-    const otherDashboard =
-        getDashboard(
-            interaction,
-            selectedValue
-        );
-
-    if (!otherDashboard) {
+    let installationB;
+    try {
+        installationB = encounterManager.requireInstallation(selectedValue);
+    } catch {
         return replyError(
             interaction,
             "❌ Le personnage rencontré est introuvable."
         );
     }
 
-    const continuityBId =
-        getContinuityId(
-            otherDashboard
-        );
-
-    if (!continuityBId) {
-        return replyError(
-            interaction,
-            "❌ La continuité du personnage rencontré est introuvable."
-        );
-    }
-
-    if (
-        String(continuityAId) ===
-        String(continuityBId)
-    ) {
+    if (String(installationB.guild_id)!==String(interaction.guildId)
+        || String(installationB.context_id)!==String(installationA.context_id)
+        || Number(installationB.id)===Number(installationA.id)) {
         return replyError(
             interaction,
             "❌ Un personnage ne peut pas se rencontrer lui-même."
@@ -191,58 +153,45 @@ async function selectCharacter(
 
     return openInternalModal(
         interaction,
-        characterId,
-        continuityAId,
-        continuityBId
+        installationId,
+        installationA.id,
+        installationB.id
     );
 }
 
 async function openExternalModal(
     interaction,
-    characterId,
-    continuityAId
+    installationId,
+    installationAId
 ) {
     return interaction.showModal(
         modalFactory.createExternal(
-            continuityAId
+            installationAId
         )
     );
 }
 
 async function openInternalModal(
     interaction,
-    characterId,
-    continuityAId,
-    continuityBId
+    installationId,
+    installationAId,
+    installationBId
 ) {
     return interaction.showModal(
         modalFactory.createInternal(
-            continuityAId,
-            continuityBId
+            installationAId,
+            installationBId
         )
     );
 }
 
 async function createInternal(
     interaction,
-    continuityAId,
-    continuityBId
+    installationAId,
+    installationBId
 ) {
-    const continuityA =
-        continuityManager.getById(
-            continuityAId
-        );
-
-    const continuityB =
-        continuityManager.getById(
-            continuityBId
-        );
-
-    if (
-        !continuityA
-        ||
-        !continuityB
-    ) {
+    let installationA;
+    try { installationA=encounterManager.requireInstallation(installationAId); encounterManager.requireInstallation(installationBId); } catch {
         return replyError(
             interaction,
             "❌ L’une des continuités est introuvable."
@@ -252,8 +201,7 @@ async function createInternal(
     const dashboardData =
         getDashboard(
             interaction,
-            continuityA.character_id,
-            continuityA.id
+            installationA.id
         );
 
     if (
@@ -287,8 +235,10 @@ async function createInternal(
 
     try {
         encounterManager.create({
-            continuityAId,
-            continuityBId,
+            guildId: interaction.guildId,
+            contextId: installationA.context_id,
+            installationAId,
+            installationBId,
             externalName: null,
             location:
                 fields.location
@@ -314,20 +264,16 @@ async function createInternal(
 
     return encountersPage.execute(
         interaction,
-        continuityA.character_id
+        installationA.id
     );
 }
 
 async function createExternal(
     interaction,
-    continuityAId
+    installationAId
 ) {
-    const continuityA =
-        continuityManager.getById(
-            continuityAId
-        );
-
-    if (!continuityA) {
+    let installationA;
+    try { installationA=encounterManager.requireInstallation(installationAId); } catch {
         return replyError(
             interaction,
             "❌ Continuité principale introuvable."
@@ -337,8 +283,7 @@ async function createExternal(
     const dashboardData =
         getDashboard(
             interaction,
-            continuityA.character_id,
-            continuityA.id
+            installationA.id
         );
 
     if (
@@ -385,8 +330,10 @@ async function createExternal(
 
     try {
         encounterManager.create({
-            continuityAId,
-            continuityBId: null,
+            guildId: interaction.guildId,
+            contextId: installationA.context_id,
+            installationAId,
+            installationBId: null,
             externalName,
             location:
                 fields.location
@@ -412,28 +359,18 @@ async function createExternal(
 
     return encountersPage.execute(
         interaction,
-        continuityA.character_id
+        installationA.id
     );
 }
 
 function getDashboard(
     interaction,
-    characterId,
-    continuityId = null
+    installationId
 ) {
-    return dashboardManager
-        .getPlayableDashboardData(
-            characterId,
-            {
-                guildId:
-                    interaction.guildId,
-                ...(continuityId
-                    ? {
-                        continuityId
-                    }
-                    : {})
-            }
-        );
+    let installation;
+    try { installation=encounterManager.requireInstallation(installationId); } catch { return null; }
+    return dashboardManager.getPlayableDashboardData(installation.character_id,{guildId:interaction.guildId,
+        continuityId:installation.continuity_id,installationId:installation.id});
 }
 
 function readEncounterFields(

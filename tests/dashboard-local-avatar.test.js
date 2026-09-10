@@ -28,7 +28,7 @@ test("le dashboard utilise l’avatar local de l’installation sur le serveur",
     stubModule("src/v2/managers/ProfileV2Manager.js", { get: () => null });
     stubModule("src/v2/managers/RelationshipV2Manager.js", { getForContinuity: () => [] });
     stubModule("src/v2/managers/AssetV2Manager.js", { countForInstallationInContext: () => 0 });
-    stubModule("src/v2/managers/EncounterV2Manager.js", { getForContinuity: () => [] });
+    stubModule("src/v2/managers/EncounterV2Manager.js", { getForInstallationInContext: () => [] });
     stubModule("src/v2/managers/StateV2Manager.js", { getActiveStates: () => [] });
     stubModule("src/v2/core/character/CharacterTypeCatalog.js", { isNpc: () => false });
 

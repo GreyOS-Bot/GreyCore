@@ -6,12 +6,12 @@ const {
 } = require("discord.js");
 
 function createExternal(
-    continuityAId
+    installationAId
 ) {
     const modal =
         new ModalBuilder()
             .setCustomId(
-                `v2_enc_ext:${continuityAId}`
+                `v2_enc_ext:${installationAId}`
             )
             .setTitle(
                 "Ajouter une rencontre"
@@ -56,13 +56,13 @@ function createExternal(
 }
 
 function createInternal(
-    continuityAId,
-    continuityBId
+    installationAId,
+    installationBId
 ) {
     const modal =
         new ModalBuilder()
             .setCustomId(
-                `v2_enc_int:${continuityAId}:${continuityBId}`
+                `v2_enc_int:${installationAId}:${installationBId}`
             )
             .setTitle(
                 "Ajouter une rencontre"

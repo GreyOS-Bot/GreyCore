@@ -705,6 +705,8 @@ CREATE TABLE IF NOT EXISTS PendingContinuityRelationships (
 
 # 14. Table `ContinuityEncounters`
 
+> Depuis la Phase 3G, cette table est legacy/read-only au runtime. Les nouvelles rencontres contextuelles sont stockées dans `InstallationEncountersV2`; voir `docs/contexts-3g-encounters.md`.
+
 Les rencontres appartiennent à une continuité.
 
 ```sql
