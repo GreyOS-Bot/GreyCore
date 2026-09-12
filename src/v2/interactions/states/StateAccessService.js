@@ -33,11 +33,27 @@ function getContinuityId(
     );
 }
 
+function getInstallationId(dashboardData) {
+    return dashboardData?.installation?.id || null;
+}
+
+function getInstallationScope(dashboardData, actorId) {
+    const installation = dashboardData?.installation;
+    if (!installation) return null;
+    return {
+        installationId: installation.id,
+        guildId: installation.guild_id,
+        contextId: installation.context_id,
+        actorId
+    };
+}
+
 async function getManageableDashboard(
     interaction,
     characterId,
     deniedMessage =
-        "Tu ne peux pas gérer les états de ce personnage."
+        "Tu ne peux pas gérer les états de ce personnage.",
+    installationId = null
 ) {
     const dashboardData =
         characterDashboardManager
@@ -45,7 +61,8 @@ async function getManageableDashboard(
                 characterId,
                 {
                     guildId:
-                        interaction.guildId
+                        interaction.guildId,
+                    installationId
                 }
             );
 
@@ -83,6 +100,11 @@ async function getManageableDashboard(
             "La continuité du personnage est introuvable."
         );
 
+        return null;
+    }
+
+    if (!getInstallationId(dashboardData)) {
+        await replyError(interaction, "L’installation du personnage est introuvable.");
         return null;
     }
 
@@ -125,6 +147,8 @@ async function getGuildStateType(
 
 module.exports = {
     getContinuityId,
+    getInstallationId,
+    getInstallationScope,
     getGuildStateType,
     getManageableDashboard
 };

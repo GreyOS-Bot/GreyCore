@@ -6,13 +6,13 @@ const modalFactory =
 
 async function openAddModal(
     interaction,
-    continuityId
+    installationId
 ) {
     const context =
         await accessService
             .getContinuityContext(
                 interaction,
-                continuityId
+                installationId
             );
 
     if (!context) {
@@ -21,7 +21,7 @@ async function openAddModal(
 
     return interaction.showModal(
         modalFactory.createAddModal(
-            continuityId
+            installationId
         )
     );
 }

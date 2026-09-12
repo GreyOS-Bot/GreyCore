@@ -6,8 +6,11 @@ const categoryPage = require("./CharacterCategoryPage");
 
 class CharacterSocialCategoryPage {
     async execute(interaction, characterId) {
+        const [resolvedCharacterId, installationId = null] = String(characterId).split("~");
+        characterId = resolvedCharacterId;
         const data = dashboardManager.getDashboardData(characterId, {
-            guildId: interaction.guildId
+            guildId: interaction.guildId,
+            installationId
         });
         if (!data) return notFound(interaction);
 
@@ -32,8 +35,8 @@ class CharacterSocialCategoryPage {
             label: count("Journal", data.counts.journal),
             emoji: UI.icons.journal
         }));
-        if (enabled("states")) buttons.push(UI.button.primary({
-            id: `page:character:states:${characterId}`,
+        if (enabled("states") && data.installation) buttons.push(UI.button.primary({
+            id: `page:character:states:${characterId}~${data.installation.id}`,
             label: count("États", data.counts.states),
             emoji: UI.icons.states
         }));

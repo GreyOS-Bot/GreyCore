@@ -43,8 +43,10 @@ module.exports =
 
         try {
             outfitManager.createCurrent({
-                continuityId:
-                    pendingAction.continuityId,
+                installationId: pendingAction.installationId,
+                guildId: pendingAction.guildId,
+                contextId: pendingAction.contextId,
+                createdBy: message.author.id,
                 imageUrl:
                     attachment.url
             });

@@ -19,6 +19,7 @@ module.exports =
         const characterId =
             interaction.customId
                 .split(":")[1];
+        const installationId = interaction.customId.split(":")[2];
 
         const stateTypeId =
             Number(
@@ -29,7 +30,8 @@ module.exports =
             await getManageableDashboard(
                 interaction,
                 characterId,
-                "Vous ne pouvez pas ajouter un état à ce personnage."
+                "Vous ne pouvez pas ajouter un état à ce personnage.",
+                installationId
             );
 
         if (!dashboardData) {
@@ -49,7 +51,7 @@ module.exports =
         const modal =
             new ModalBuilder()
                 .setCustomId(
-                    `v2_state_create:${characterId}:${stateType.id}`
+                    `v2_state_create:${characterId}:${stateType.id}:${installationId}`
                 )
                 .setTitle(
                     `${stateType.emoji || "❤️‍🩹"} ${stateType.name}`

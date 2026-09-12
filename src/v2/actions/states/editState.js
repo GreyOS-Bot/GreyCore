@@ -5,7 +5,8 @@ const selectManagedState =
     require("./selectManagedState");
 
 const {
-    getContinuityId,
+    getInstallationId,
+    getInstallationScope,
     getManageableDashboard
 } =
     require(
@@ -55,14 +56,16 @@ class EditState {
     async execute(
         interaction,
         characterId,
-        stateId
+        stateId,
+        installationId
     ) {
 
         const dashboardData =
             await getManageableDashboard(
                 interaction,
                 characterId,
-                "Tu ne peux pas modifier les états de ce personnage."
+                "Tu ne peux pas modifier les états de ce personnage.",
+                installationId
             );
 
         if (!dashboardData) {
@@ -74,15 +77,12 @@ class EditState {
             continuity
         } = dashboardData;
 
-        const continuityId =
-            getContinuityId(
-                dashboardData
-            );
+        installationId = getInstallationId(dashboardData);
 
         const state =
             stateManager
                 .getActiveStates(
-                    continuityId
+                    installationId
                 )
                 .find(currentState =>
                     String(
@@ -126,6 +126,7 @@ class EditState {
         stateManager.updateState(
             stateId,
             {
+                ...getInstallationScope(dashboardData, interaction.user.id),
                 note:
                     note || null,
 
@@ -137,7 +138,8 @@ class EditState {
         return selectManagedState.execute(
             interaction,
             characterId,
-            stateId
+            stateId,
+            installationId
         );
 
     }

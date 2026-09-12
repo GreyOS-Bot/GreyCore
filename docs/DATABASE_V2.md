@@ -1470,3 +1470,12 @@ Après la mise en place de la Database V2, un utilisateur pourra :
 10. archiver, exporter ou importer ses personnages plus tard.
 
 Greycore deviendra ainsi une plateforme de gestion de personnages RP multi-serveurs, et non plus uniquement un bot lié à un serveur Discord.
+# Phase 3H — States et Outfits runtime
+
+`StateTypes` reste Guild-wide. `InstallationStatesV2` porte l'Installation, la Guild et le
+Context exacts; un index partiel impose un StateType actif unique par Installation.
+`ContinuityStatesV2` reste une archive legacy en lecture seule.
+
+`InstallationOutfitsV2` porte le même scope exact et conserve URL, BLOB, nom de fichier et
+content-type. Un index partiel impose au plus une tenue courante par Installation.
+`ContinuityOutfitsV2` reste une archive legacy en lecture seule.

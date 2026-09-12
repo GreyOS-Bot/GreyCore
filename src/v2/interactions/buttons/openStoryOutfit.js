@@ -18,6 +18,7 @@ const {
 } = require(
     "../../core/services/InteractionResponseService"
 );
+const installationManager = require("../../managers/InstallationV2Manager");
 
 module.exports = async interaction => {
     try {
@@ -59,10 +60,10 @@ module.exports = async interaction => {
         }
 
         const outfit =
-            v2.managers.outfit
-                .getCurrent(
-                    continuity.id
-                );
+            (() => {
+                const installation = installationManager.getByContinuityAndGuild(continuity.id, interaction.guildId);
+                return installation ? v2.managers.outfit.getCurrent(installation.id) : null;
+            })();
 
         const view =
             outfitV2View.build(

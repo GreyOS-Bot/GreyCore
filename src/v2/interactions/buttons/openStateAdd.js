@@ -28,12 +28,14 @@ module.exports =
         const characterId =
             interaction.customId
                 .split(":")[1];
+        const installationId = interaction.customId.split(":")[2];
 
         const dashboardData =
             await getManageableDashboard(
                 interaction,
                 characterId,
-                "Vous ne pouvez pas ajouter un état à ce personnage."
+                "Vous ne pouvez pas ajouter un état à ce personnage.",
+                installationId
             );
 
         if (!dashboardData) {
@@ -77,7 +79,7 @@ module.exports =
         const selectMenu =
             new StringSelectMenuBuilder()
                 .setCustomId(
-                    `v2_state_type_select:${characterId}`
+                    `v2_state_type_select:${characterId}:${installationId}`
                 )
                 .setPlaceholder(
                     "Choisir un type d’état"

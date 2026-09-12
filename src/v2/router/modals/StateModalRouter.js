@@ -27,13 +27,15 @@ module.exports =
             const [
                 ,
                 characterId,
-                stateId
+                stateId,
+                installationId
             ] = customId.split(":");
 
             await editState.execute(
                 interaction,
                 characterId,
-                stateId
+                stateId,
+                installationId
             );
 
             return true;

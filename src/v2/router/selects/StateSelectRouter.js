@@ -30,7 +30,8 @@ module.exports =
             await selectManagedState.execute(
                 interaction,
                 customId.split(":")[1],
-                interaction.values[0]
+                interaction.values[0],
+                customId.split(":")[2]
             );
 
             return true;

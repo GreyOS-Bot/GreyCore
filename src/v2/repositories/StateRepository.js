@@ -19,6 +19,12 @@ const SELECT_STATE = `
 
 class StateRepository {
 
+    assertLegacyWritable() {
+        if (db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='InstallationStatesV2'").get()) {
+            throw new Error("ContinuityStatesV2 est une archive legacy en lecture seule.");
+        }
+    }
+
     getActive(
         continuityId
     ) {
@@ -93,6 +99,7 @@ class StateRepository {
     insert(
         data
     ) {
+        this.assertLegacyWritable();
         const result =
             db.prepare(`
                 INSERT INTO ContinuityStatesV2 (
@@ -125,6 +132,7 @@ class StateRepository {
         stateId,
         endedAt
     ) {
+        this.assertLegacyWritable();
         db.prepare(`
             UPDATE ContinuityStatesV2
             SET
@@ -146,6 +154,7 @@ class StateRepository {
         stateId,
         data
     ) {
+        this.assertLegacyWritable();
         db.prepare(`
             UPDATE ContinuityStatesV2
             SET
@@ -168,6 +177,7 @@ class StateRepository {
     delete(
         stateId
     ) {
+        this.assertLegacyWritable();
         return db.prepare(`
             DELETE FROM ContinuityStatesV2
             WHERE id = ?

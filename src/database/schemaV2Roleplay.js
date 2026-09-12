@@ -335,6 +335,7 @@ function initializeRoleplaySchemaV2() {
     `).run();
 
     require("../v2/repositories/InstallationEncounterSchema")(db);
+    require("../v2/repositories/InstallationStateSchema")(db);
 
         db.prepare(`
         CREATE INDEX IF NOT EXISTS

@@ -7,7 +7,7 @@ const UI =
     require("../../framework");
 
 const {
-    getContinuityId,
+    getInstallationId,
     getManageableDashboard
 } =
     require(
@@ -27,14 +27,16 @@ class OpenStateManager {
 
     async execute(
         interaction,
-        characterId
+        characterId,
+        installationId
     ) {
 
         const dashboardData =
             await getManageableDashboard(
                 interaction,
                 characterId,
-                "Tu ne peux pas gérer les états de ce personnage."
+                "Tu ne peux pas gérer les états de ce personnage.",
+                installationId
             );
 
         if (!dashboardData) {
@@ -46,15 +48,12 @@ class OpenStateManager {
             continuity
         } = dashboardData;
 
-        const continuityId =
-            getContinuityId(
-                dashboardData
-            );
+        installationId = getInstallationId(dashboardData);
 
         const states =
-            continuityId
+            installationId
                 ? stateManager.getActiveStates(
-                    continuityId
+                    installationId
                 )
                 : [];
 
@@ -123,7 +122,7 @@ class OpenStateManager {
         const selectMenu =
             new StringSelectMenuBuilder()
                 .setCustomId(
-                    `v2_state_manage_select:${characterId}`
+                    `v2_state_manage_select:${characterId}:${installationId}`
                 )
                 .setPlaceholder(
                     "Choisir un état"
@@ -143,7 +142,7 @@ class OpenStateManager {
                     UI.button.secondary({
 
                         id:
-                            `page:character:states:${characterId}`,
+                            `page:character:states:${characterId}~${installationId}`,
 
                         label:
                             "Retour",

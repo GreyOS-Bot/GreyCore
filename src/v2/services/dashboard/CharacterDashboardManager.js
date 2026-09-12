@@ -810,11 +810,9 @@ class CharacterDashboardManager {
                     : 0,
 
             states:
-                stateManager
-                    .getActiveStates(
-                        continuityId
-                    )
-                    .length,
+                installation
+                    ? stateManager.getActiveStates(installation.id).length
+                    : 0,
 
             journal:
                 0,

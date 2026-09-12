@@ -5,6 +5,12 @@ const db =
 
 class OutfitRepository {
 
+    assertLegacyWritable() {
+        if (db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='InstallationOutfitsV2'").get()) {
+            throw new Error("ContinuityOutfitsV2 est une archive legacy en lecture seule.");
+        }
+    }
+
     getById(
         outfitId
     ) {
@@ -86,6 +92,7 @@ class OutfitRepository {
     createCurrent(
         data
     ) {
+        this.assertLegacyWritable();
         const create =
             db.transaction(
                 () => {
@@ -142,6 +149,7 @@ class OutfitRepository {
         outfitId,
         data
     ) {
+        this.assertLegacyWritable();
         db.prepare(`
             UPDATE ContinuityOutfitsV2
             SET
@@ -165,6 +173,7 @@ class OutfitRepository {
         outfit,
         updatedAt
     ) {
+        this.assertLegacyWritable();
         const select =
             db.transaction(
                 () => {
@@ -203,6 +212,7 @@ class OutfitRepository {
     delete(
         outfitId
     ) {
+        this.assertLegacyWritable();
         return db.prepare(`
             DELETE FROM ContinuityOutfitsV2
             WHERE id = ?

@@ -151,9 +151,15 @@ class StateTypeRepository {
             )?.total
             || 0;
 
+        const hasRuntime = Boolean(db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='InstallationStatesV2'").get());
+        const installations = hasRuntime
+            ? (db.prepare("SELECT COUNT(*) AS total FROM InstallationStatesV2 WHERE guild_id=? AND state_type_id=?").get(guildId, stateTypeId)?.total || 0)
+            : 0;
+
         return (
             legacy
             + continuities
+            + installations
         );
     }
 

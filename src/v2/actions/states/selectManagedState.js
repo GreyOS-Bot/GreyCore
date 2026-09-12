@@ -6,7 +6,7 @@ const UI =
     require("../../framework");
 
 const {
-    getContinuityId,
+    getInstallationId,
     getManageableDashboard
 } =
     require(
@@ -21,14 +21,16 @@ class SelectManagedState {
     async execute(
         interaction,
         characterId,
-        stateId
+        stateId,
+        installationId
     ) {
 
         const dashboardData =
             await getManageableDashboard(
                 interaction,
                 characterId,
-                "Tu ne peux pas gérer les états de ce personnage."
+                "Tu ne peux pas gérer les états de ce personnage.",
+                installationId
             );
 
         if (!dashboardData) {
@@ -40,14 +42,11 @@ class SelectManagedState {
             continuity
         } = dashboardData;
 
-        const continuityId =
-            getContinuityId(
-                dashboardData
-            );
+        installationId = getInstallationId(dashboardData);
 
         const states =
             stateManager.getActiveStates(
-                continuityId
+                installationId
             );
 
         const state =
@@ -120,7 +119,7 @@ class SelectManagedState {
                     UI.button.primary({
 
     id:
-        `v2_state_edit:${characterId}:${stateId}`,
+        `v2_state_edit:${characterId}:${stateId}:${installationId}`,
 
     label:
         "Modifier",
@@ -133,7 +132,7 @@ class SelectManagedState {
 UI.button.danger({
 
     id:
-        `v2_state_delete:${characterId}:${stateId}`,
+    `v2_state_delete:${characterId}:${stateId}:${installationId}`,
 
     label:
         "Supprimer",
@@ -152,7 +151,7 @@ UI.button.danger({
                     UI.button.secondary({
 
                         id:
-                            `v2_state_manage:${characterId}`,
+                            `v2_state_manage:${characterId}:${installationId}`,
 
                         label:
                             "Retour",

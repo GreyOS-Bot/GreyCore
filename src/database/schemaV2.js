@@ -8,6 +8,10 @@ const initializeMediaSchemaV2 =
     require("./schemaV2Media");
 const initializeInstallationSchemaV2 =
     require("./schemaV2Installation");
+const initializeInstallationStateSchema =
+    require("../v2/repositories/InstallationStateSchema");
+const initializeInstallationOutfitSchema =
+    require("../v2/repositories/InstallationOutfitSchema");
 const initializeAssetSchemaV2 =
     require("./schemaV2Assets");
 const initializeAutomationSchemaV2 =
@@ -287,6 +291,8 @@ function initializeSchemaV2() {
     initializeRoleplaySchemaV2();
     require("../v2/repositories/InstallationPhoneSchema")(db);
     initializeInstallationSchemaV2();
+    initializeInstallationStateSchema(db);
+    initializeInstallationOutfitSchema(db);
     initializeAssetSchemaV2();
     initializeAutomationSchemaV2();
     initializeSceneAssistantSchemaV2();

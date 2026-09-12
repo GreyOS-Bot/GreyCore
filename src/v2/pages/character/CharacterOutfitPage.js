@@ -27,15 +27,20 @@ class CharacterOutfitPage {
 
     async execute(
         interaction,
-        characterId
+        characterId,
+        installationId = null
     ) {
+        if (String(characterId).includes("~")) {
+            [characterId, installationId] = String(characterId).split("~");
+        }
 
         const dashboardData =
             characterDashboardManager.getDashboardData(
                 characterId,
                 {
                     guildId:
-                        interaction.guildId
+                        interaction.guildId,
+                    installationId
                 }
             );
 
@@ -58,7 +63,8 @@ class CharacterOutfitPage {
 
         const {
             character,
-            continuity
+            continuity,
+            installation
         } = dashboardData;
 
         const isOwner =
@@ -69,9 +75,9 @@ class CharacterOutfitPage {
                 );
 
         const outfit =
-            continuity
+            installation
                 ? outfitManager.getCurrent(
-                    continuity.id
+                    installation.id
                 )
                 : null;
 
@@ -142,7 +148,7 @@ class CharacterOutfitPage {
 
         }
 
-        if (!continuity) {
+        if (!continuity || !installation) {
 
     return interaction.update({
 
@@ -177,7 +183,7 @@ class CharacterOutfitPage {
             UI.button.success({
 
                 id:
-                    `v2_outfit_add:${continuity.id}`,
+                    `v2_outfit_add:${installation.id}`,
 
                 label:
                     "Ajouter",
@@ -190,7 +196,7 @@ class CharacterOutfitPage {
             UI.button.primary({
 
                 id:
-                    `v2_outfit_change:${continuity.id}`,
+                    `v2_outfit_change:${installation.id}`,
 
                 label:
                     "Changer",
@@ -203,7 +209,7 @@ class CharacterOutfitPage {
             UI.button.secondary({
 
                 id:
-                    `v2_outfit_manage:${continuity.id}`,
+                    `v2_outfit_manage:${installation.id}`,
 
                 label:
                     "Gérer",

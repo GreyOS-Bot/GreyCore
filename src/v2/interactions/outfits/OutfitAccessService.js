@@ -8,6 +8,8 @@ const continuityManager =
         "../../managers/ContinuityV2Manager"
     );
 
+const installationManager = require("../../managers/InstallationV2Manager");
+
 const characterManager =
     require(
         "../../managers/CharacterV2Manager"
@@ -24,13 +26,18 @@ const {
     "../../core/services/InteractionResponseService"
 );
 
-async function getContinuityContext(
+async function getInstallationContext(
     interaction,
-    continuityId
+    installationId
 ) {
+    const installation = installationManager.getById(installationId);
+    if (!installation || String(installation.guild_id) !== String(interaction.guildId)) {
+        await replyError(interaction, "Installation introuvable dans ce serveur.");
+        return null;
+    }
     const continuity =
         continuityManager.getById(
-            continuityId
+            installation.continuity_id
         );
 
     if (!continuity) {
@@ -72,6 +79,7 @@ async function getContinuityContext(
     }
 
     return {
+        installation,
         continuity,
         character
     };
@@ -96,9 +104,9 @@ async function getOutfitContext(
     }
 
     const context =
-        await getContinuityContext(
+        await getInstallationContext(
             interaction,
-            outfit.continuity_id
+            outfit.installation_id
         );
 
     if (!context) {
@@ -112,6 +120,7 @@ async function getOutfitContext(
 }
 
 module.exports = {
-    getContinuityContext,
+    getInstallationContext,
+    getContinuityContext: getInstallationContext,
     getOutfitContext
 };

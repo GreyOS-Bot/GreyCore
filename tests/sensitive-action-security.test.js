@@ -103,6 +103,11 @@ test(
             continuity: {
                 id:
                     "continuity"
+            },
+            installation: {
+                id: 12,
+                guild_id: "guild",
+                context_id: "context"
             }
         };
 

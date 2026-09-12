@@ -7,8 +7,11 @@ const categoryPage = require("./CharacterCategoryPage");
 
 class CharacterPossessionsCategoryPage {
     async execute(interaction, characterId) {
+        const [resolvedCharacterId, installationId = null] = String(characterId).split("~");
+        characterId = resolvedCharacterId;
         const data = dashboardManager.getDashboardData(characterId, {
-            guildId: interaction.guildId
+            guildId: interaction.guildId,
+            installationId
         });
         if (!data) return interaction.update({ content: "❌ Ce personnage est introuvable.", embeds: [], components: [] });
 
@@ -21,9 +24,9 @@ class CharacterPossessionsCategoryPage {
                 emoji: UI.icons.phone
             }));
         }
-        if (moduleManager.isEnabled(interaction.guildId, "outfit")) {
+        if (data.installation && moduleManager.isEnabled(interaction.guildId, "outfit")) {
             buttons.push(UI.button.primary({
-                id: `page:character:outfit:${characterId}`,
+                id: `page:character:outfit:${characterId}~${data.installation.id}`,
                 label: "Outfits",
                 emoji: UI.icons.outfit
             }));

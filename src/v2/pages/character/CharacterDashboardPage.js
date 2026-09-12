@@ -4,9 +4,13 @@ const UI = require("../../framework");
 class CharacterDashboardPage {
     build(character, counts = null, {
         isOwner = false,
-        modules = []
+        modules = [],
+        installationId = null
     } = {}) {
         const characterId = character.id ?? character.char_uuid;
+        const scopedCharacterId = installationId
+            ? `${characterId}~${installationId}`
+            : characterId;
 
         if (!characterId) {
             throw new Error(
@@ -50,7 +54,7 @@ class CharacterDashboardPage {
         if (["relationships", "encounters", "journal", "states"]
             .some(isEnabled)) {
             buttons.push(UI.button.primary({
-                id: `page:character:category:life:${characterId}`,
+                id: `page:character:category:life:${scopedCharacterId}`,
                 label: "Vie du personnage",
                 emoji: "📖"
             }));
@@ -61,7 +65,7 @@ class CharacterDashboardPage {
             || (isOwner && isEnabled("phone"))
         ) {
             buttons.push(UI.button.primary({
-                id: `page:character:category:effects:${characterId}`,
+                id: `page:character:category:effects:${scopedCharacterId}`,
                 label: "Effets personnels",
                 emoji: "🎒"
             }));

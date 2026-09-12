@@ -9,7 +9,7 @@ const stateManager =
     require("../../managers/StateV2Manager");
 
 const {
-    getContinuityId,
+    getInstallationId,
     getManageableDashboard
 } =
     require(
@@ -27,14 +27,16 @@ class OpenEditState {
     async execute(
         interaction,
         characterId,
-        stateId
+        stateId,
+        installationId
     ) {
 
         const dashboardData =
             await getManageableDashboard(
                 interaction,
                 characterId,
-                "Tu ne peux pas modifier les états de ce personnage."
+                "Tu ne peux pas modifier les états de ce personnage.",
+                installationId
             );
 
         if (!dashboardData) {
@@ -46,14 +48,11 @@ class OpenEditState {
             continuity
         } = dashboardData;
 
-        const continuityId =
-            getContinuityId(
-                dashboardData
-            );
+        installationId = getInstallationId(dashboardData);
 
         const states =
             stateManager.getActiveStates(
-                continuityId
+                installationId
             );
 
         const state =
@@ -112,7 +111,7 @@ class OpenEditState {
         const modal =
             new ModalBuilder()
                 .setCustomId(
-                    `v2_state_edit_submit:${characterId}:${stateId}`
+                    `v2_state_edit_submit:${characterId}:${stateId}:${installationId}`
                 )
                 .setTitle(
                     "Modifier l’état"

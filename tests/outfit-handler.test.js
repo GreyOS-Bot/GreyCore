@@ -25,6 +25,14 @@ test(
             character_id:
                 character.id
         };
+        const installation = {
+            id: continuity.id,
+            continuity_id: continuity.id,
+            character_id: character.id,
+            guild_id: "guild",
+            context_id: "context",
+            status: "approved"
+        };
 
         const outfits = [
             {
@@ -32,6 +40,8 @@ test(
                     1,
                 continuity_id:
                     continuity.id,
+                installation_id:
+                    installation.id,
                 title:
                     "Tenue actuelle",
                 description:
@@ -46,6 +56,8 @@ test(
                     2,
                 continuity_id:
                     continuity.id,
+                installation_id:
+                    installation.id,
                 title:
                     "Tenue de soirée",
                 description:
@@ -105,6 +117,11 @@ test(
                                 String(
                                     continuityId
                                 )
+                        ),
+                getForInstallation:
+                    installationId =>
+                        outfits.filter(outfit =>
+                            String(outfit.installation_id) === String(installationId)
                         ),
                 updateDetails:
                     (
@@ -201,6 +218,16 @@ test(
                             continuity.id
                             ? continuity
                             : null
+            }
+        );
+
+        stubModule(
+            "src/v2/managers/InstallationV2Manager.js",
+            {
+                getById: installationId =>
+                    String(installationId) === String(installation.id)
+                        ? installation
+                        : null
             }
         );
 
@@ -351,8 +378,14 @@ test(
             [
                 "outfit.create",
                 {
-                    continuityId:
+                    installationId:
                         "continuity",
+                    guildId:
+                        "guild",
+                    contextId:
+                        "context",
+                    createdBy:
+                        "user",
                     imageUrl:
                         "https://example.com/gala.png",
                     imageData:

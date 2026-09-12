@@ -9,7 +9,7 @@ const stateManager =
     require("../../managers/StateV2Manager");
 
 const {
-    getContinuityId,
+    getInstallationId,
     getManageableDashboard
 } =
     require(
@@ -27,14 +27,16 @@ class ConfirmDeleteState {
     async execute(
         interaction,
         characterId,
-        stateId
+        stateId,
+        installationId
     ) {
 
         const dashboardData =
             await getManageableDashboard(
                 interaction,
                 characterId,
-                "Tu ne peux pas supprimer les états de ce personnage."
+                "Tu ne peux pas supprimer les états de ce personnage.",
+                installationId
             );
 
         if (!dashboardData) {
@@ -46,15 +48,12 @@ class ConfirmDeleteState {
             continuity
         } = dashboardData;
 
-        const continuityId =
-            getContinuityId(
-                dashboardData
-            );
+        installationId = getInstallationId(dashboardData);
 
         const state =
             stateManager
                 .getActiveStates(
-                    continuityId
+                    installationId
                 )
                 .find(currentState =>
                     String(
@@ -102,7 +101,7 @@ class ConfirmDeleteState {
                     UI.button.danger({
 
                         id:
-                            `v2_state_delete_confirm:${characterId}:${stateId}`,
+                            `v2_state_delete_confirm:${characterId}:${stateId}:${installationId}`,
 
                         label:
                             "Supprimer",
@@ -115,7 +114,7 @@ class ConfirmDeleteState {
                     UI.button.secondary({
 
                         id:
-                            `v2_state_manage_open:${characterId}:${stateId}`,
+                            `v2_state_manage_open:${characterId}:${stateId}:${installationId}`,
 
                         label:
                             "Annuler",

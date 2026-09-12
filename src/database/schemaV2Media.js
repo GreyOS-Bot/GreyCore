@@ -1,6 +1,9 @@
 const db =
     require("./database");
 
+const initializeInstallationOutfitSchema =
+    require("../v2/repositories/InstallationOutfitSchema");
+
 /*
  * Vérifie si une table existe.
  */
@@ -1107,6 +1110,7 @@ function initializeMediaSchemaV2() {
     `).run();
 
     ensureOutfitImageColumns();
+    initializeInstallationOutfitSchema(db);
 
     /*
      * TRANSFERT DES ANCIENNES CONVERSATIONS

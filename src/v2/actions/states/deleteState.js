@@ -5,7 +5,8 @@ const characterStatesPage =
     require("../../pages/character/CharacterStatesPage");
 
 const {
-    getContinuityId,
+    getInstallationId,
+    getInstallationScope,
     getManageableDashboard
 } =
     require(
@@ -23,14 +24,16 @@ class DeleteState {
     async execute(
         interaction,
         characterId,
-        stateId
+        stateId,
+        installationId
     ) {
 
         const dashboardData =
             await getManageableDashboard(
                 interaction,
                 characterId,
-                "Tu ne peux pas supprimer les états de ce personnage."
+                "Tu ne peux pas supprimer les états de ce personnage.",
+                installationId
             );
 
         if (!dashboardData) {
@@ -42,15 +45,12 @@ class DeleteState {
             continuity
         } = dashboardData;
 
-        const continuityId =
-            getContinuityId(
-                dashboardData
-            );
+        installationId = getInstallationId(dashboardData);
 
         const state =
             stateManager
                 .getActiveStates(
-                    continuityId
+                    installationId
                 )
                 .find(currentState =>
                     String(
@@ -67,12 +67,14 @@ class DeleteState {
         }
 
         stateManager.deleteState(
-            stateId
+            stateId,
+            getInstallationScope(dashboardData, interaction.user.id)
         );
 
         return characterStatesPage.execute(
             interaction,
-            characterId
+            characterId,
+            installationId
         );
 
     }

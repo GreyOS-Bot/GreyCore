@@ -100,6 +100,10 @@ async function saveEditModal(
         outfitManager.updateDetails(
             outfitId,
             {
+                installationId: context.installation.id,
+                guildId: context.installation.guild_id,
+                contextId: context.installation.context_id,
+                actorId: interaction.user.id,
                 title,
                 description
             }
@@ -124,13 +128,13 @@ async function saveEditModal(
 
 async function saveAddModal(
     interaction,
-    continuityId
+    installationId
 ) {
     const context =
         await accessService
             .getContinuityContext(
                 interaction,
-                continuityId
+                installationId
             );
 
     if (!context) {
@@ -174,7 +178,10 @@ async function saveAddModal(
             );
 
         outfitManager.createCurrent({
-            continuityId,
+            installationId: context.installation.id,
+            guildId: context.installation.guild_id,
+            contextId: context.installation.context_id,
+            createdBy: interaction.user.id,
             imageUrl:
                 attachment.url,
             imageData:
@@ -206,13 +213,13 @@ async function saveAddModal(
 
 async function openChangeMenu(
     interaction,
-    continuityId
+    installationId
 ) {
     const context =
         await accessService
             .getContinuityContext(
                 interaction,
-                continuityId
+                installationId
             );
 
     if (!context) {
@@ -220,8 +227,8 @@ async function openChangeMenu(
     }
 
     const outfits =
-        outfitManager.getForContinuity(
-            continuityId,
+        outfitManager.getForInstallation(
+            installationId,
             25
         );
 
@@ -249,7 +256,7 @@ async function openChangeMenu(
     return replyPrivate(
         interaction,
         viewFactory.createChangeMenu(
-            continuityId,
+            installationId,
             availableOutfits
         )
     );
@@ -257,13 +264,13 @@ async function openChangeMenu(
 
 async function openManageMenu(
     interaction,
-    continuityId
+    installationId
 ) {
     const context =
         await accessService
             .getContinuityContext(
                 interaction,
-                continuityId
+                installationId
             );
 
     if (!context) {
@@ -271,8 +278,8 @@ async function openManageMenu(
     }
 
     const outfits =
-        outfitManager.getForContinuity(
-            continuityId,
+        outfitManager.getForInstallation(
+            installationId,
             25
         );
 
@@ -286,7 +293,7 @@ async function openManageMenu(
     return replyPrivate(
         interaction,
         viewFactory.createManageMenu(
-            continuityId,
+            installationId,
             outfits
         )
     );
@@ -329,14 +336,17 @@ async function setCurrent(
         return;
     }
 
-    outfitManager.setCurrent(
-        outfitId
-    );
+    outfitManager.setCurrent(outfitId, {
+        installationId: context.installation.id,
+        guildId: context.installation.guild_id,
+        contextId: context.installation.context_id,
+        actorId: interaction.user.id
+    });
 
     return characterOutfitPage.execute(
         interaction,
-        context.continuity
-            .character_id
+        context.continuity.character_id,
+        context.installation.id
     );
 }
 
@@ -380,9 +390,12 @@ async function deleteConfirmed(
 
     try {
         const deletedOutfit =
-            outfitManager.delete(
-                outfitId
-            );
+            outfitManager.delete(outfitId, {
+                installationId: context.installation.id,
+                guildId: context.installation.guild_id,
+                contextId: context.installation.context_id,
+                actorId: interaction.user.id
+            });
 
         const continuity =
             continuityManager.getById(
@@ -404,7 +417,8 @@ async function deleteConfirmed(
         await characterOutfitPage
             .execute(
                 interaction,
-                continuity.character_id
+                continuity.character_id,
+                context.installation.id
             );
 
         return true;

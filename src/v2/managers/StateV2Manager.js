@@ -254,5 +254,15 @@ class StateV2Manager {
 
 }
 
-module.exports =
-    new StateV2Manager();
+const installationStateManager = require("./InstallationStateV2Manager");
+const installationStateRepository = require("../repositories/InstallationStateRepository");
+const legacyStateManager = new StateV2Manager();
+module.exports = new Proxy({}, {
+    get(_target, property) {
+        const manager = installationStateRepository.supportsRuntime()
+            ? installationStateManager
+            : legacyStateManager;
+        const value = manager[property];
+        return typeof value === "function" ? value.bind(manager) : value;
+    }
+});

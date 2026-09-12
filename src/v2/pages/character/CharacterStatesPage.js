@@ -22,15 +22,20 @@ class CharacterStatesPage {
 
     async execute(
         interaction,
-        characterId
+        characterId,
+        installationId = null
     ) {
+        if (String(characterId).includes("~")) {
+            [characterId, installationId] = String(characterId).split("~");
+        }
 
         const dashboardData =
             characterDashboardManager.getDashboardData(
                 characterId,
                 {
                     guildId:
-                        interaction.guildId
+                        interaction.guildId,
+                    installationId
                 }
             );
 
@@ -53,7 +58,8 @@ class CharacterStatesPage {
 
         const {
             character,
-            continuity
+            continuity,
+            installation
         } = dashboardData;
 
         const isOwner =
@@ -63,15 +69,10 @@ class CharacterStatesPage {
                     character
                 );
 
-        const continuityId =
-            continuity?.continuity_id
-            || continuity?.id
-            || null;
-
         const states =
-            continuityId
+            installation
                 ? stateManager.getActiveStates(
-                    continuityId
+                    installation.id
                 )
                 : [];
 
@@ -124,7 +125,7 @@ class CharacterStatesPage {
             UI.button.primary({
 
                 id:
-                    `v2_state_add:${characterId}`,
+                    `v2_state_add:${characterId}:${installation.id}`,
 
                 label:
                     "Ajouter",
@@ -137,7 +138,7 @@ class CharacterStatesPage {
             UI.button.secondary({
 
                 id:
-                    `v2_state_manage:${characterId}`,
+                    `v2_state_manage:${characterId}:${installation.id}`,
 
                 label:
                     "Gérer",

@@ -16,7 +16,7 @@ const characterStatesPage =
     );
 
 const {
-    getContinuityId,
+    getInstallationScope,
     getGuildStateType,
     getManageableDashboard
 } = require(
@@ -36,7 +36,8 @@ module.exports =
         const [
             ,
             characterId,
-            stateTypeId
+            stateTypeId,
+            installationId
         ] = interaction.customId
             .split(":");
 
@@ -44,7 +45,8 @@ module.exports =
             await getManageableDashboard(
                 interaction,
                 characterId,
-                "Vous ne pouvez pas ajouter un état à ce personnage."
+                "Vous ne pouvez pas ajouter un état à ce personnage.",
+                installationId
             );
 
         if (!dashboardData) {
@@ -76,17 +78,14 @@ module.exports =
                 .trim();
 
         try {
+            const scope = getInstallationScope(dashboardData, interaction.user.id);
             stateV2Manager.create({
-                continuityId:
-                    getContinuityId(
-                        dashboardData
-                    ),
+                ...scope,
                 stateTypeId:
                     Number(
                         stateType.id
                     ),
-                guildId:
-                    interaction.guildId,
+                guildId: interaction.guildId,
                 note:
                     note || null,
                 startedAt:
@@ -98,7 +97,8 @@ module.exports =
             return characterStatesPage
                 .execute(
                     interaction,
-                    characterId
+                    characterId,
+                    dashboardData.installation.id
                 );
         } catch (error) {
             logger.error(

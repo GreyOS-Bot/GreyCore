@@ -247,5 +247,15 @@ class OutfitV2Manager {
 
 }
 
-module.exports =
-    new OutfitV2Manager();
+const installationOutfitManager = require("./InstallationOutfitV2Manager");
+const installationOutfitRepository = require("../repositories/InstallationOutfitRepository");
+const legacyOutfitManager = new OutfitV2Manager();
+module.exports = new Proxy({}, {
+    get(_target, property) {
+        const manager = installationOutfitRepository.supportsRuntime()
+            ? installationOutfitManager
+            : legacyOutfitManager;
+        const value = manager[property];
+        return typeof value === "function" ? value.bind(manager) : value;
+    }
+});

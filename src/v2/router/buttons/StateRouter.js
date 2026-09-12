@@ -68,13 +68,15 @@ module.exports =
             const [
                 ,
                 characterId,
-                stateId
+                stateId,
+                installationId
             ] = customId.split(":");
 
             await openEditState.execute(
                 interaction,
                 characterId,
-                stateId
+                stateId,
+                installationId
             );
 
             return true;
@@ -85,12 +87,12 @@ module.exports =
                 "v2_state_manage:"
             )
         ) {
-            const characterId =
-                customId.split(":")[1];
+            const [, characterId, installationId] = customId.split(":");
 
             await openStateManager.execute(
                 interaction,
-                characterId
+                characterId,
+                installationId
             );
 
             return true;
@@ -104,13 +106,15 @@ module.exports =
             const [
                 ,
                 characterId,
-                stateId
+                stateId,
+                installationId
             ] = customId.split(":");
 
             await deleteState.execute(
                 interaction,
                 characterId,
-                stateId
+                stateId,
+                installationId
             );
 
             return true;
@@ -124,13 +128,15 @@ module.exports =
             const [
                 ,
                 characterId,
-                stateId
+                stateId,
+                installationId
             ] = customId.split(":");
 
             await confirmDeleteState.execute(
                 interaction,
                 characterId,
-                stateId
+                stateId,
+                installationId
             );
 
             return true;
@@ -144,13 +150,15 @@ module.exports =
             const [
                 ,
                 characterId,
-                stateId
+                stateId,
+                installationId
             ] = customId.split(":");
 
             await selectManagedState.execute(
                 interaction,
                 characterId,
-                stateId
+                stateId,
+                installationId
             );
 
             return true;

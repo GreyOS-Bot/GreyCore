@@ -27,13 +27,16 @@ class OpenCharacterDashboardPage {
         interaction,
         characterId
     ) {
+        const [resolvedCharacterId, requestedInstallationId = null] = String(characterId).split("~");
+        characterId = resolvedCharacterId;
 
         const dashboardData =
             characterDashboardManager.getDashboardData(
                 characterId,
                 {
                     guildId:
-                        interaction.guildId
+                        interaction.guildId,
+                    installationId: requestedInstallationId
                 }
             );
 
@@ -61,15 +64,13 @@ class OpenCharacterDashboardPage {
                     dashboardData.character
                 );
 
-        const installation =
-            dashboardData.continuity
-            && interaction.guildId
-                ? installationManager
-                    .getByContinuityAndGuild(
-                        dashboardData.continuity.id,
-                        interaction.guildId
-                    )
-                : null;
+        const installation = dashboardData.installation
+            || (!requestedInstallationId && dashboardData.continuity && interaction.guildId
+                ? installationManager.getByContinuityAndGuild(
+                    dashboardData.continuity.id,
+                    interaction.guildId
+                )
+                : null);
 
         if (
             installation
@@ -115,6 +116,7 @@ class OpenCharacterDashboardPage {
                 dashboardData.counts,
                 {
                     isOwner,
+                    installationId: installation?.id || null,
                     modules:
                         guildModuleManager.getConfiguration(
                             interaction.guildId
