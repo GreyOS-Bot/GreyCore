@@ -28,6 +28,9 @@ const initializeUserPlayBlockSchemaV2 =
     require("./schemaV2UserPlayBlocks");
 const initializeDiscordReferenceHealthSchema =
     require("./schemaV2DiscordReferenceHealth");
+const initializeEntityContextSchema = require("../v2/repositories/EntityContextSchema");
+const initializeContextPublicPlaceSchema = require("../v2/repositories/ContextPublicPlaceSchema");
+const initializeProxyContextMigration = require("../v2/repositories/ProxyContextMigration");
 
 function columnExists(
     tableName,
@@ -299,6 +302,9 @@ function initializeSchemaV2() {
     initializeStaffPermissionsSchemaV2();
     initializeEntitySchemaV2();
     initializePublicPlacesSchemaV2();
+    initializeEntityContextSchema(db);
+    initializeContextPublicPlaceSchema(db);
+    initializeProxyContextMigration(db);
     initializeUserPlayBlockSchemaV2();
     initializeDiscordReferenceHealthSchema();
 

@@ -2,7 +2,7 @@ const http = require("node:http");
 const crypto = require("node:crypto");
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require("discord.js");
 const repository = require("../../repositories/GreyFateRepository");
-const entityManager = require("../../managers/NarrativeEntityV2Manager");
+const entityInstances = require("../../managers/NarrativeEntityInstanceV2Manager");
 const webhookManager = require("../../../webhooks/webhookManager");
 const threadAccessService = require("../../core/services/DiscordThreadAccessService");
 const referenceResolver = require("../../core/services/DiscordReferenceResolverService");
@@ -10,6 +10,7 @@ const logger = require("../../core/services/TechnicalLogger").create("GreyFateIn
 
 const SUPPORTED_EVENTS = new Set([
     "GREYFATE_EVENT_STARTED",
+    "GREYFATE_QUEST_DELIVERY",
     "GREYFATE_DUO_CLOSURE_DUE",
     "GREYFATE_EVENT_COMPLETED",
     "GREYFATE_EVENT_CONTINUED"
@@ -258,11 +259,12 @@ class GreyFateIntegrationService {
         if (typeof payload.operationKey !== "string" || !payload.operationKey.trim()) throw new Error("operationKey requis");
         if (typeof payload.type !== "string" || !SUPPORTED_EVENTS.has(payload.type)) throw new Error("Type d’événement invalide");
     }
-    async process(payload, executionState = { externalEffectAttempted: false }) { if (payload.type === "GREYFATE_EVENT_STARTED") return this.eventStarted(payload, executionState); if (payload.type === "GREYFATE_DUO_CLOSURE_DUE") return this.closureDue(payload, executionState); if (payload.type === "GREYFATE_EVENT_COMPLETED" || payload.type === "GREYFATE_EVENT_CONTINUED") return; throw new Error(`Événement inconnu : ${payload.type}`); }
-    entity(guildId) { return entityManager.getByGuild(guildId).find(e => e.name.toLowerCase() === "the weaver of fate" && e.is_enabled) || null; }
-    async sendAsWeaver(channel, content, components = [], executionState = null, reference = null) {
-        const entity = this.entity(channel.guildId);
-        if (!entity) throw new Error("The Weaver of Fate doit être active dans GreyCore");
+    async process(payload, executionState = { externalEffectAttempted: false }) { if (payload.type === "GREYFATE_EVENT_STARTED") return this.eventStarted(payload, executionState);if(payload.type==="GREYFATE_QUEST_DELIVERY")return this.questDelivery(payload,executionState); if (payload.type === "GREYFATE_DUO_CLOSURE_DUE") return this.closureDue(payload, executionState); if (payload.type === "GREYFATE_EVENT_COMPLETED" || payload.type === "GREYFATE_EVENT_CONTINUED") return; throw new Error(`Événement inconnu : ${payload.type}`); }
+    configureEntity(guildId,definitionId,actorId){this.initializeSchema();return repository.configureEntity(guildId,definitionId,actorId);}
+    entity(guildId,contextId) { const config=repository.getEntityConfiguration(guildId);if(!config)return null;return entityInstances.byDefinition(guildId,contextId,config.entity_definition_id,{active:true}); }
+    async sendAsWeaver(channel, content, components = [], executionState = null, reference = null, contextId = null) {
+        const entity = this.entity(channel.guildId,contextId);
+        if (!entity) throw new Error("Aucune instance Entity active n’est configurée pour GreyFate dans ce Context.");
 
         const access = await threadAccessService.ensureWritable(channel);
         if (!access.ready) {
@@ -287,10 +289,12 @@ class GreyFateIntegrationService {
     referenceForDuo(duo) { return { domain: "greyfate", ownerKey: `duo:${duo.duo_id || duo.duoId}`, resourceKind: "thread", discordId: duo.thread_id || duo.threadId, guildId: duo.guild_id || duo.guildId || null }; }
     async resolveDuoThread(duo) { const result = await referenceResolver.resolve(this.referenceForDuo(duo), { client: this.client }); if (!result.available) throw referenceResolver.errorFor(result, "greyfate"); return result.channel; }
     upsertDuo(payload, duo, now) { repository.upsertDuo(payload, duo, now); }
-    async eventStarted(payload, executionState = { externalEffectAttempted: false }) { const now = new Date().toISOString(); this.initializeSchema(); for (const duo of payload.duos || []) { if (duo.threadId) repository.validateDuo(payload, duo); } repository.upsertEvent(payload, now); const failures = []; for (const duo of payload.duos || []) { if (!duo.threadId) continue; this.upsertDuo(payload, duo, now); const saved = this.duo(duo.duoId); if (saved.welcome_sent_at) continue; const reference = this.referenceForDuo(saved || duo); try { const channel = await this.resolveDuoThread(saved || duo); await this.sendAsWeaver(channel, `Les fils du destin se sont croisés. **${duo.maleCharacter}** et **${duo.femaleCharacter}**, votre histoire peut commencer.`, [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`greyfate_scene_start:${duo.duoId}`).setLabel("Commencer la scène").setEmoji("🧵").setStyle(ButtonStyle.Primary))], executionState, reference); repository.markWelcome(duo.duoId, now); } catch (error) { repository.markError(duo.duoId, error.message, now); failures.push(`${duo.duoId}: ${error.message}`); } } if (failures.length) throw new Error(`Accueil incomplet : ${failures.join(" | ")}`); }
-    async closureDue(payload, executionState = { externalEffectAttempted: false }) { const duo = this.duo(payload.duoId); if (!duo || duo.closed_at || duo.closure_prompt_sent_at) return; this.assertDuoContext(duo, { guildId: payload.guildId ?? duo.guild_id, contextId: payload.contextId ?? duo.context_id }); const occurrence = new Date().toISOString(); const reference = this.referenceForDuo(duo); try { const channel = await this.resolveDuoThread(duo); await this.sendAsWeaver(channel, "Le fil de cette scène approche-t-il de son terme ?", [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(this.continueCustomId(duo.duo_id, occurrence)).setLabel("Continuer").setEmoji("▶️").setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId(`greyfate_duo_close:${duo.duo_id}`).setLabel("Clôturer").setEmoji("🏁").setStyle(ButtonStyle.Danger))], executionState, reference); repository.markClosurePrompt(duo.duo_id, occurrence); } catch (error) { repository.markError(duo.duo_id, error.message, occurrence); throw error; } }
+    async eventStarted(payload, executionState = { externalEffectAttempted: false }) { const now = new Date().toISOString(); this.initializeSchema(); for (const duo of payload.duos || []) { if (duo.threadId) repository.validateDuo(payload, duo); } repository.upsertEvent(payload, now); const failures = []; for (const duo of payload.duos || []) { if (!duo.threadId) continue; this.upsertDuo(payload, duo, now); const saved = this.duo(duo.duoId); if (saved.welcome_sent_at) continue; const reference = this.referenceForDuo(saved || duo); try { const channel = await this.resolveDuoThread(saved || duo); await this.sendAsWeaver(channel, `Les fils du destin se sont croisés. **${duo.maleCharacter}** et **${duo.femaleCharacter}**, votre histoire peut commencer.`, [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`greyfate_scene_start:${duo.duoId}`).setLabel("Commencer la scène").setEmoji("🧵").setStyle(ButtonStyle.Primary))], executionState, reference, saved.context_id); repository.markWelcome(duo.duoId, now); } catch (error) { repository.markError(duo.duoId, error.message, now); failures.push(`${duo.duoId}: ${error.message}`); } } if (failures.length) throw new Error(`Accueil incomplet : ${failures.join(" | ")}`); }
+    async closureDue(payload, executionState = { externalEffectAttempted: false }) { const duo = this.duo(payload.duoId); if (!duo || duo.closed_at || duo.closure_prompt_sent_at) return; this.assertDuoContext(duo, { guildId: payload.guildId ?? duo.guild_id, contextId: payload.contextId ?? duo.context_id }); const occurrence = new Date().toISOString(); const reference = this.referenceForDuo(duo); try { const channel = await this.resolveDuoThread(duo); await this.sendAsWeaver(channel, "Le fil de cette scène approche-t-il de son terme ?", [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(this.continueCustomId(duo.duo_id, occurrence)).setLabel("Continuer").setEmoji("▶️").setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId(`greyfate_duo_close:${duo.duo_id}`).setLabel("Clôturer").setEmoji("🏁").setStyle(ButtonStyle.Danger))], executionState, reference, duo.context_id); repository.markClosurePrompt(duo.duo_id, occurrence); } catch (error) { repository.markError(duo.duo_id, error.message, occurrence); throw error; } }
+    async questAnswer(duo,actorId,answer,stepNumber,submissionKey,{staff=false}={}){duo=this.assertDuoContext(duo);repository.assertQuestStep(duo,stepNumber);if(!staff&&![duo.male_user_id,duo.female_user_id].map(String).includes(String(actorId)))throw new Error("Action réservée au duo ou au staff.");const text=String(answer||'').trim();if(!text)throw new Error("La réponse est vide.");if(!submissionKey)throw new Error("Identité de soumission manquante.");return this.sendToFate({type:"GREYCORE_QUEST_ANSWER",operationKey:`${duo.event_id}:${duo.duo_id}:QUEST:${stepNumber}:${submissionKey}`,eventId:duo.event_id,guildId:duo.guild_id,contextId:duo.context_id,duoId:duo.duo_id,threadId:duo.thread_id,actorId,stepNumber,answer:text});}
+    async questDelivery(payload,executionState={externalEffectAttempted:false}){const duo=this.duo(payload.duoId);if(!duo)throw new Error("Duo GreyFate introuvable.");this.assertDuoContext(duo,{guildId:payload.guildId,contextId:payload.contextId});if(String(duo.thread_id)!==String(payload.threadId))throw new Error("Salon de duo incohérent.");const step=payload.step||null,stepNumber=Number(step?.number);if(step&&(!Number.isInteger(stepNumber)||stepNumber<1))throw new Error("Étape de quête invalide.");const content=String(payload.content||step?.prompt||'').trim();if(!content)throw new Error("Contenu de quête vide.");const components=step?[new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`greyfate_quest_answer:${duo.duo_id}:${stepNumber}`).setLabel(String(step.button||"Répondre").slice(0,80)).setEmoji("🧵").setStyle(ButtonStyle.Primary))]:[];const channel=await this.resolveDuoThread(duo);const sent=await this.sendAsWeaver(channel,content,components,executionState,this.referenceForDuo(duo),duo.context_id);if(step)repository.setQuestStep(duo,stepNumber);return sent;}
     async sendToFate(payload) { const url = process.env.GREYFATE_CALLBACK_URL, secret = process.env.GREYFATE_SHARED_SECRET; if (!url || !secret) throw new Error("Retour GreyFate non configuré"); const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 5000); try { const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${secret}` }, body: JSON.stringify(payload), signal: controller.signal }); if (!response.ok) throw new Error(`GreyFate HTTP ${response.status}`); return response.json(); } finally { clearTimeout(timeout); } }
-    async sceneStart(duo, actorId) { duo = this.assertDuoContext(duo); if (duo.scene_started_at) return { duplicate: true }; await this.sendToFate({ type: "GREYCORE_SCENE_STARTED", operationKey: `${duo.event_id}:${duo.duo_id}:START`, eventId: duo.event_id, guildId: duo.guild_id, duoId: duo.duo_id, threadId: duo.thread_id, actorId }); const now = new Date().toISOString(); repository.markStarted(duo.duo_id, now); return { duplicate: false }; }
+    async sceneStart(duo, actorId) { duo = this.assertDuoContext(duo); if (duo.scene_started_at) return { duplicate: true }; await this.sendToFate({ type: "GREYCORE_SCENE_STARTED", operationKey: `${duo.event_id}:${duo.duo_id}:START`, eventId: duo.event_id, guildId: duo.guild_id, contextId: duo.context_id, duoId: duo.duo_id, threadId: duo.thread_id, actorId }); const now = new Date().toISOString(); repository.markStarted(duo.duo_id, now); return { duplicate: false }; }
     async continueDuo(duo, actorId, occurrence, hours = 48) {
         const current = this.assertDuoContext(duo);
         if (!current || current.closed_at) {
@@ -305,6 +309,7 @@ class GreyFateIntegrationService {
             operationKey,
             eventId: current.event_id,
             guildId: current.guild_id,
+            contextId: current.context_id,
             duoId: current.duo_id,
             threadId: current.thread_id,
             hours,
@@ -321,7 +326,7 @@ class GreyFateIntegrationService {
             operationKey
         };
     }
-    async closeDuo(duo, actorId) { duo = this.assertDuoContext(duo); await this.sendToFate({ type: "GREYCORE_DUO_CLOSE", operationKey: `${duo.event_id}:${duo.duo_id}:CLOSE`, eventId: duo.event_id, guildId: duo.guild_id, duoId: duo.duo_id, threadId: duo.thread_id, actorId }); const now = new Date().toISOString(); repository.markClosed(duo.duo_id, now); }
+    async closeDuo(duo, actorId) { duo = this.assertDuoContext(duo); await this.sendToFate({ type: "GREYCORE_DUO_CLOSE", operationKey: `${duo.event_id}:${duo.duo_id}:CLOSE`, eventId: duo.event_id, guildId: duo.guild_id, contextId: duo.context_id, duoId: duo.duo_id, threadId: duo.thread_id, actorId }); const now = new Date().toISOString(); repository.markClosed(duo.duo_id, now); }
     duo(id) { return repository.getDuo(id); }
     assertDuoContext(duo, scope) { return repository.assertDuoContext(duo, scope); }
 

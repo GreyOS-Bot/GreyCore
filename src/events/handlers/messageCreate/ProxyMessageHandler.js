@@ -73,6 +73,7 @@ module.exports =
             return true;
         }
 
+        const runtimeContextId=resolveRuntimeContextId(message);
         const {
             character,
             v2Installation
@@ -84,7 +85,8 @@ module.exports =
             proxyName:
                 proxy.character,
             contextId:
-                resolveRuntimeContextId(message),
+                runtimeContextId,
+            requireExplicitContext:true,
             isStaff:
                 staffPermissionDecisionService.decide({
                     guild:
@@ -204,7 +206,11 @@ module.exports =
                 authorId:
                     message.author.id,
                 characterId:
-                    character.id
+                    character.id,
+                installationId:
+                    v2Installation?.installation_id || null,
+                contextId:
+                    v2Installation?.context_id || null
             }, claimToken);
 
             finalized = true;
@@ -319,8 +325,7 @@ function resolveRuntimeContextId(message) {
             .getActiveSceneByChannel(message.guild.id, message.channel?.id)
             ?.context_id;
         if (sceneContext) return sceneContext;
-        return require("../../../v2/managers/InstallationV2Manager")
-            .resolveContext(message.guild.id, null).id;
+        return null;
     } catch {
         // Legacy/non-scene test fixtures have no Context domain. Runtime DBs do.
         return null;

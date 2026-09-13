@@ -28,7 +28,7 @@ class StaffScenesPage {
                 .setTitle("🎬 Administration des cycles de scènes")
                 .setDescription([
                     `Contexte : **${context.name}**${context.is_default ? ' (défaut)' : ''} · \`${context.id}\``,
-                    'Configuration de l’assistant et lieux publics : globaux au serveur.',
+                    'Configuration de l’assistant : serveur · lieux publics : Context sélectionné.',
                     `Assistant : **${enabled ? "activé ✅" : "désactivé ❌"}**`,
                     `Zones RP : **${scopes.length}**`,
                     `Scènes actives : **${scenes.length}**`,
@@ -112,7 +112,7 @@ class StaffScenesPage {
                         .setEmoji("🔄")
                         .setStyle(ButtonStyle.Primary),
                     new ButtonBuilder()
-                        .setCustomId("v2_staff_scenes_public_places")
+                        .setCustomId(`v2_staff_scenes_public_places:${context.id}`)
                         .setLabel("Lieux pro/publics")
                         .setEmoji("🗺️")
                         .setStyle(ButtonStyle.Secondary),

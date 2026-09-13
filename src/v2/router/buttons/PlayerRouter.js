@@ -88,13 +88,17 @@ module.exports = async interaction => {
     }
     if (interaction.customId === "v2_player_public_places"
         || interaction.customId.startsWith("v2_player_public_places_page:")) {
-        const page = interaction.customId.startsWith("v2_player_public_places_page:")
-            ? Number(interaction.customId.split(":")[1]) || 0
-            : 0;
+        if(interaction.customId==="v2_player_public_places"){
+            const {ActionRowBuilder,StringSelectMenuBuilder}=require("discord.js");
+            const ContextRepository=require("../../repositories/ContextRepository"),list=new ContextRepository().listByGuild(interaction.guildId);
+            await interaction.update({content:"Choisis le Context dont tu veux consulter les lieux publics.",embeds:[],components:[new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId("v2_player_public_places_context").setPlaceholder("Choisir un Context").addOptions(list.slice(0,25).map(c=>({label:c.name,value:c.id,emoji:c.is_active?"🌍":"⏸️"}))))]});return true;
+        }
+        const [,contextId,rawPage]=interaction.customId.split(":");
+        const page=Number(rawPage)||0;
         const places = require("../../services/publicPlaces/PublicPlaceForumService")
-            .getPublished(interaction.guildId);
+            .getPublished(interaction.guildId,contextId);
         await interaction.update(
-            require("../../views/player/PlayerPublicPlacesView").build(interaction.guildId, places, page)
+            require("../../views/player/PlayerPublicPlacesView").build(interaction.guildId,contextId, places, page)
         );
         return true;
     }

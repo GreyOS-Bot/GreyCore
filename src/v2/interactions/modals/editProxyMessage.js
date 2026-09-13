@@ -60,6 +60,15 @@ module.exports =
                 );
             }
 
+            const contextId=proxyRecord.installation_id?require("../../managers/SceneAssistantV2Manager")
+                .getActiveSceneByChannel(interaction.guildId,interaction.channelId)?.context_id||null:null;
+            try {
+                if(proxyMessageManager.requireScoped)proxyMessageManager.requireScoped(proxyRecord,{
+                    guildId:interaction.guildId,contextId,
+                    installationId:proxyRecord.installation_id,actorId:interaction.user.id
+                });
+            } catch(error){ return replyError(interaction,error); }
+
             if (
                 String(
                     proxyRecord

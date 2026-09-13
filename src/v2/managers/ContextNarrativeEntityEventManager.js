@@ -1,0 +1,9 @@
+const {randomUUID}=require("node:crypto");const repo=require("../repositories/ContextNarrativeEntityEventRepository");const instances=require("./NarrativeEntityInstanceV2Manager");const {normalizeSchedule}=require("../services/entities/NarrativeEventSchedule");
+class Manager{
+ getEnabled(){return repo.getEnabled();} getById(g,c,id){return repo.get(g,c,id);} getByInstance(g,c,i){instances.require(g,c,i);return repo.byInstance(g,c,i);}
+ create(x){const i=instances.require(x.guildId,x.contextId,x.instanceId,{write:true});const name=String(x.name||'').trim();if(!name||name.length>100)throw new Error("Nom de programmation invalide.");const schedule=normalizeSchedule(x),now=new Date().toISOString();const scopeIds=[...new Set((x.scopeIds||i.scopes||[]).map(String))];instances.setScopes(x.guildId,x.contextId,x.instanceId,[...new Set([...i.scopes,...scopeIds])]);return repo.create({id:`ctxentityevent_${randomUUID()}`,instanceId:i.id,guildId:x.guildId,contextId:x.contextId,name,messageContent:String(x.messageContent||'').trim()||null,actionKey:x.actionKey||'none',actionPayload:x.actionPayload?JSON.stringify(x.actionPayload):null,createdBy:x.createdBy||null,scopeIds,now,...schedule});}
+ require(g,c,id,{write=false}={}){const e=repo.get(g,c,id);if(!e)throw new Error("Programmation introuvable dans ce Context.");instances.require(g,c,e.instance_id,{write});return e;}
+ setScopes(g,c,id,ids){const e=this.require(g,c,id,{write:true});const i=instances.require(g,c,e.instance_id,{write:true});instances.setScopes(g,c,i.id,[...new Set([...i.scopes,...ids])]);repo.replaceScopes(e.id,g,c,[...new Set(ids.map(String))],new Date().toISOString());return repo.get(g,c,id);}
+ toggle(g,c,id){const e=this.require(g,c,id,{write:true});return repo.toggle(e,new Date().toISOString());} delete(g,c,id){return repo.delete(this.require(g,c,id,{write:true}));}
+}
+module.exports=new Manager();

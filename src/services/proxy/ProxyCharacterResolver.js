@@ -16,18 +16,12 @@ function resolveProxyCharacter({
     guildId,
     proxyName,
     contextId = null,
+    requireExplicitContext = false,
     isStaff = false
 }) {
-    if (contextId === null) {
-        try {
-            contextId = require("../../v2/managers/InstallationV2Manager")
-                .resolveContext(guildId, null)?.id || null;
-        } catch {
-            contextId = null;
-        }
-    }
+    if(contextId===null&&!requireExplicitContext){try{contextId=require("../../v2/managers/InstallationV2Manager").resolveContext(guildId,null)?.id||null;}catch{contextId=null;}}
     let character =
-        findPlayableV2Character({
+        contextId === null && requireExplicitContext ? null : findPlayableV2Character({
             discordUserId,
             guildId,
             proxyName,
@@ -36,7 +30,7 @@ function resolveProxyCharacter({
         });
 
     const v2Installation =
-        findV2Installation({
+        contextId === null && requireExplicitContext ? null : findV2Installation({
             discordUserId,
             guildId,
             proxyName,

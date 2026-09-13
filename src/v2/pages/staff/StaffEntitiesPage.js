@@ -3,21 +3,30 @@ const {
     StringSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType
 } = require("discord.js");
 const manager = require("../../managers/NarrativeEntityV2Manager");
+const instances = require("../../managers/NarrativeEntityInstanceV2Manager");
+const ContextRepository = require("../../repositories/ContextRepository");
+const contexts = new ContextRepository();
+const drafts = require("../../services/entities/NarrativeEntityBroadcastDraftService");
 const triggerCatalog = require("../../core/catalogs/NarrativeEntityTriggerCatalog");
-const eventManager = require("../../managers/NarrativeEntityEventManager");
+const eventManager = require("../../managers/ContextNarrativeEntityEventManager");
 const decisionService = require("../../core/services/StaffPermissionDecisionService");
 const { navigationRow } = require("./StaffCharactersPage");
 
 class StaffEntitiesPage {
     build(interaction) {
-        const entities = manager.getByGuild(interaction.guildId);
+        const draft=drafts.get(interaction.guildId,interaction.user.id);
+        const available=contexts.listByGuild(interaction.guildId);
+        if(!draft.contextId){return {embeds:[new EmbedBuilder().setColor(0x5865F2).setTitle("✨ Entités narratives").setDescription("Choisissez explicitement le Context à administrer.")],components:[new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId("v2_staff_entities_context").setPlaceholder("Choisir un Context").addOptions(available.slice(0,25).map(c=>({label:c.name,value:c.id,emoji:c.is_active?"🌍":"⏸️"})))),navigationRow()]};}
+        const context=contexts.getById(interaction.guildId,draft.contextId);
+        if(!context){drafts.clear(interaction.guildId,interaction.user.id);return this.build(interaction);}
+        const entities = instances.list(interaction.guildId,context.id);
         const writable = canWrite(interaction);
         const lines = entities.map(entity => [
-            entity.is_enabled ? "✅" : "⏸️",
+            entity.is_active ? "✅" : "⏸️",
             `**${entity.name}**`,
             `· ${entity.triggers.length} déclencheur(s)`,
             `· ${entity.messages.length} message(s)`,
-            `· ${entity.scopes.length ? `${entity.scopes.length} lieu(x)` : "tout le serveur"}`
+            `· ${entity.scopes.length} lieu(x) dans ${context.name}`
         ].join(" "));
         const components = [];
 
@@ -30,7 +39,7 @@ class StaffEntitiesPage {
                         label: entity.name.slice(0, 100),
                         description: `${entity.triggers.length} déclencheur(s) · ${entity.messages.length} message(s)`.slice(0, 100),
                         value: entity.id,
-                        emoji: entity.is_enabled ? "✨" : "⏸️"
+                        emoji: entity.is_active ? "✨" : "⏸️"
                     })))
             ));
         }
@@ -47,7 +56,7 @@ class StaffEntitiesPage {
                 .setLabel("Diffusion manuelle")
                 .setEmoji("📣")
                 .setStyle(ButtonStyle.Success)
-                .setDisabled(!writable || !entities.some(entity => entity.is_enabled))
+                .setDisabled(!writable || !entities.some(entity => entity.is_active))
         ));
         components.push(new ActionRowBuilder().addComponents(
             new ButtonBuilder()
@@ -64,6 +73,7 @@ class StaffEntitiesPage {
                 .setTitle("✨ Entités narratives")
                 .setDescription([
                     "Les Entités donnent une identité immersive aux interventions automatiques de GreyCore.",
+                    `Context : **${context.name}** · \`${context.id}\``,
                     "GreyCore choisira une Entité active associée à l’événement, puis l’un de ses messages.",
                     "",
                     `**${entities.length} Entité(s) configurée(s)**`,
@@ -80,31 +90,36 @@ class StaffEntitiesPage {
     }
 
     buildBroadcast(interaction, draft) {
-        const entities = manager.getByGuild(interaction.guildId)
-            .filter(entity => entity.is_enabled);
+        if(!draft.contextId)throw new Error("Un Context explicite est obligatoire.");
+        const entities = instances.enabled(interaction.guildId,draft.contextId);
         const selectedEntities = entities.filter(entity => draft.entityIds.includes(entity.id));
         const entitySelect = new StringSelectMenuBuilder()
             .setCustomId("v2_staff_entities_broadcast_entities")
-            .setPlaceholder("Choisir jusqu’à 5 Entités")
+            .setPlaceholder("Choisir une instance Entity")
             .setMinValues(1)
-            .setMaxValues(Math.min(5, entities.length))
+            .setMaxValues(1)
             .addOptions(entities.slice(0, 25).map(entity => ({
                 label: entity.name.slice(0, 100),
                 value: entity.id,
                 emoji: "✨",
                 default: draft.entityIds.includes(entity.id)
             })));
-        const channelSelect = new ChannelSelectMenuBuilder()
-            .setCustomId("v2_staff_entities_broadcast_channels")
-            .setPlaceholder("Choisir jusqu’à 10 salons ou forums")
-            .setChannelTypes(
-                ChannelType.GuildText,
-                ChannelType.GuildAnnouncement,
-                ChannelType.GuildForum
-            )
-            .setMinValues(1)
-            .setMaxValues(10)
-            .setDefaultChannels(...draft.channelIds.slice(0, 10));
+        const selectedEntity = selectedEntities[0] || null;
+        const allowedDestinations = selectedEntity?.scopes || [];
+        const selectedDestinationIds = draft.channelIds.filter(id => allowedDestinations.includes(String(id)));
+        const channelSelect = allowedDestinations.length
+            ? new StringSelectMenuBuilder()
+                .setCustomId("v2_staff_entities_broadcast_channels")
+                .setPlaceholder("Choisir les destinations de cette instance")
+                .setMinValues(1)
+                .setMaxValues(Math.min(10, allowedDestinations.length))
+                .addOptions(allowedDestinations.slice(0,25).map(id => ({
+                    label: `Salon ${id}`.slice(0,100),
+                    value: String(id),
+                    description: "Scope autorisé de l’instance Entity",
+                    default: selectedDestinationIds.includes(String(id))
+                })))
+            : null;
         const sendCount = selectedEntities.length * draft.channelIds.length;
 
         return {
@@ -112,7 +127,8 @@ class StaffEntitiesPage {
                 .setColor(0x5865F2)
                 .setTitle("📣 Diffusion manuelle des Entités")
                 .setDescription([
-                    "Envoyez le même message avec une ou plusieurs Entités dans plusieurs lieux simultanément.",
+                    `Context : **${contexts.getById(interaction.guildId,draft.contextId)?.name||draft.contextId}**`,
+                    "Une diffusion manuelle reste strictement dans ce Context.",
                     "Dans un forum, GreyCore créera une nouvelle publication.",
                     "",
                     `**Entités :** ${selectedEntities.map(entity => entity.name).join(", ") || "aucune"}`,
@@ -121,7 +137,7 @@ class StaffEntitiesPage {
                 ].join("\n"))],
             components: [
                 new ActionRowBuilder().addComponents(entitySelect),
-                new ActionRowBuilder().addComponents(channelSelect),
+                ...(channelSelect ? [new ActionRowBuilder().addComponents(channelSelect)] : []),
                 new ActionRowBuilder().addComponents(
                     new ButtonBuilder()
                         .setCustomId("v2_staff_entities_broadcast_compose")
@@ -140,7 +156,8 @@ class StaffEntitiesPage {
     }
 
     buildDetail(interaction, entityId, { confirmDelete = false } = {}) {
-        const entity = manager.getById(interaction.guildId, entityId);
+        const contextId=drafts.get(interaction.guildId,interaction.user.id).contextId;
+        const entity = instances.get(interaction.guildId,contextId,entityId);
         if (!entity) return this.build(interaction);
         const writable = canWrite(interaction);
         const triggerLabels = entity.triggers.map(key => {
@@ -183,27 +200,27 @@ class StaffEntitiesPage {
                 new ButtonBuilder().setCustomId(`v2_staff_entities_edit:${entity.id}`)
                     .setLabel("Modifier").setEmoji("✏️").setStyle(ButtonStyle.Primary).setDisabled(!writable),
                 new ButtonBuilder().setCustomId(`v2_staff_entities_toggle:${entity.id}`)
-                    .setLabel(entity.is_enabled ? "Désactiver" : "Activer")
-                    .setEmoji(entity.is_enabled ? "⏸️" : "▶️").setStyle(ButtonStyle.Secondary).setDisabled(!writable),
+                    .setLabel(entity.is_active ? "Désactiver" : "Activer")
+                    .setEmoji(entity.is_active ? "⏸️" : "▶️").setStyle(ButtonStyle.Secondary).setDisabled(!writable),
                 new ButtonBuilder().setCustomId(`v2_staff_entities_expressions:${entity.id}`)
                     .setLabel("Mots d’appel").setEmoji("💬").setStyle(ButtonStyle.Secondary).setDisabled(!writable),
                 new ButtonBuilder().setCustomId(`v2_staff_entities_events:${entity.id}`)
                     .setLabel("Programmations").setEmoji("📅").setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder().setCustomId(`v2_staff_entities_delete:${entity.id}`)
-                    .setLabel("Supprimer").setEmoji("🗑️").setStyle(ButtonStyle.Danger).setDisabled(!writable)
+                new ButtonBuilder().setCustomId(`v2_staff_entities_greyfate:${entity.id}`)
+                    .setLabel("Utiliser pour GreyFate").setEmoji("🧵").setStyle(ButtonStyle.Secondary).setDisabled(!writable)
             ];
 
         return {
             embeds: [new EmbedBuilder()
                 .setColor(entity.embed_color)
-                .setTitle(`${entity.is_enabled ? "✨" : "⏸️"} ${entity.name}`)
+                .setTitle(`${entity.is_active ? "✨" : "⏸️"} ${entity.name}`)
                 .setThumbnail(entity.avatar_url || null)
                 .setDescription([
                     entity.description || "Aucune description.",
                     "",
-                    `**Statut :** ${entity.is_enabled ? "Active" : "Désactivée"}`,
+                    `**Statut dans ce Context :** ${entity.is_active ? "Active" : "Désactivée"}`,
                     `**Déclencheurs :** ${triggerLabels.join(", ") || "Aucun"}`,
-                    `**Lieux :** ${entity.scopes.length ? entity.scopes.map(channelId => `<#${channelId}>`).join(", ") : "Tous les salons et forums compatibles du serveur"}`,
+                    `**Lieux :** ${entity.scopes.length ? entity.scopes.map(channelId => `<#${channelId}>`).join(", ") : "Aucun"}`,
                     `**Appels :** le nom **${entity.name}**${entity.expressions.length ? `, ${entity.expressions.map(item => `\`${item.expression}\``).join(", ")}` : ""}`,
                     `**Messages :** ${entity.messages.length}`,
                     "",
@@ -229,9 +246,10 @@ class StaffEntitiesPage {
     }
 
     buildEvents(interaction, entityId) {
-        const entity = manager.getById(interaction.guildId, entityId);
+        const contextId=drafts.get(interaction.guildId,interaction.user.id).contextId;
+        const entity = instances.get(interaction.guildId,contextId,entityId);
         if (!entity) return this.build(interaction);
-        const events = eventManager.getByEntity(interaction.guildId, entityId);
+        const events = eventManager.getByInstance(interaction.guildId,contextId,entityId);
         const writable = canWrite(interaction);
         const components = [];
         if (events.length) components.push(new ActionRowBuilder().addComponents(
@@ -267,7 +285,8 @@ class StaffEntitiesPage {
     }
 
     buildEventDetail(interaction, eventId) {
-        const event = eventManager.getById(interaction.guildId, eventId);
+        const contextId=drafts.get(interaction.guildId,interaction.user.id).contextId;
+        const event = eventManager.getById(interaction.guildId,contextId,eventId);
         if (!event) return this.build(interaction);
         const writable = canWrite(interaction);
         const scopeSelect = new ChannelSelectMenuBuilder()
@@ -296,7 +315,7 @@ class StaffEntitiesPage {
                         .setLabel(event.is_enabled ? "Désactiver" : "Activer").setStyle(ButtonStyle.Secondary).setDisabled(!writable),
                     new ButtonBuilder().setCustomId(`v2_staff_entities_event_delete:${event.id}`)
                         .setLabel("Supprimer").setStyle(ButtonStyle.Danger).setDisabled(!writable),
-                    new ButtonBuilder().setCustomId(`v2_staff_entities_events:${event.entity_id}`)
+                    new ButtonBuilder().setCustomId(`v2_staff_entities_events:${event.instance_id}`)
                         .setLabel("Programmations").setStyle(ButtonStyle.Secondary)
                 )
             ]

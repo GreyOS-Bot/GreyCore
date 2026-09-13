@@ -4,16 +4,19 @@ const referenceHealth = require("../../core/services/DiscordReferenceHealthServi
 const channelDiagnostic = require("../../core/services/DiscordChannelDiagnosticService");
 
 class PublicPlaceForumService {
-    async synchronize(guildId, forum, options = {}) {
+    async synchronize(guildId, contextId, forum, options = {}) {
+        if (typeof contextId === "object") return this.synchronizeLegacy(guildId,contextId,forum||{});
         const result = await this.synchronizeWithStatus(
             guildId,
+            contextId,
             forum,
             options
         );
         return result.places;
     }
 
-    async synchronizeWithStatus(guildId, forum, options = {}) {
+    async synchronizeWithStatus(guildId, contextId, forum, options = {}) {
+        this.requireContext(guildId,contextId,true);
         const forumReference = this.forumReference(guildId, forum.id);
         const forumResolution = await referenceResolver.resolve(
             forumReference,
@@ -27,7 +30,7 @@ class PublicPlaceForumService {
         if (!forumResolution.available) {
             return {
                 complete: false,
-                places: repository.getByForum(guildId, forum.id)
+                places: repository.getByForum(guildId, contextId, forum.id)
             };
         }
 
@@ -47,7 +50,7 @@ class PublicPlaceForumService {
             threads.set(thread.id, thread);
         }
 
-        const existing = repository.getByForum(guildId, forum.id);
+        const existing = repository.getByForum(guildId, contextId, forum.id);
         if (inventory.complete) {
             for (const place of existing) {
                 if (threads.has(place.channel_id)) continue;
@@ -72,7 +75,7 @@ class PublicPlaceForumService {
             }
         }
 
-        const places = repository.upsertMany(guildId, forum.id, [...threads.values()].map(thread => ({
+        const places = repository.upsertMany(guildId, contextId, forum.id, [...threads.values()].map(thread => ({
             id: thread.id,
             name: thread.name,
             archived: Boolean(thread.archived)
@@ -151,17 +154,25 @@ class PublicPlaceForumService {
         };
     }
 
-    get(guildId, forumId) {
-        return repository.getByForum(guildId, forumId);
+    get(guildId, contextId, forumId) {
+        this.requireContext(guildId,contextId,false);
+        return repository.getByForum(guildId, contextId, forumId);
     }
 
-    getPublished(guildId) {
-        return repository.getPublishedForGuild(guildId);
+    getPublished(guildId,contextId) {
+        this.requireContext(guildId,contextId,false);
+        return repository.getPublishedForContext(guildId,contextId);
     }
 
-    categorize(guildId, channelId, category) {
-        return repository.setCategory(guildId, channelId, category);
+    categorize(guildId, contextId, channelId, category) {
+        this.requireContext(guildId,contextId,true);
+        const result=repository.setCategory(guildId, contextId, channelId, category);
+        if(!result||result.changes!==1)throw new Error("Lieu public introuvable dans ce Context.");
+        return result;
     }
+    requireContext(guildId,contextId,write){if(!repository.supportsRuntime())return null;if(!contextId)throw new Error("Un Context explicite est obligatoire pour les lieux publics.");const c=repository.context(guildId,contextId);if(!c)throw new Error("Context introuvable sur ce serveur.");if(write&&Number(c.is_active)!==1)throw new Error("Ce Context est inactif.");return c;}
+    async synchronizeLegacy(guildId,forum,options={}){const result=await this.synchronizeWithStatusLegacy(guildId,forum,options);return result.places;}
+    async synchronizeWithStatusLegacy(guildId,forum,options={}){if(repository.supportsRuntime())throw new Error("Un Context explicite est obligatoire pour les lieux publics.");const inventory=await this.collectInventory(forum);return {complete:inventory.complete,places:repository.upsertMany(guildId,null,forum.id,[...inventory.threads.values()].map(t=>({id:t.id,name:t.name,archived:Boolean(t.archived)})))};}
 }
 
 module.exports = new PublicPlaceForumService();

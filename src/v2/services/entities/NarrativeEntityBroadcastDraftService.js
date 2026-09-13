@@ -9,6 +9,7 @@ class NarrativeEntityBroadcastDraftService {
 
     get(guildId, userId) {
         return this.drafts.get(this.key(guildId, userId)) || {
+            contextId: null,
             entityIds: [],
             channelIds: []
         };

@@ -98,7 +98,9 @@ class NarrativeEntityEventScheduler {
         try {
             const sent = await entityService.sendEntity({
                 channel,
-                entityId: event.entity_id,
+                entityId: event.entity_definition_id || event.entity_id,
+                instanceId: event.instance_id || null,
+                contextId: event.context_id || null,
                 content: event.message_content,
                 threadName: channel.type === ChannelType.GuildForum ? event.name : null,
                 onBeforeSendAttempt: () => {

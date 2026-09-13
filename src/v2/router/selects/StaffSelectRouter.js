@@ -102,21 +102,23 @@ module.exports = async interaction => {
         return true;
     }
 
-    if (interaction.customId === "v2_staff_scenes_public_forum_select") {
+    if (interaction.customId?.startsWith("v2_staff_scenes_public_forum_select:")) {
         if (!administrativeAccess.canWrite(interaction, "scenes")) {
             await replyError(interaction, "Tu n’as pas accès aux cycles de scènes.");
             return true;
         }
         await interaction.deferUpdate();
+        const contextId=interaction.customId.split(":")[1];
+        require("../../managers/SceneAssistantV2Manager").resolveContext(interaction.guildId,contextId,{write:true});
         const forum = await interaction.guild.channels.fetch(interaction.values[0]);
         if (!forum?.threads) {
             await replyError(interaction, "Ce forum est introuvable.");
             return true;
         }
         const places = await require("../../services/publicPlaces/PublicPlaceForumService")
-            .synchronize(interaction.guildId, forum);
+            .synchronize(interaction.guildId,contextId, forum);
         await interaction.editReply(
-            require("../../views/staff/StaffPublicPlacesView").build(interaction, forum, places)
+            require("../../views/staff/StaffPublicPlacesView").build(interaction,contextId, forum, places)
         );
         return true;
     }
@@ -126,14 +128,14 @@ module.exports = async interaction => {
             await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }
-        const [, forumId, channelId, rawPage] = interaction.customId.split(":");
+        const [,contextId, forumId, channelId, rawPage] = interaction.customId.split(":");
         const service = require("../../services/publicPlaces/PublicPlaceForumService");
-        service.categorize(interaction.guildId, channelId, interaction.values[0]);
+        service.categorize(interaction.guildId,contextId, channelId, interaction.values[0]);
         const forum = await interaction.guild.channels.fetch(forumId);
-        const places = service.get(interaction.guildId, forumId);
+        const places = service.get(interaction.guildId,contextId, forumId);
         await interaction.update(
             require("../../views/staff/StaffPublicPlacesView").build(
-                interaction, forum, places, null, Number(rawPage) || 0
+                interaction,contextId, forum, places, null, Number(rawPage) || 0
             )
         );
         return true;
@@ -145,13 +147,13 @@ module.exports = async interaction => {
             await replyError(interaction, "Tu disposes uniquement d’un accès en lecture.");
             return true;
         }
-        const [, forumId, rawPage] = interaction.customId.split(":");
+        const [,contextId, forumId, rawPage] = interaction.customId.split(":");
         const forum = await interaction.guild.channels.fetch(forumId);
         const places = require("../../services/publicPlaces/PublicPlaceForumService")
-            .get(interaction.guildId, forumId);
+            .get(interaction.guildId,contextId, forumId);
         await interaction.update(
             require("../../views/staff/StaffPublicPlacesView").build(
-                interaction, forum, places, interaction.values[0], Number(rawPage) || 0
+                interaction,contextId, forum, places, interaction.values[0], Number(rawPage) || 0
             )
         );
         return true;

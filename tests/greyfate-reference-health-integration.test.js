@@ -18,7 +18,8 @@ function loadFixture(resolution) {
         markWelcome: id => { duos.get(id).welcome_sent_at = "now"; },
         markClosurePrompt: id => { duos.get(id).closure_prompt_sent_at = "now"; },
         markError: (id, message) => errors.push([id, message]),
-        getLatestEvent: () => null
+        getLatestEvent: () => null,
+        getEntityConfiguration: () => ({ entity_definition_id: "weaver-definition" })
     });
     stubModule("src/v2/core/services/DiscordReferenceResolverService.js", {
         resolve: async reference => resolution(reference),
@@ -26,7 +27,7 @@ function loadFixture(resolution) {
             result
         })
     });
-    stubModule("src/v2/managers/NarrativeEntityV2Manager.js", { getByGuild: () => [{ name: "The Weaver of Fate", is_enabled: 1, embed_color: "#000000" }] });
+    stubModule("src/v2/managers/NarrativeEntityInstanceV2Manager.js", { byDefinition: () => ({ name: "Narrative Entity", is_enabled: 1, embed_color: "#000000" }) });
     stubModule("src/v2/core/services/DiscordThreadAccessService.js", { ensureWritable: async channel => ({ ready: true, channel }) });
     stubModule("src/webhooks/webhookManager.js", { sendWithWebhook: async () => { webhooks += 1; return { webhookMessage: { id: "message" } }; } });
     stubModule("src/v2/core/services/TechnicalLogger.js", { create: () => ({ info: () => {}, error: () => {} }) });

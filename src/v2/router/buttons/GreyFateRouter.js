@@ -1,6 +1,7 @@
 const service = require("../../services/greyfate/GreyFateIntegrationService");
 const staffPermissionDecisionService = require("../../core/services/StaffPermissionDecisionService");
 const { replyPrivate } = require("../../core/services/InteractionResponseService");
+const {ModalBuilder,TextInputBuilder,TextInputStyle,ActionRowBuilder}=require("discord.js");
 const {
     toPublicErrorMessage,
     GREYFATE_MESSAGES
@@ -19,9 +20,13 @@ module.exports = async interaction => {
         write: true
     }).allowed) throw new Error("Action réservée au duo ou au staff.");
     service.assertDuoContext(duo, { guildId: interaction.guildId, contextId: duo.context_id });
+    if(action==="greyfate_quest_answer"){
+        const step=Number(encodedOccurrence);if(!Number.isInteger(step)||step<1)throw new Error("Étape de quête invalide.");
+        await interaction.showModal(new ModalBuilder().setCustomId(`greyfate_quest_submit:${duoId}:${step}`).setTitle(`Réponse à l’étape ${step}`).addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId("answer").setLabel("Réponse de votre duo").setStyle(TextInputStyle.Paragraph).setMinLength(1).setMaxLength(1500))));return true;
+    }
     await interaction.deferUpdate();
     try {
-        if (action === "greyfate_scene_start") { const result = await service.sceneStart(duo, interaction.user.id); if (!result.duplicate) { await interaction.editReply({ components: [] }); await service.sendAsWeaver(interaction.channel, "Le fil est noué. Votre scène commence maintenant."); } await replyPrivate(interaction, result.duplicate ? "Cette scène est déjà commencée." : "🧵 Scène ouverte."); return true; }
+        if (action === "greyfate_scene_start") { const result = await service.sceneStart(duo, interaction.user.id); if (!result.duplicate) { await interaction.editReply({ components: [] }); await service.sendAsWeaver(interaction.channel, "Le fil est noué. Votre scène commence maintenant.", [], null, null, duo.context_id); } await replyPrivate(interaction, result.duplicate ? "Cette scène est déjà commencée." : "🧵 Scène ouverte."); return true; }
         if (action === "greyfate_duo_continue") {
             if (extraParts.length || !encodedOccurrence) {
                 await replyPrivate(interaction, "Cette interface a été créée avec une ancienne version de GreyCore et ne peut plus être utilisée en sécurité.");
@@ -38,11 +43,11 @@ module.exports = async interaction => {
                 return true;
             }
             await interaction.editReply({ components: [] });
-            await service.sendAsWeaver(interaction.channel, "Le fil se prolonge de **48 heures**.");
+            await service.sendAsWeaver(interaction.channel, "Le fil se prolonge de **48 heures**.", [], null, null, duo.context_id);
             await replyPrivate(interaction, "▶️ Scène prolongée.");
             return true;
         }
-        if (action === "greyfate_duo_close") { await service.closeDuo(duo, interaction.user.id); await interaction.editReply({ components: [] }); await service.sendAsWeaver(interaction.channel, "Le fil se referme. Cette scène est **clôturée**."); await replyPrivate(interaction, "🏁 Scène clôturée."); return true; }
+        if (action === "greyfate_duo_close") { await service.closeDuo(duo, interaction.user.id); await interaction.editReply({ components: [] }); await service.sendAsWeaver(interaction.channel, "Le fil se referme. Cette scène est **clôturée**.", [], null, null, duo.context_id); await replyPrivate(interaction, "🏁 Scène clôturée."); return true; }
         return false;
     } catch (error) {
         await replyPrivate(

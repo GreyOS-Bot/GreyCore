@@ -1,6 +1,7 @@
 const decisionService = require("../../core/services/StaffPermissionDecisionService");
 const manager = require("../../managers/NarrativeEntityV2Manager");
-const eventManager = require("../../managers/NarrativeEntityEventManager");
+const instances = require("../../managers/NarrativeEntityInstanceV2Manager");
+const eventManager = require("../../managers/ContextNarrativeEntityEventManager");
 const page = require("../../pages/staff/StaffEntitiesPage");
 const { replyError } = require("../../core/services/InteractionResponseService");
 
@@ -14,9 +15,11 @@ module.exports = async interaction => {
         await replyError(interaction, "Tu ne peux pas modifier les Entités.");
         return true;
     }
+    const drafts=require("../../services/entities/NarrativeEntityBroadcastDraftService");
+    const contextId=drafts.get(interaction.guildId,interaction.user.id).contextId;
+    instances.requireContext(interaction.guildId,contextId,{write:true});
     if (interaction.customId === "v2_staff_entities_broadcast_submit") {
         const { deferPrivate, editOrReplyError } = require("../../core/services/InteractionResponseService");
-        const drafts = require("../../services/entities/NarrativeEntityBroadcastDraftService");
         const draft = drafts.get(interaction.guildId, interaction.user.id);
         const content = interaction.fields.getTextInputValue("content").trim();
         const threadName = interaction.fields.getTextInputValue("thread_name").trim()
@@ -39,10 +42,13 @@ module.exports = async interaction => {
             }
             for (const entityId of draft.entityIds) {
                 try {
+                    const instance=instances.require(interaction.guildId,contextId,entityId,{write:true});
                     const isForum = channel?.type === require("discord.js").ChannelType.GuildForum;
                     const sent = await entityService.sendEntity({
                         channel,
-                        entityId,
+                        entityId:instance.entity_definition_id,
+                        instanceId:instance.id,
+                        contextId,
                         content,
                         threadName: isForum ? threadName : null
                     });
@@ -71,7 +77,7 @@ module.exports = async interaction => {
         const entityId = interaction.customId.slice("v2_staff_entities_event_create_submit:".length);
         try {
             const event = eventManager.create({
-                guildId: interaction.guildId, entityId, createdBy: interaction.user.id,
+                guildId: interaction.guildId, contextId, instanceId:entityId, createdBy: interaction.user.id,
                 name: interaction.fields.getTextInputValue("name"),
                 calendarRule: interaction.fields.getTextInputValue("calendar"),
                 weekdayRule: interaction.fields.getTextInputValue("weekdays"),
@@ -83,16 +89,17 @@ module.exports = async interaction => {
         return true;
     }
     if (interaction.customId.startsWith("v2_staff_entities_expressions_submit:")) {
-        const entityId = interaction.customId.slice(
+        const instanceId = interaction.customId.slice(
             "v2_staff_entities_expressions_submit:".length
         );
         try {
+            const instance=instances.require(interaction.guildId,contextId,instanceId,{write:true});
             manager.setExpressions(
                 interaction.guildId,
-                entityId,
+                instance.entity_definition_id,
                 interaction.fields.getTextInputValue("expressions")
             );
-            await interaction.update(page.buildDetail(interaction, entityId));
+            await interaction.update(page.buildDetail(interaction, instanceId));
         } catch (error) { await replyError(interaction, error); }
         return true;
     }
@@ -112,8 +119,9 @@ module.exports = async interaction => {
     const entityId = interaction.customId.startsWith("v2_staff_entities_edit_submit:")
         ? interaction.customId.slice("v2_staff_entities_edit_submit:".length)
         : null;
-    const currentEntity = entityId
-        ? manager.getById(interaction.guildId, entityId)
+    const currentInstance=entityId?instances.require(interaction.guildId,contextId,entityId,{write:true}):null;
+    const currentEntity = currentInstance
+        ? manager.getById(interaction.guildId, currentInstance.entity_definition_id)
         : null;
     const values = {
         guildId: interaction.guildId,
@@ -128,13 +136,15 @@ module.exports = async interaction => {
         let entity;
         if (interaction.customId === "v2_staff_entities_create_submit") {
             entity = manager.create(values);
+            const instance=instances.create({guildId:interaction.guildId,contextId,definitionId:entity.id,createdBy:interaction.user.id});
+            await interaction.update(page.buildDetail(interaction,instance.id));return true;
         } else if (interaction.customId.startsWith("v2_staff_entities_edit_submit:")) {
             entity = manager.update({
                 ...values,
-                entityId
+                entityId:currentInstance.entity_definition_id
             });
         } else return false;
-        await interaction.update(page.buildDetail(interaction, entity.id));
+        await interaction.update(page.buildDetail(interaction, currentInstance.id));
     } catch (error) { await replyError(interaction, error); }
     return true;
 };

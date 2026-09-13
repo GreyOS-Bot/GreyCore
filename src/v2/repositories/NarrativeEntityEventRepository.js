@@ -2,6 +2,9 @@ const db = require("../../database/database");
 const { randomUUID } = require("node:crypto");
 
 class NarrativeEntityEventRepository {
+    supportsContext(){return Boolean(db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='ContextNarrativeEntityEventsV2'").get());}
+    contextRepo(){return require("./ContextNarrativeEntityEventRepository");}
+    contextEvent(id){return db.prepare("SELECT * FROM ContextNarrativeEntityEventsV2 WHERE id=?").get(id);}
     getByGuild(guildId) {
         return db.prepare(`
             SELECT event.*, entity.name AS entity_name, entity.avatar_url,
@@ -18,6 +21,7 @@ class NarrativeEntityEventRepository {
     }
 
     getById(guildId, eventId) {
+        if(this.supportsContext()){const r=db.prepare("SELECT context_id FROM ContextNarrativeEntityEventsV2 WHERE guild_id=? AND id=?").get(guildId,eventId);if(r)return this.contextRepo().get(guildId,r.context_id,eventId);}
         const row = db.prepare(`
             SELECT event.*, entity.name AS entity_name, entity.avatar_url,
                    entity.embed_color, entity.is_enabled AS entity_enabled
@@ -29,6 +33,7 @@ class NarrativeEntityEventRepository {
     }
 
     getEnabled() {
+        if(this.supportsContext())return this.contextRepo().getEnabled();
         return db.prepare(`
             SELECT event.*, entity.name AS entity_name, entity.avatar_url,
                    entity.embed_color, entity.is_enabled AS entity_enabled
@@ -73,6 +78,7 @@ class NarrativeEntityEventRepository {
     }
 
     claimRun(eventId, runKey, channelId, now) {
+        if(this.supportsContext()){const e=this.contextEvent(eventId);if(e)return this.contextRepo().claimRun(e,runKey,channelId,now);}
         const attemptToken = randomUUID();
         const claimed = db.prepare(`
             INSERT OR IGNORE INTO NarrativeEntityEventRunsV2
@@ -84,6 +90,7 @@ class NarrativeEntityEventRepository {
     }
 
     markExternalEffectAttempted(eventId, runKey, channelId, attemptToken, now) {
+        if(this.supportsContext()){const e=this.contextEvent(eventId);if(e)return this.contextRepo().markExternalEffectAttempted(e,runKey,channelId,attemptToken,now);}
         return db.prepare(`UPDATE NarrativeEntityEventRunsV2
             SET external_effect_attempted = 1, lease_at = ?
             WHERE event_id = ? AND run_key = ? AND channel_id = ?
@@ -92,6 +99,7 @@ class NarrativeEntityEventRepository {
     }
 
     completeRun(eventId, runKey, channelId, attemptToken, messageId, now) {
+        if(this.supportsContext()){const e=this.contextEvent(eventId);if(e)return this.contextRepo().completeRun(e,runKey,channelId,attemptToken,messageId,now);}
         const completed = db.prepare(`UPDATE NarrativeEntityEventRunsV2
             SET status = 'sent', message_id = ?, error_message = NULL
             WHERE event_id = ? AND run_key = ? AND channel_id = ?
@@ -105,6 +113,7 @@ class NarrativeEntityEventRepository {
     }
 
     failRun(eventId, runKey, channelId, attemptToken, error, now, uncertain = false) {
+        if(this.supportsContext()){const e=this.contextEvent(eventId);if(e)return this.contextRepo().failRun(e,runKey,channelId,attemptToken,error,now,uncertain);}
         const failed = db.prepare(`UPDATE NarrativeEntityEventRunsV2
             SET status = ?, error_message = ?
             WHERE event_id = ? AND run_key = ? AND channel_id = ?
@@ -121,6 +130,7 @@ class NarrativeEntityEventRepository {
     }
 
     getStaleRunningRuns(staleBefore) {
+        if(this.supportsContext())return this.contextRepo().getStaleRunningRuns(staleBefore);
         return db.prepare(`
             SELECT run.*, event.guild_id
             FROM NarrativeEntityEventRunsV2 run
@@ -132,6 +142,7 @@ class NarrativeEntityEventRepository {
     }
 
     recoverRun(runId, previousToken, staleBefore, now) {
+        if(this.supportsContext())return this.contextRepo().recoverRun(runId,previousToken,staleBefore,now);
         const attemptToken = randomUUID();
         const recovered = db.prepare(`
             UPDATE NarrativeEntityEventRunsV2
@@ -145,6 +156,7 @@ class NarrativeEntityEventRepository {
     }
 
     markStaleRunUncertain(runId, staleBefore, now) {
+        if(this.supportsContext())return this.contextRepo().markStaleRunUncertain(runId,staleBefore,now);
         return db.prepare(`
             UPDATE NarrativeEntityEventRunsV2
             SET status = 'failed_uncertain',

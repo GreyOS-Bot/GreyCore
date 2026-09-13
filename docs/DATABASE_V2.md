@@ -1479,3 +1479,25 @@ Context exacts; un index partiel impose un StateType actif unique par Installati
 `InstallationOutfitsV2` porte le même scope exact et conserve URL, BLOB, nom de fichier et
 content-type. Un index partiel impose au plus une tenue courante par Installation.
 `ContinuityOutfitsV2` reste une archive legacy en lecture seule.
+
+# Phase 3I — Entities, GreyFate, ProxyMessages et Public Places
+
+- `NarrativeEntitiesV2` reste la définition Guild-wide ;
+- `NarrativeEntityInstancesV2` porte le runtime immuable par Context ;
+- les scopes, welcomes, événements et runs Entity sont attachés à l’instance ;
+- `GreyFateEntityConfigurationV2` référence explicitement une définition, résolue
+  en instance dans le Context persistant du duo ;
+- `ProxyMessages.installation_id` et `ProxyMessages.context_id` identifient le
+  scope narratif des nouveaux messages, tandis que les historiques ambigus restent
+  NULL et legacy-compatibles ;
+- `ContextPublicPlacesV2` remplace `GuildPublicPlacesV2` pour le runtime actif.
+
+Ces migrations sont additives, idempotentes, sans sélection du Context par défaut,
+sans duplication Parent/Child et sans double-write vers les registres legacy. Les
+automatisations d’approbation et les limites de création restent Guild-wide. Le
+détail du cutover et ses limites de rollback figurent dans
+`docs/contexts-3i-entities-greyfate-final.md`.
+
+Au checkpoint 3I, les 128 ProxyMessages historiques audités sont tous ambigus et
+restent volontairement non attribués. Aucun défaut ou choix de première
+Installation n’est appliqué.

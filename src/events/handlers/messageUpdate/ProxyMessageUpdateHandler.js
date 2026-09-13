@@ -59,6 +59,15 @@ module.exports =
                 message
             );
         }
+        try {
+            const contextId=proxyRecord.installation_id?resolveMessageContext(message):null;
+            proxyMessageManager.requireScoped?.(proxyRecord,{
+                guildId:message.guild.id,
+                contextId,
+                installationId:proxyRecord.installation_id,
+                actorId:message.author.id
+            });
+        } catch { return false; }
 
         const proxy =
             parseProxy(
@@ -142,3 +151,5 @@ module.exports =
 
         return result.success;
     };
+
+function resolveMessageContext(message){return require("../../../v2/managers/SceneAssistantV2Manager").getActiveSceneByChannel(message.guild.id,message.channel?.id)?.context_id||null;}

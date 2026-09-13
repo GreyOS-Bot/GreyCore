@@ -134,6 +134,7 @@ class ProxyMessageManager {
 
             return null;
         }
+        const scope=this.resolveScope(data,characterReference);
 
         db.prepare(`
             INSERT INTO ProxyMessages (
@@ -145,9 +146,9 @@ class ProxyMessageManager {
                 author_id,
                 character_id,
                 character_version,
-                created_at
+                created_at, installation_id, context_id
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             data.discordMessageId,
             data.webhookMessageId,
@@ -157,7 +158,7 @@ class ProxyMessageManager {
             data.authorId,
             characterReference.id,
             characterReference.version,
-            new Date().toISOString()
+            new Date().toISOString(), scope.installationId, scope.contextId
         );
 
         return true;
@@ -177,6 +178,7 @@ class ProxyMessageManager {
                 `Message proxy non enregistré : personnage ${data.characterId} introuvable.`
             );
         }
+        const scope=this.resolveScope(data,characterReference);
 
         return db.transaction(() => {
             const claim =
@@ -207,9 +209,9 @@ class ProxyMessageManager {
                     author_id,
                     character_id,
                     character_version,
-                    created_at
+                    created_at, installation_id, context_id
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(
                 data.discordMessageId,
                 data.webhookMessageId,
@@ -219,7 +221,7 @@ class ProxyMessageManager {
                 data.authorId,
                 characterReference.id,
                 characterReference.version,
-                new Date().toISOString()
+                new Date().toISOString(), scope.installationId, scope.contextId
             );
 
             const released =
@@ -278,6 +280,28 @@ class ProxyMessageManager {
             FROM ProxyMessages
             WHERE webhook_message_id = ?
         `).get(webhookMessageId);
+    }
+
+    resolveScope(data,characterReference){
+        if(characterReference.version!=="v2")return {installationId:null,contextId:null};
+        if(!data.installationId||!data.contextId){
+            const candidates=db.prepare("SELECT id FROM CharacterGuildInstallationsV2 WHERE guild_id=? AND character_id=?").all(data.guildId,characterReference.id);
+            if(candidates.length)throw new Error("Le Context et l’Installation sont obligatoires pour un nouveau ProxyMessage V2.");
+            return {installationId:null,contextId:null};
+        }
+        const row=db.prepare(`SELECT id,guild_id,context_id,character_id FROM CharacterGuildInstallationsV2 WHERE id=?`).get(data.installationId);
+        if(!row||String(row.guild_id)!==String(data.guildId)||String(row.context_id)!==String(data.contextId)||String(row.character_id)!==String(characterReference.id))throw new Error("ProxyMessage hors du Context de l’Installation.");
+        return {installationId:row.id,contextId:row.context_id};
+    }
+
+    requireScoped(record,{guildId,contextId,installationId,actorId=null}){
+        if(!record||String(record.guild_id)!==String(guildId))throw new Error("Message proxy introuvable dans cette Guild.");
+        if(record.character_version!=="v2"||record.installation_id===null)return record;
+        if(String(record.context_id)!==String(contextId)||String(record.installation_id)!==String(installationId))throw new Error("Message proxy introuvable dans ce Context.");
+        const row=db.prepare(`SELECT i.id,i.guild_id,i.context_id,i.character_id,u.discord_user_id owner_id FROM CharacterGuildInstallationsV2 i JOIN CharactersV2 c ON c.id=i.character_id JOIN UsersV2 u ON u.id=c.owner_user_id WHERE i.id=?`).get(record.installation_id);
+        if(!row||String(row.guild_id)!==String(record.guild_id)||String(row.context_id)!==String(record.context_id)||String(row.character_id)!==String(record.character_id))throw new Error("Scope ProxyMessage invalide.");
+        if(actorId!==null&&String(record.author_id)!==String(actorId))throw new Error("Tu ne peux modifier que tes propres messages proxy.");
+        return record;
     }
 }
 

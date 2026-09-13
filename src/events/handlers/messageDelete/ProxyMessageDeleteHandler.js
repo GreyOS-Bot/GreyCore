@@ -49,6 +49,10 @@ module.exports =
         if (!proxyRecord) {
             return false;
         }
+        try {
+            const contextId=proxyRecord.installation_id?require("../../../v2/managers/SceneAssistantV2Manager").getActiveSceneByChannel(message.guild.id,message.channel?.id)?.context_id||null:null;
+            proxyMessageManager.requireScoped?.(proxyRecord,{guildId:message.guild.id,contextId,installationId:proxyRecord.installation_id,actorId:message.author.id});
+        } catch { return false; }
 
         const result =
             await historicalWebhookService.delete({

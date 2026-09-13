@@ -46,6 +46,15 @@ class GreyFateRepository {
                 updated_at TEXT NOT NULL,
                 last_error TEXT
             );
+            CREATE TABLE IF NOT EXISTS GreyFateDuoQuestSteps (
+                duo_id TEXT PRIMARY KEY,
+                guild_id TEXT NOT NULL,
+                context_id TEXT NOT NULL,
+                thread_id TEXT NOT NULL,
+                step_number INTEGER NOT NULL CHECK(step_number > 0),
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY(duo_id) REFERENCES GreyFateDuos(duo_id) ON DELETE CASCADE
+            );
         `);
         const columns = new Set(
             db.prepare("PRAGMA table_info(GreyFateDuos)").all().map(column => column.name)
@@ -59,6 +68,17 @@ class GreyFateRepository {
         }
         require('./SceneContextMigration')(db);
     }
+
+    configureEntity(guildId,definitionId,actorId,now=new Date().toISOString()) {
+        const valid=db.prepare("SELECT 1 FROM NarrativeEntitiesV2 WHERE id=? AND guild_id=?").get(definitionId,guildId);
+        if(!valid)throw new Error("Définition Entity GreyFate introuvable sur ce serveur.");
+        db.prepare(`INSERT INTO GreyFateEntityConfigurationV2(guild_id,entity_definition_id,updated_by,updated_at) VALUES(?,?,?,?) ON CONFLICT(guild_id) DO UPDATE SET entity_definition_id=excluded.entity_definition_id,updated_by=excluded.updated_by,updated_at=excluded.updated_at`).run(guildId,definitionId,actorId||null,now);
+        return this.getEntityConfiguration(guildId);
+    }
+    getEntityConfiguration(guildId){return db.prepare("SELECT * FROM GreyFateEntityConfigurationV2 WHERE guild_id=?").get(guildId)||null;}
+    setQuestStep(duo,stepNumber,now=new Date().toISOString()){db.prepare(`INSERT INTO GreyFateDuoQuestSteps(duo_id,guild_id,context_id,thread_id,step_number,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(duo_id) DO UPDATE SET guild_id=excluded.guild_id,context_id=excluded.context_id,thread_id=excluded.thread_id,step_number=excluded.step_number,updated_at=excluded.updated_at`).run(duo.duo_id,duo.guild_id,duo.context_id,duo.thread_id,stepNumber,now);return this.getQuestStep(duo.duo_id);}
+    getQuestStep(duoId){return db.prepare("SELECT * FROM GreyFateDuoQuestSteps WHERE duo_id=?").get(duoId)||null;}
+    assertQuestStep(duo,stepNumber){const row=this.getQuestStep(duo.duo_id);if(!row||String(row.guild_id)!==String(duo.guild_id)||String(row.context_id)!==String(duo.context_id)||String(row.thread_id)!==String(duo.thread_id)||Number(row.step_number)!==Number(stepNumber))throw new Error("Cette étape de quête n’est plus active.");return row;}
 
     hasOperation(operationKey) {
         return Boolean(db.prepare("SELECT 1 FROM GreyFateOperations WHERE operation_key=?").get(operationKey));

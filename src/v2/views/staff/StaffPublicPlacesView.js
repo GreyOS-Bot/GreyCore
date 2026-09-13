@@ -8,7 +8,8 @@ const CATEGORIES = Object.freeze([
     ["hebergement", "Hébergement", "🏨"], ["autre", "Autre", "📍"]
 ]);
 
-function build(interaction, forum, places, focusChannelId = null, requestedPage = 0) {
+function build(interaction,contextId, forum, places, focusChannelId = null, requestedPage = 0) {
+    if(!Array.isArray(places)){requestedPage=focusChannelId||0;focusChannelId=places||null;places=forum;forum=contextId;contextId="legacy";}
     const pageCount = Math.max(1, Math.ceil(places.length / 25));
     const page = Math.max(0, Math.min(Number(requestedPage) || 0, pageCount - 1));
     const pagePlaces = places.slice(page * 25, (page + 1) * 25);
@@ -30,7 +31,7 @@ function build(interaction, forum, places, focusChannelId = null, requestedPage 
     const selectablePlaces = pagePlaces;
     if (selectablePlaces.length) components.push(new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
-            .setCustomId(`v2_staff_public_place_pick:${forum.id}:${page}`)
+            .setCustomId(`v2_staff_public_place_pick:${contextId}:${forum.id}:${page}`)
             .setPlaceholder("Modifier la catégorie d’un lieu")
             .addOptions(selectablePlaces.map(place => ({
                 value: String(place.channel_id),
@@ -41,23 +42,23 @@ function build(interaction, forum, places, focusChannelId = null, requestedPage 
     ));
     if (focus) components.push(new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
-            .setCustomId(`v2_staff_public_place_category:${forum.id}:${focus.channel_id}:${page}`)
+            .setCustomId(`v2_staff_public_place_category:${contextId}:${forum.id}:${focus.channel_id}:${page}`)
             .setPlaceholder(`${focus.category ? "Modifier" : "Classer"} : ${focus.name}`.slice(0, 150))
             .addOptions(CATEGORIES.map(([value, label, emoji]) => ({ value, label, emoji })))
     ));
     if (pageCount > 1) components.push(new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(`v2_staff_public_places_page:${forum.id}:${page - 1}`)
+            .setCustomId(`v2_staff_public_places_page:${contextId}:${forum.id}:${page - 1}`)
             .setLabel("Précédent").setEmoji("⬅️").setStyle(ButtonStyle.Secondary)
             .setDisabled(page === 0),
         new ButtonBuilder()
-            .setCustomId(`v2_staff_public_places_page:${forum.id}:${page + 1}`)
+            .setCustomId(`v2_staff_public_places_page:${contextId}:${forum.id}:${page + 1}`)
             .setLabel("Suivant").setEmoji("➡️").setStyle(ButtonStyle.Secondary)
             .setDisabled(page === pageCount - 1)
     ));
     components.push(new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`v2_staff_public_places_refresh:${forum.id}`).setLabel("Actualiser le forum").setEmoji("🔄").setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId("v2_staff_scenes_public_places").setLabel("Changer de forum").setEmoji("🗺️").setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`v2_staff_public_places_refresh:${contextId}:${forum.id}`).setLabel("Actualiser le forum").setEmoji("🔄").setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`v2_staff_scenes_public_places:${contextId}`).setLabel("Changer de forum").setEmoji("🗺️").setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId("page:staff:section:scenes").setLabel("Retour").setEmoji("⬅️").setStyle(ButtonStyle.Secondary)
     ));
     return {

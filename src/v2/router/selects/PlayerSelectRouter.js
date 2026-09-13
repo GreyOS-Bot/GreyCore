@@ -1,5 +1,10 @@
 module.exports = async interaction => {
     if (!interaction.isStringSelectMenu?.()) return false;
+    if(interaction.customId==="v2_player_public_places_context"){
+        const contextId=interaction.values[0];
+        const places=require("../../services/publicPlaces/PublicPlaceForumService").getPublished(interaction.guildId,contextId);
+        await interaction.update(require("../../views/player/PlayerPublicPlacesView").build(interaction.guildId,contextId,places,0));return true;
+    }
     if (interaction.customId === "v2_player_archives_select") {
         const v2 = require("../../index");
         const user = v2.managers.user.getOrCreate(interaction.user.id);

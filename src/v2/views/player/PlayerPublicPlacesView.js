@@ -1,7 +1,8 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { CATEGORIES } = require("../staff/StaffPublicPlacesView");
 
-function build(guildId, places, requestedPage = 0) {
+function build(guildId,contextId, places, requestedPage = 0) {
+    if(!Array.isArray(places)){requestedPage=places||0;places=contextId;contextId="legacy";}
     const labels = new Map(CATEGORIES.map(([key, label, emoji]) => [key, `${emoji} ${label}`]));
     const groups = new Map();
     for (const place of places) {
@@ -25,8 +26,8 @@ function build(guildId, places, requestedPage = 0) {
     const page = Math.max(0, Math.min(Number(requestedPage) || 0, chunks.length - 1));
     const components = [];
     if (chunks.length > 1) components.push(new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`v2_player_public_places_page:${page - 1}`).setLabel("Précédent").setEmoji("⬅️").setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
-        new ButtonBuilder().setCustomId(`v2_player_public_places_page:${page + 1}`).setLabel("Suivant").setEmoji("➡️").setStyle(ButtonStyle.Secondary).setDisabled(page === chunks.length - 1)
+        new ButtonBuilder().setCustomId(`v2_player_public_places_page:${contextId}:${page - 1}`).setLabel("Précédent").setEmoji("⬅️").setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
+        new ButtonBuilder().setCustomId(`v2_player_public_places_page:${contextId}:${page + 1}`).setLabel("Suivant").setEmoji("➡️").setStyle(ButtonStyle.Secondary).setDisabled(page === chunks.length - 1)
     ));
     components.push(new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId("v2_library_home").setLabel("Accueil").setEmoji("🏠").setStyle(ButtonStyle.Secondary),

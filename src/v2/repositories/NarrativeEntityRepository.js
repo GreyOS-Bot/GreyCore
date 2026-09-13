@@ -1,4 +1,4 @@
-const db = require("../../database/database");
+const db = new Proxy({}, { get(_target,key) { const current=require("../../database/database"); const value=current[key]; return typeof value==="function" ? value.bind(current) : value; } });
 
 class NarrativeEntityRepository {
     getByGuild(guildId) {

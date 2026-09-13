@@ -969,7 +969,7 @@ const owners = Array.from(new Set(
         const administrativeAccess = require("../../core/services/AdministrativePermissionAccessService");
         const { replyError } = require("../../core/services/InteractionResponseService");
         const action = interaction.customId.slice("v2_staff_scenes_".length);
-        const readOnlyActions = ["manage", "diagnostic", "public_places", "duo_report"].includes(action);
+        const readOnlyActions = ["manage", "diagnostic", "duo_report"].includes(action) || action.startsWith("public_places:");
         const allowed = readOnlyActions
             ? administrativeAccess.canRead(interaction, "scenes")
             : administrativeAccess.canWrite(interaction, "scenes");
@@ -1010,7 +1010,9 @@ const owners = Array.from(new Set(
             return true;
         }
 
-        if (action === "public_places") {
+        if (action.startsWith("public_places:")) {
+            const contextId=action.slice("public_places:".length);
+            manager.resolveContext(interaction.guildId,contextId,{write:true});
             const { ActionRowBuilder, ChannelSelectMenuBuilder, ChannelType } = require("discord.js");
             await interaction.update({
                 content: "Choisis le forum Discord dont tu veux générer la liste des lieux publics.",
@@ -1018,7 +1020,7 @@ const owners = Array.from(new Set(
                 components: [
                     new ActionRowBuilder().addComponents(
                         new ChannelSelectMenuBuilder()
-                            .setCustomId("v2_staff_scenes_public_forum_select")
+                            .setCustomId(`v2_staff_scenes_public_forum_select:${contextId}`)
                             .setPlaceholder("Choisir le forum des lieux publics")
                             .setChannelTypes(ChannelType.GuildForum)
                     ),
@@ -1144,12 +1146,12 @@ const owners = Array.from(new Set(
             return true;
         }
         await interaction.deferUpdate();
-        const forumId = interaction.customId.split(":")[1];
+        const [,contextId,forumId] = interaction.customId.split(":");
         const forum = await interaction.guild.channels.fetch(forumId);
         const places = await require("../../services/publicPlaces/PublicPlaceForumService")
-            .synchronize(interaction.guildId, forum);
+            .synchronize(interaction.guildId,contextId, forum);
         await interaction.editReply(
-            require("../../views/staff/StaffPublicPlacesView").build(interaction, forum, places)
+            require("../../views/staff/StaffPublicPlacesView").build(interaction,contextId, forum, places)
         );
         return true;
     }
@@ -1159,12 +1161,12 @@ const owners = Array.from(new Set(
             await require("../../core/services/InteractionResponseService").replyError(interaction, "Tu n’as pas accès aux cycles de scènes.");
             return true;
         }
-        const [, forumId, rawPage] = interaction.customId.split(":");
+        const [,contextId, forumId, rawPage] = interaction.customId.split(":");
         const forum = await interaction.guild.channels.fetch(forumId);
         const places = require("../../services/publicPlaces/PublicPlaceForumService")
-            .get(interaction.guildId, forumId);
+            .get(interaction.guildId,contextId, forumId);
         await interaction.update(
-            require("../../views/staff/StaffPublicPlacesView").build(interaction, forum, places, null, Number(rawPage) || 0)
+            require("../../views/staff/StaffPublicPlacesView").build(interaction,contextId, forum, places, null, Number(rawPage) || 0)
         );
         return true;
     }

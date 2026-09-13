@@ -1,4 +1,5 @@
 const modalRouters = [
+    require("./modals/GreyFateModalRouter"),
     require("./modals/StaffEntityModalRouter"),
     require("./modals/StaffModalRouter"),
     require("./modals/SceneModalRouter"),

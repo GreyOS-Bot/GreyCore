@@ -7,9 +7,11 @@ const {
 } = require("discord.js");
 const decisionService = require("../../core/services/StaffPermissionDecisionService");
 const manager = require("../../managers/NarrativeEntityV2Manager");
-const eventManager = require("../../managers/NarrativeEntityEventManager");
+const instances = require("../../managers/NarrativeEntityInstanceV2Manager");
+const eventManager = require("../../managers/ContextNarrativeEntityEventManager");
 const page = require("../../pages/staff/StaffEntitiesPage");
 const { replyError } = require("../../core/services/InteractionResponseService");
+const greyFate = require("../../services/greyfate/GreyFateIntegrationService");
 
 module.exports = async interaction => {
     if (!interaction.isButton?.() || !interaction.customId?.startsWith("v2_staff_entities_")) return false;
@@ -18,6 +20,8 @@ module.exports = async interaction => {
         return true;
     }
     const [action, entityId] = parse(interaction.customId);
+    const drafts=require("../../services/entities/NarrativeEntityBroadcastDraftService");
+    const contextId=drafts.get(interaction.guildId,interaction.user.id).contextId;
     if (action === "open") {
         await interaction.update(page.buildDetail(interaction, entityId));
         return true;
@@ -36,10 +40,11 @@ module.exports = async interaction => {
     }
     try {
         if (action === "create") {
+            instances.requireContext(interaction.guildId,contextId,{write:true});
             await interaction.showModal(buildModal());
         } else if (action === "broadcast") {
-            const drafts = require("../../services/entities/NarrativeEntityBroadcastDraftService");
             drafts.clear(interaction.guildId, interaction.user.id);
+            drafts.update(interaction.guildId,interaction.user.id,{contextId});
             await interaction.update(page.buildBroadcast(
                 interaction,
                 drafts.get(interaction.guildId, interaction.user.id)
@@ -58,28 +63,34 @@ module.exports = async interaction => {
         } else if (action === "event_create") {
             await interaction.showModal(buildEventModal(entityId));
         } else if (action === "event_toggle") {
-            const event = eventManager.toggle(interaction.guildId, entityId);
+            const event = eventManager.toggle(interaction.guildId,contextId, entityId);
             await interaction.update(page.buildEventDetail(interaction, event.id));
         } else if (action === "event_delete") {
-            const event = eventManager.getById(interaction.guildId, entityId);
+            const event = eventManager.getById(interaction.guildId,contextId, entityId);
             if (!event) throw new Error("Cette programmation est introuvable.");
-            eventManager.delete(interaction.guildId, entityId);
-            await interaction.update(page.buildEvents(interaction, event.entity_id));
+            eventManager.delete(interaction.guildId,contextId, entityId);
+            await interaction.update(page.buildEvents(interaction, event.instance_id));
         } else if (action === "edit") {
-            const entity = manager.getById(interaction.guildId, entityId);
+            const instance=instances.require(interaction.guildId,contextId,entityId);
+            const entity = manager.getById(interaction.guildId, instance.entity_definition_id);
             if (!entity) throw new Error("Cette Entité est introuvable.");
-            await interaction.showModal(buildModal(entity));
+            await interaction.showModal(buildModal(entity,instance.id));
         } else if (action === "expressions") {
-            const entity = manager.getById(interaction.guildId, entityId);
+            const instance=instances.require(interaction.guildId,contextId,entityId);
+            const entity = manager.getById(interaction.guildId, instance.entity_definition_id);
             if (!entity) throw new Error("Cette Entité est introuvable.");
-            await interaction.showModal(buildExpressionsModal(entity));
+            await interaction.showModal(buildExpressionsModal(entity,instance.id));
         } else if (action === "toggle") {
-            manager.toggle(interaction.guildId, entityId);
+            instances.toggle(interaction.guildId,contextId,entityId);
+            await interaction.update(page.buildDetail(interaction, entityId));
+        } else if (action === "greyfate") {
+            const instance=instances.require(interaction.guildId,contextId,entityId,{write:true});
+            greyFate.configureEntity(interaction.guildId,instance.entity_definition_id,interaction.user.id);
             await interaction.update(page.buildDetail(interaction, entityId));
         } else if (action === "delete") {
             await interaction.update(page.buildDetail(interaction, entityId, { confirmDelete: true }));
         } else if (action === "delete_confirm") {
-            manager.delete(interaction.guildId, entityId);
+            throw new Error("Une définition Entity partagée ne se supprime pas depuis une instance Context.");
             await interaction.update(page.build(interaction));
         } else return false;
     } catch (error) { await replyError(interaction, error); }
@@ -143,7 +154,7 @@ function buildEventModal(entityId) {
         );
 }
 
-function buildModal(entity = null) {
+function buildModal(entity = null, instanceId = null) {
     const field = (id, label, style, maxLength, required, value = null) => {
         const input = new TextInputBuilder().setCustomId(id)
             .setStyle(style).setMaxLength(maxLength).setRequired(required);
@@ -160,7 +171,7 @@ function buildModal(entity = null) {
         .setRequired(false);
 
     return new ModalBuilder()
-        .setCustomId(entity ? `v2_staff_entities_edit_submit:${entity.id}` : "v2_staff_entities_create_submit")
+        .setCustomId(entity ? `v2_staff_entities_edit_submit:${instanceId}` : "v2_staff_entities_create_submit")
         .setTitle(entity ? "Modifier l’Entité" : "Nouvelle Entité")
         .addLabelComponents(
             field("name", "Nom", TextInputStyle.Short, 80, true, entity?.name),
@@ -178,7 +189,7 @@ function buildModal(entity = null) {
         );
 }
 
-function buildExpressionsModal(entity) {
+function buildExpressionsModal(entity,instanceId) {
     const input = new TextInputBuilder()
         .setCustomId("expressions")
         .setStyle(TextInputStyle.Paragraph)
@@ -191,7 +202,7 @@ function buildExpressionsModal(entity) {
         );
     }
     return new ModalBuilder()
-        .setCustomId(`v2_staff_entities_expressions_submit:${entity.id}`)
+        .setCustomId(`v2_staff_entities_expressions_submit:${instanceId}`)
         .setTitle("Mots et expressions d’appel")
         .addLabelComponents(
             new LabelBuilder()
