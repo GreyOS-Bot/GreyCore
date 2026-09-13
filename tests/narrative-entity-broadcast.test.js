@@ -52,3 +52,40 @@ test("la diffusion conserve l’identité de l’Entité et le titre d’un foru
     assert.equal(payload.threadName, "Annonce officielle");
     assert.equal(payload.embeds[0].toJSON().description, "Une annonce importante.");
 });
+
+test("la diffusion renouvelle un avatar Discord expiré avant le webhook", async () => {
+    let payload;
+    const client = { id: "client" };
+    const expired = "https://cdn.discordapp.com/attachments/123456789012345/987654321098765/avatar.png?ex=1";
+    const refreshed = "https://cdn.discordapp.com/attachments/123456789012345/987654321098765/avatar.png?ex=ffffffff";
+    stubModule("src/v2/managers/NarrativeEntityV2Manager.js", {
+        getById: () => ({
+            id: "entity", name: "Le Héraut", avatar_url: expired,
+            embed_color: 0x123456, is_enabled: 1, messages: []
+        })
+    });
+    stubModule("src/v2/core/services/DiscordAttachmentUrlService.js", {
+        resolve: async (receivedClient, value) => {
+            assert.equal(receivedClient, client);
+            assert.equal(value, expired);
+            return refreshed;
+        }
+    });
+    stubModule("src/webhooks/webhookManager.js", {
+        sendWithWebhook: async (_channel, value) => {
+            payload = value;
+            return { webhookMessage: { id: "message" } };
+        }
+    });
+    const servicePath = require.resolve("../src/v2/services/entities/NarrativeEntityService");
+    delete require.cache[servicePath];
+    const service = require(servicePath);
+
+    await service.sendEntity({
+        channel: { guildId: "guild", id: "forum", client },
+        entityId: "entity",
+        content: "Une annonce importante."
+    });
+
+    assert.equal(payload.avatarURL, refreshed);
+});
