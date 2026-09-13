@@ -1,6 +1,7 @@
 const { EmbedBuilder } = require("discord.js");
 const manager = require("../../managers/NarrativeEntityV2Manager");
 const webhookManager = require("../../../webhooks/webhookManager");
+const discordAttachmentUrlService = require("../../core/services/DiscordAttachmentUrlService");
 
 class NarrativeEntityService {
     constructor() {
@@ -25,7 +26,7 @@ class NarrativeEntityService {
         );
         const sent = await webhookManager.sendWithWebhook(channel, {
             username: entity.name,
-            avatarURL: entity.avatar_url || undefined,
+            avatarURL: await this.resolveAvatar(channel, entity.avatar_url),
             embeds: [new EmbedBuilder().setColor(entity.embed_color).setDescription(
                 [rendered, suffix].filter(Boolean).join("\n\n")
             )],
@@ -54,7 +55,7 @@ class NarrativeEntityService {
         );
         const payload = {
             username: entity.name,
-            avatarURL: entity.avatar_url || undefined,
+            avatarURL: await this.resolveAvatar(channel, entity.avatar_url),
             embeds: [new EmbedBuilder().setColor(entity.embed_color).setDescription(
                 [rendered, suffix].filter(Boolean).join("\n\n")
             )],
@@ -127,7 +128,7 @@ class NarrativeEntityService {
     async sendSelection(channel, selection) {
         const sent = await webhookManager.sendWithWebhook(channel, {
             username: selection.entity.name,
-            avatarURL: selection.entity.avatar_url || undefined,
+            avatarURL: await this.resolveAvatar(channel, selection.entity.avatar_url),
             embeds: [new EmbedBuilder()
                 .setColor(selection.entity.embed_color)
                 .setDescription(selection.message.content)],
@@ -141,6 +142,11 @@ class NarrativeEntityService {
         for (const [key, availableAt] of this.invocationCooldowns) {
             if (availableAt <= now) this.invocationCooldowns.delete(key);
         }
+    }
+
+    async resolveAvatar(channel, avatarUrl) {
+        const client = channel?.client || channel?.guild?.client;
+        return (await discordAttachmentUrlService.resolve(client, avatarUrl)) || undefined;
     }
 }
 
